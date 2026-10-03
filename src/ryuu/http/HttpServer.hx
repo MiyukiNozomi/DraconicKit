@@ -1,4 +1,4 @@
-package ryuu;
+package ryuu.http;
 
 import sys.net.Host;
 import sys.net.Socket;

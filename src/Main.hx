@@ -1,5 +1,5 @@
 import sys.net.Host;
-import ryuu.HttpServer;
+import ryuu.http.HttpServer;
 
 class Main {
 	static function main() {

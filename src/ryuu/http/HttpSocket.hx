@@ -1,10 +1,10 @@
-package ryuu;
+package ryuu.http;
 
 import haxe.io.BytesInput;
 import haxe.io.Bytes;
-import ryuu.HttpMessages.HttpResponse;
 import haxe.io.BytesBuffer;
-import ryuu.HttpMessages.HttpRequest;
+import ryuu.http.HttpMessages.HttpRequest;
+import ryuu.http.HttpMessages.HttpResponse;
 import sys.net.Socket;
 
 class HttpSocket {

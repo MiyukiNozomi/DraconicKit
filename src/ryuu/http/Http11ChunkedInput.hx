@@ -1,4 +1,4 @@
-package ryuu;
+package ryuu.http;
 
 import haxe.io.Error;
 import haxe.io.Eof;
