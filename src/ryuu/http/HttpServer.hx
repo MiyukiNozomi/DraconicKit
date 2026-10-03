@@ -1,5 +1,6 @@
 package ryuu.http;
 
+import sys.io.File;
 import sys.net.Host;
 import sys.net.Socket;
 
@@ -31,8 +32,11 @@ class HttpServer {
 					continue;
 				}
 
-				if (req.payload != null) {
-					trace(req.payload.readAll().toString());
+				var payload = req.payload;
+				if (payload != null) {
+					var file = File.write("payload.bin");
+					file.writeInput(payload);
+					file.close();
 				} else {
 					trace("Request has no payload.");
 				}

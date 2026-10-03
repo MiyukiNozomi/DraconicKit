@@ -1,12 +1,9 @@
 package ryuu.http;
 
-import haxe.io.Error;
-import haxe.io.Eof;
 import haxe.io.Bytes;
-import haxe.io.BytesData;
-import haxe.io.BytesBuffer;
+import haxe.io.Eof;
+import haxe.io.Error;
 import haxe.io.Input;
-import sys.net.Socket;
 
 class Http11ChunkedInput extends Input {
 	private var socket:HttpSocket;
@@ -19,10 +16,12 @@ class Http11ChunkedInput extends Input {
 		this.cursor = 0;
 		this.currentChunkLength = 0;
 		this.socket = socket;
-		this.localBuffer = Bytes.alloc(65535);
+		this.localBuffer = Bytes.alloc(HttpSocket.MAX_CRLF_LINE_LENGTH);
 	}
 
 	public override function readByte():Int {
+		if (hasReachedEOF)
+			throw new haxe.io.Eof();
 		this.readChunked();
 
 		if (cursor >= this.currentChunkLength) {
@@ -32,7 +31,55 @@ class Http11ChunkedInput extends Input {
 		return this.localBuffer.get(cursor++);
 	}
 
+	public override function readBytes(s:Bytes, pos:Int, len:Int):Int {
+		if (hasReachedEOF)
+			throw new Eof();
+
+		if (pos < 0 || len < 0 || pos + len > s.length)
+			throw Error.OutsideBounds;
+
+		var read = 0;
+
+		try {
+			while (read < len) {
+				if (cursor >= currentChunkLength) {
+					readChunked();
+				}
+
+				var available = currentChunkLength - cursor;
+				var amount = Std.int(Math.min(available, len - read));
+
+				s.blit(pos + read, localBuffer, cursor, amount);
+
+				cursor += amount;
+				read += amount;
+			}
+		} catch (e:Eof) {}
+
+		// yes. i have to do this.
+		// otherwise anything that uses this input will just straight up explode.
+		if (read == 0)
+			throw new Eof();
+		return read;
+	}
+
 	private var hasReachedEOF = false;
+
+	// yes, we do not in fact, support trailers.
+	// the browser will naturally not send this type of thing.
+	// we might choose to do it in our side, however? this is a input stream,
+	// that should only be implemented in an output stream.
+	private function consumeTrailers() {
+		while (true) {
+			var line = socket.readUntilCRLF();
+
+			if (line == null)
+				throw new Eof();
+
+			if (line.length == 0)
+				return;
+		}
+	}
 
 	private function consumeCRLF() {
 		var cr = socket.socket.input.readByte();
@@ -42,14 +89,12 @@ class Http11ChunkedInput extends Input {
 	}
 
 	private function readChunked() {
-		if (hasReachedEOF)
-			throw new haxe.io.Eof();
-		if (this.cursor < this.currentChunkLength)
+		if (this.cursor < this.currentChunkLength || hasReachedEOF)
 			return;
 
 		var lengthBuff = this.socket.readUntilCRLF();
 		if (lengthBuff == null) {
-			return;
+			throw new haxe.io.Eof();
 		}
 
 		var lengthStr = lengthBuff.toString();
@@ -61,15 +106,19 @@ class Http11ChunkedInput extends Input {
 			lengthStr = lengthStr.substring(0, cutOff);
 		}
 
+		if (!(~/^[0-9a-fA-F]+$/).match(lengthStr)) {
+			throw Error.Custom("Bad length str in HTTP 1.1 chunk: " + lengthStr);
+		}
+
 		var length = Std.parseInt("0x" + lengthStr);
-		trace(length);
+
 		if (length == null) {
 			throw Error.Custom("Length is non numeric: " + lengthStr);
 		}
 
 		if (length == 0) {
 			hasReachedEOF = true;
-			this.consumeCRLF();
+			this.consumeTrailers();
 			throw new haxe.io.Eof();
 		}
 
@@ -79,7 +128,7 @@ class Http11ChunkedInput extends Input {
 
 		this.cursor = 0;
 		this.currentChunkLength = length;
-		this.socket.socket.input.readFullBytes(this.localBuffer, 0, length);
+		this.socket.socket.input.readBytes(this.localBuffer, 0, length);
 		this.consumeCRLF();
 	}
 }
