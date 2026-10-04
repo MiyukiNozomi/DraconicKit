@@ -15,7 +15,6 @@ class HttpSocket {
 	public var socket(default, null):Socket;
 
 	// TODO: make this configurable?
-	// TODO: also use this (after making it configurable) on Http11ChunkedInput.
 	public static final MAXIMUM_PAYLOAD_LENGTH = 8 * 1024 * 1024; // 8 MiB.
 
 	public static final MAX_CRLF_LINE_LENGTH = 64 * 1024;
@@ -24,9 +23,9 @@ class HttpSocket {
 
 	public static final MAX_HEADER_BYTES = 32 * 1024;
 
-	public static final ACCEPTED_HEADERS = ["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"];
+	public static final ACCEPTED_METHODS = ["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"];
 
-	public static final DISALLOWED_DUPLICATE_HEADERS = ["content-length", "transfer-encoding"];
+	public static final DISALLOWED_DUPLICATE_HEADERS = ["host", "content-length", "transfer-encoding"];
 
 	public function new(socket:Socket) {
 		socket.setTimeout(10);
@@ -34,7 +33,7 @@ class HttpSocket {
 	}
 
 	private function isAcceptedMethod(methodStr:String) {
-		return ACCEPTED_HEADERS.contains(methodStr);
+		return ACCEPTED_METHODS.contains(methodStr);
 	}
 
 	public function nextRequest():Null<HttpRequest> {
@@ -96,7 +95,6 @@ class HttpSocket {
 							this.socket.output.writeString('${StringTools.hex(nRead)}\r\n');
 							this.socket.output.writeBytes(buff, 0, nRead);
 							this.socket.output.writeString('\r\n');
-							this.socket.output.flush();
 						}
 					}
 				} catch (eof:haxe.io.Eof) {}
@@ -168,7 +166,7 @@ class HttpSocket {
 			.filter(v -> v.length > 0);
 
 		// TODO: compression
-		if (!header.contains("chunked")) {
+		if (!(header.length == 1 && header[0] == "chunked")) {
 			throw new HttpResponse(400);
 		}
 		request.payload = new Http11ChunkedInput(this);
@@ -180,8 +178,12 @@ class HttpSocket {
 		if (contentLengthHeader == null)
 			throw Error.Custom("readBodyFromContentLength called without a content-length header.");
 
+		if (!(~/^[0-9]+$/).match(contentLengthHeader))
+			throw new HttpResponse(400, {"content-type": "text/plain"}, Bytes.ofString("Bad Content-Length"));
+
 		var amount = Std.parseInt(contentLengthHeader);
-		if (amount == null || !(~/^[0-9]+$/).match(contentLengthHeader))
+
+		if (amount == null)
 			throw new HttpResponse(400, {"content-type": "text/plain"}, Bytes.ofString("Bad Content-Length"));
 
 		if (amount < 0 || amount > MAXIMUM_PAYLOAD_LENGTH)
@@ -233,7 +235,7 @@ class HttpSocket {
 			if (Std.isOfType(err, HttpResponse))
 				throw err;
 			trace("readUntilCRLF failed: ", err.toString());
-			throw new HttpResponse(400, {"content-type": "text/html"}, Bytes.ofString("Bad CRLF Line."));
+			throw Error.Blocked;
 		}
 	}
 }

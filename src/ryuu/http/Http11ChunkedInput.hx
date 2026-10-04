@@ -1,5 +1,6 @@
 package ryuu.http;
 
+import ryuu.http.HttpMessages.HttpResponse;
 import haxe.io.Bytes;
 import haxe.io.Eof;
 import haxe.io.Error;
@@ -12,8 +13,11 @@ class Http11ChunkedInput extends Input {
 	private var cursor:Int;
 	private var currentChunkLength:Int;
 
+	private var totalReadAmount:Int;
+
 	public function new(socket:HttpSocket) {
 		this.cursor = 0;
+		this.totalReadAmount = 0;
 		this.currentChunkLength = 0;
 		this.socket = socket;
 		this.localBuffer = Bytes.alloc(HttpSocket.MAX_CRLF_LINE_LENGTH);
@@ -65,9 +69,9 @@ class Http11ChunkedInput extends Input {
 
 	private var hasReachedEOF = false;
 
-	// yes, we do not in fact, support trailers.
+	// yes, we do not in fact, do anything with trailers.
 	// the browser will naturally not send this type of thing.
-	// we might choose to do it in our side, however? this is a input stream,
+	// we might choose to do it in our side when responding, however? this is a input stream,
 	// that should only be implemented in an output stream.
 	private function consumeTrailers() {
 		while (true) {
@@ -124,6 +128,11 @@ class Http11ChunkedInput extends Input {
 
 		if (length > this.localBuffer.length) {
 			throw Error.Overflow;
+		}
+
+		totalReadAmount += length;
+		if (totalReadAmount > HttpSocket.MAXIMUM_PAYLOAD_LENGTH) {
+			throw new HttpResponse(413);
 		}
 
 		this.cursor = 0;
