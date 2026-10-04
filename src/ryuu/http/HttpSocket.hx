@@ -1,5 +1,6 @@
 package ryuu.http;
 
+import haxe.Exception;
 import haxe.io.Input;
 import haxe.io.Encoding;
 import haxe.io.Bytes;
@@ -19,6 +20,11 @@ class HttpSocket {
 
 	public static final MAX_CRLF_LINE_LENGTH = 64 * 1024;
 
+	public static final MAX_CHUNKED_TRANSFER_BLOCK_SIZE = 4 * 1024 * 1024; // 4 MiB
+
+	public static final KEEP_ALIVE_TIMEOUT_SECONDS = 15;
+	public static final SOCKET_TIMEOUT_SECONDS = 10;
+
 	public static final READ_UNTIL_CRLF_TIMEOUT = 10; // 10 Seconds max for a CRLF line read.
 
 	public static final MAX_HEADER_BYTES = 32 * 1024;
@@ -28,7 +34,7 @@ class HttpSocket {
 	public static final DISALLOWED_DUPLICATE_HEADERS = ["host", "content-length", "transfer-encoding"];
 
 	public function new(socket:Socket) {
-		socket.setTimeout(10);
+		socket.setTimeout(SOCKET_TIMEOUT_SECONDS);
 		this.socket = socket;
 	}
 
@@ -42,23 +48,20 @@ class HttpSocket {
 			return null;
 
 		// HTTP 1.1 mandates the existance of Host.
-		if (!request.headers.exists("host")) {
+		var host = request.getHeader("host");
+		if (host == null || StringTools.trim(host).length == 0)
 			throw new HttpResponse(400);
-		}
 
 		var hasTransferEncoding = request.headers.exists("transfer-encoding");
 		var hasContentLength = request.headers.exists("content-length");
-
 		if (hasTransferEncoding && hasContentLength)
 			throw new HttpResponse(400);
-
 		// TODO: compression for the buffer based one too..
 		if (hasTransferEncoding) {
 			return this.readBodyAsChunkedEncoding(request);
 		} else if (hasContentLength) {
 			return this.readBodyFromContentLength(request);
 		}
-
 		return request;
 	}
 
@@ -78,36 +81,47 @@ class HttpSocket {
 		this.socket.output.writeString(requestHead.join("\r\n"), Encoding.UTF8);
 		this.socket.output.flush();
 
+		var didOriginateFromHEAD = response.isBodyDisallowed();
+
 		if (response.payload != null) {
 			var buffer = Std.downcast(response.payload, Bytes);
 			var stream = Std.downcast(response.payload, Input);
 
 			if (buffer != null) {
-				this.socket.output.write(buffer);
-				this.socket.output.flush();
+				if (!didOriginateFromHEAD) {
+					this.socket.output.write(buffer);
+					this.socket.output.flush();
+				}
 			} else if (stream != null) {
-				try {
-					var nRead = 4096;
-					var buff = Bytes.alloc(nRead);
-					while (nRead == buff.length) {
-						nRead = stream.readBytes(buff, 0, buff.length);
-						if (nRead > 0) {
-							this.socket.output.writeString('${StringTools.hex(nRead)}\r\n');
-							this.socket.output.writeBytes(buff, 0, nRead);
-							this.socket.output.writeString('\r\n');
+				if (!didOriginateFromHEAD) {
+					try {
+						var nRead = 4096;
+						var buff = Bytes.alloc(nRead);
+						while (nRead == buff.length) {
+							nRead = stream.readBytes(buff, 0, buff.length);
+							if (nRead > 0) {
+								this.socket.output.writeString('${StringTools.hex(nRead)}\r\n');
+								this.socket.output.writeBytes(buff, 0, nRead);
+								this.socket.output.writeString('\r\n');
+							}
 						}
-					}
-				} catch (eof:haxe.io.Eof) {}
-				this.socket.output.writeString("0\r\n\r\n");
-				this.socket.output.flush();
-				stream.close();
+					} catch (eof:haxe.io.Eof) {}
+					this.socket.output.writeString("0\r\n\r\n");
+					this.socket.output.flush();
+					stream.close();
+				} else {
+					stream.close();
+				}
 			}
 		}
 	}
 
 	private function buildRequestHead() {
 		// bad request!
-		var requestBuffer = this.readUntilCRLF();
+		// just initially..
+
+		socket.setTimeout(KEEP_ALIVE_TIMEOUT_SECONDS);
+		var requestBuffer = this.readUntilCRLF(KEEP_ALIVE_TIMEOUT_SECONDS);
 		if (requestBuffer == null)
 			return null;
 
@@ -183,10 +197,10 @@ class HttpSocket {
 
 		var amount = Std.parseInt(contentLengthHeader);
 
-		if (amount == null)
+		if (amount == null || amount < 0)
 			throw new HttpResponse(400, {"content-type": "text/plain"}, Bytes.ofString("Bad Content-Length"));
 
-		if (amount < 0 || amount > MAXIMUM_PAYLOAD_LENGTH)
+		if (amount > MAXIMUM_PAYLOAD_LENGTH)
 			throw new HttpResponse(413);
 
 		var contentBytes = Bytes.alloc(amount);
@@ -198,7 +212,7 @@ class HttpSocket {
 		return request;
 	}
 
-	public function readUntilCRLF() {
+	public function readUntilCRLF(customTimeoutSeconds = READ_UNTIL_CRLF_TIMEOUT) {
 		try {
 			var bytes = new BytesBuffer();
 			var prev = 0;
@@ -211,12 +225,13 @@ class HttpSocket {
 					Here's why: the socket timeout is used BETWEEN bytes, not for the entire operation.
 					this timeout only applies to the entire CRLF operation, otherwise an attacker can hang until we reach the limit for 10 seconds between each byte
 				 */
-				if (Sys.time() - start > READ_UNTIL_CRLF_TIMEOUT) {
-					throw Error.Custom("Took longer than " + READ_UNTIL_CRLF_TIMEOUT + " seconds to fully read a CRLF-terminated line.");
+				if (Sys.time() - start > customTimeoutSeconds) {
+					throw Error.Custom("Took longer than " + customTimeoutSeconds + " seconds to fully read a CRLF-terminated line.");
 				}
 				var next = socket.input.readByte();
+				socket.setTimeout(SOCKET_TIMEOUT_SECONDS);
 
-				if (bytes.length + 1 >= MAX_CRLF_LINE_LENGTH) {
+				if (bytes.length >= MAX_CRLF_LINE_LENGTH) {
 					trace("Warning: Hit CRLF-terminated line maximum limit of " + MAX_CRLF_LINE_LENGTH);
 					throw new HttpResponse(400, {"content-type": "text/html"},
 						Bytes.ofString("CRLF Line too long (limit " + MAX_CRLF_LINE_LENGTH + " yours: " + bytes.length + ")"));
@@ -232,6 +247,9 @@ class HttpSocket {
 				prev = next;
 			}
 		} catch (err) {
+			if (err.message.toLowerCase().indexOf("time") != -1) {
+				throw new HttpSocketTimeout("");
+			}
 			if (Std.isOfType(err, HttpResponse))
 				throw err;
 			trace("readUntilCRLF failed: ", err.toString());
@@ -239,3 +257,5 @@ class HttpSocket {
 		}
 	}
 }
+
+class HttpSocketTimeout extends Exception {}

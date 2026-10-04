@@ -22,8 +22,12 @@ class HttpRequest {
 		this.headers = headers;
 	}
 
+	public function hasHeader(key:String, df:String = null) {
+		return this.headers.exists(key.toLowerCase());
+	}
+
 	public function getHeader(key:String, df:String = null) {
-		var val = this.headers.get(key);
+		var val = this.headers.get(key.toLowerCase());
 		if (val == null)
 			return df;
 		return val.join(", ");
@@ -35,6 +39,8 @@ class HttpRequest {
 }
 
 class HttpResponse extends Exception {
+	public var sourceRequest:Null<HttpRequest> = null;
+
 	public var status(default, null):Int;
 	public var headers(default, null):Map<String, String>;
 	public var payload(default, null):Null<EitherType<Input, Bytes>>;
@@ -50,6 +56,12 @@ class HttpResponse extends Exception {
 		}
 
 		this.payload = payload;
+	}
+
+	public function isBodyDisallowed() {
+		if ((this.status >= 100 && this.status < 200) || status == 204 || status == 304)
+			return true;
+		return (this.sourceRequest != null && this.sourceRequest.status.method == "HEAD");
 	}
 
 	public function prepareBeforeCommit() {
@@ -83,6 +95,10 @@ class HttpResponse extends Exception {
 		headers.set("Server", "Moonlit Crimson Dragon");
 
 		if (this.payload != null) {
+			var isHead = (this.sourceRequest != null && this.sourceRequest.status.method == "HEAD");
+			if (!isHead && this.isBodyDisallowed())
+				return;
+
 			var buffer = Std.downcast(this.payload, Bytes);
 			var stream = Std.downcast(this.payload, Input);
 
@@ -96,7 +112,6 @@ class HttpResponse extends Exception {
 
 	public function statusText():String {
 		return switch (this.status) {
-			// 1xx Informational
 			case 100: "Continue";
 			case 101: "Switching Protocols";
 			case 102: "Processing";

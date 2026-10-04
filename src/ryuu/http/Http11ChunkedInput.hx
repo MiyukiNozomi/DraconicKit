@@ -20,7 +20,7 @@ class Http11ChunkedInput extends Input {
 		this.totalReadAmount = 0;
 		this.currentChunkLength = 0;
 		this.socket = socket;
-		this.localBuffer = Bytes.alloc(HttpSocket.MAX_CRLF_LINE_LENGTH);
+		this.localBuffer = Bytes.alloc(HttpSocket.MAX_CHUNKED_TRANSFER_BLOCK_SIZE);
 	}
 
 	public override function readByte():Int {
@@ -96,7 +96,7 @@ class Http11ChunkedInput extends Input {
 		if (this.cursor < this.currentChunkLength || hasReachedEOF)
 			return;
 
-		var lengthBuff = this.socket.readUntilCRLF();
+		var lengthBuff = this.socket.readUntilCRLF(HttpSocket.MAX_CHUNKED_TRANSFER_BLOCK_SIZE);
 		if (lengthBuff == null) {
 			throw new haxe.io.Eof();
 		}
@@ -137,7 +137,7 @@ class Http11ChunkedInput extends Input {
 
 		this.cursor = 0;
 		this.currentChunkLength = length;
-		this.socket.socket.input.readBytes(this.localBuffer, 0, length);
+		this.socket.socket.input.readFullBytes(this.localBuffer, 0, length);
 		this.consumeCRLF();
 	}
 }
