@@ -1,14 +1,16 @@
 package ryuu.http;
 
-import haxe.io.Eof;
-import haxe.io.Error;
-import haxe.io.BytesInput;
+import haxe.io.Input;
+import haxe.io.Encoding;
 import haxe.io.Bytes;
 import haxe.io.BytesBuffer;
+import haxe.io.BytesInput;
+import haxe.io.Error;
 import ryuu.http.HttpMessages.HttpRequest;
 import ryuu.http.HttpMessages.HttpResponse;
 import sys.net.Socket;
 
+// Should probably be called a Http11Socket.. but alright.
 class HttpSocket {
 	public var socket(default, null):Socket;
 
@@ -25,7 +27,6 @@ class HttpSocket {
 	public static final ACCEPTED_HEADERS = ["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"];
 
 	public static final DISALLOWED_DUPLICATE_HEADERS = ["content-length", "transfer-encoding"];
-	public static final STRING_LIST_HEADERS = ["accept", "accept-encoding"];
 
 	public function new(socket:Socket) {
 		socket.setTimeout(10);
@@ -52,7 +53,7 @@ class HttpSocket {
 		if (hasTransferEncoding && hasContentLength)
 			throw new HttpResponse(400);
 
-		// TODO: compression? and actually decoding this?
+		// TODO: compression for the buffer based one too..
 		if (hasTransferEncoding) {
 			return this.readBodyAsChunkedEncoding(request);
 		} else if (hasContentLength) {
@@ -60,6 +61,50 @@ class HttpSocket {
 		}
 
 		return request;
+	}
+
+	public function sendResponse(response:HttpResponse) {
+		response.prepareBeforeCommit();
+
+		// prepare yourselves, this is going to be annoying as hell!
+		var requestHead = ['HTTP/1.1 ${response.status} ${response.statusText()}'];
+		for (key => value in response.headers) {
+			requestHead.push('${key}: ${value}');
+		}
+		requestHead.push("");
+		requestHead.push("");
+		// push two empty lines so we always end with CRLF.
+
+		// this is probably wrong, but lets see.
+		this.socket.output.writeString(requestHead.join("\r\n"), Encoding.UTF8);
+		this.socket.output.flush();
+
+		if (response.payload != null) {
+			var buffer = Std.downcast(response.payload, Bytes);
+			var stream = Std.downcast(response.payload, Input);
+
+			if (buffer != null) {
+				this.socket.output.write(buffer);
+				this.socket.output.flush();
+			} else if (stream != null) {
+				try {
+					var nRead = 4096;
+					var buff = Bytes.alloc(nRead);
+					while (nRead == buff.length) {
+						nRead = stream.readBytes(buff, 0, buff.length);
+						if (nRead > 0) {
+							this.socket.output.writeString('${StringTools.hex(nRead)}\r\n');
+							this.socket.output.writeBytes(buff, 0, nRead);
+							this.socket.output.writeString('\r\n');
+							this.socket.output.flush();
+						}
+					}
+				} catch (eof:haxe.io.Eof) {}
+				this.socket.output.writeString("0\r\n\r\n");
+				this.socket.output.flush();
+				stream.close();
+			}
+		}
 	}
 
 	private function buildRequestHead() {
@@ -103,6 +148,10 @@ class HttpSocket {
 				throw new HttpResponse(400);
 			var value = StringTools.trim(lineStr.substring(separator + 1));
 
+			if (DISALLOWED_DUPLICATE_HEADERS.contains(key) && request.headers.exists(key)) {
+				throw new HttpResponse(400);
+			}
+
 			var narray = request.headers.get(key);
 			var array = narray == null ? [] : narray;
 			array.push(value);
@@ -113,6 +162,15 @@ class HttpSocket {
 	}
 
 	private function readBodyAsChunkedEncoding(request:HttpRequest) {
+		var header = request.getHeader("transfer-encoding", "")
+			.split(",")
+			.map(StringTools.trim)
+			.filter(v -> v.length > 0);
+
+		// TODO: compression
+		if (!header.contains("chunked")) {
+			throw new HttpResponse(400);
+		}
 		request.payload = new Http11ChunkedInput(this);
 		return request;
 	}
@@ -146,6 +204,11 @@ class HttpSocket {
 			var start = Sys.time();
 
 			while (true) {
+				// what the fuck? another timeout??
+				/*
+					Here's why: the socket timeout is used BETWEEN bytes, not for the entire operation.
+					this timeout only applies to the entire CRLF operation, otherwise an attacker can hang until we reach the limit for 10 seconds between each byte
+				 */
 				if (Sys.time() - start > READ_UNTIL_CRLF_TIMEOUT) {
 					throw Error.Custom("Took longer than " + READ_UNTIL_CRLF_TIMEOUT + " seconds to fully read a CRLF-terminated line.");
 				}
