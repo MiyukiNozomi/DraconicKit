@@ -1,5 +1,6 @@
 package ryuu.scheduling;
 
+import ryuu.Console.Logger;
 import haxe.io.Error;
 import ryuu.scheduling.ThreadPool;
 
@@ -10,15 +11,12 @@ class Executor {
 	public function new() {
 		var n = Executor.getProcessorCores();
 		this.workers = new ThreadPool(n);
-		trace("Working with " + this.workers.threadsCount + " worker threads.");
+		Logger.debug("Working with " + this.workers.threadsCount + " worker threads.");
 	}
 
 	public function schedule(task:() -> Void) {
-		trace("Task scheduled.");
 		workers.run(() -> {
-			trace("Executing scheduled task");
 			task();
-			trace("Execution complete.");
 		});
 	}
 
@@ -34,7 +32,7 @@ class Executor {
 		var result = "";
 
 		var osName = Sys.systemName();
-		trace("getProcessorCores: OS name: " + osName);
+		Logger.debug("getProcessorCores: OS name: " + osName);
 
 		if (osName == "Windows") {
 			var env = Sys.getEnv("NUMBER_OF_PROCESSORS");

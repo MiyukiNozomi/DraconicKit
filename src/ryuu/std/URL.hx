@@ -1,4 +1,4 @@
-package ryuu.extras;
+package ryuu.std;
 
 import haxe.Json;
 import haxe.io.BytesBuffer;
@@ -69,7 +69,7 @@ class URL {
 	public var username:String = "";
 
 	public function new(url:String, base:Null<String> = null) {
-		trace("Working with: ", url, base);
+		//	trace("Working with: ", url, base);
 		if (base != null) {
 			var trueBase = findTrueBase(base);
 			if (url.length == 0) {
@@ -144,7 +144,6 @@ class URL {
 			rootPath = "/" + rootPath;
 		}
 
-		var truePathname = findTruePathname(urlPathname);
 		this.hash = (() -> {
 			var fragmentIndex = urlPathname.indexOf("#");
 			if (fragmentIndex == -1)
@@ -163,6 +162,7 @@ class URL {
 			return "";
 		})();
 
+		var truePathname = findTruePathname(urlPathname);
 		// now that both hash and search are out of the way, let's resolve the pathname.
 
 		// this means absolute, so therefore, our root path should be just "".
@@ -256,9 +256,9 @@ class URL {
 	function get_href():String {
 		var base = '${this.protocol}//';
 		if (this.username.length > 0) {
-			base += this.username;
+			base += URL.encodeURIComponent(this.username);
 			if (this.password.length > 0) {
-				base += ':' + this.password;
+				base += ':' + URL.encodeURIComponent(this.password);
 			}
 			base += '@';
 		}

@@ -1,10 +1,11 @@
 package ryuu.http;
 
-import ryuu.http.HttpSocket.HttpSocketTimeout;
+import ryuu.Console.Logger;
+import ryuu.handling.RequestHandler;
 import ryuu.http.HttpMessages.HttpRequest;
-import ryuu.scheduling.Executor;
 import ryuu.http.HttpMessages.HttpResponse;
-import sys.io.File;
+import ryuu.http.HttpSocket.HttpSocketTimeout;
+import ryuu.scheduling.Executor;
 import sys.net.Host;
 import sys.net.Socket;
 
@@ -13,6 +14,7 @@ class HttpServer {
 	private var running:Bool;
 
 	private var executor:Executor;
+	private var handler:RequestHandler;
 
 	public function new(host:Host, port:Int) {
 		this.socket = new Socket();
@@ -20,21 +22,24 @@ class HttpServer {
 		this.running = true;
 
 		this.executor = new Executor();
+		this.handler = new RequestHandler();
+
+		this.handler.loadStaticRoutes();
 	}
 
 	public function start() {
 		this.socket.listen(40);
 		var host = this.socket.host();
 
-		trace("Server is now listening on http://" + host.host + ":" + host.port);
+		Logger.debug("Server is now listening on http://" + host.host + ":" + host.port);
 		while (running) {
 			try {
 				var client = new HttpSocket(this.socket.accept());
-				trace("Got client: ", client.socket.peer());
+				Logger.debug("Got client: ", client.socket.peer());
 				handleClient(client);
 			} catch (err) {
-				trace(err.toString());
-				trace(err.stack.toString());
+				Logger.debug(err.toString());
+				Logger.debug(err.stack.toString());
 			}
 		}
 	}
@@ -47,27 +52,21 @@ class HttpServer {
 					try {
 						req = client.nextRequest();
 						if (req == null) {
-							trace("Got a broken request!");
+							Logger.debug("Got a broken request!");
 							client.socket.close();
 							return;
 						} else {
-							trace(req.status);
+							Logger.debug(req.status);
 						}
 
-						if (req.status.target == "/") {
-							throw new HttpResponse(200, {"content-type": "text/html"}, File.read("test.html").readAll());
-						} else if (req.status.target == "/test.webp") {
-							throw new HttpResponse(200, {"content-type": "image/webp"}, File.read("test.webp"));
-						} else {
-							throw new HttpResponse(404);
-						}
+						handler.handleRequest(client, req);
 					} catch (err) {
 						var res = Std.downcast(err, HttpResponse);
 						var timeout = Std.downcast(err, HttpSocketTimeout);
 
 						if (res != null) {
 							res.sourceRequest = req;
-							trace("Response for ", client.socket.peer(), " is ", res.status);
+							Logger.debug("Response for ", client.socket.peer(), " is ", res.status);
 							client.sendResponse(res);
 
 							var connectionHeader = req != null ? (req.getHeader("connection", "keep-alive")) : "keep-alive";
@@ -78,10 +77,10 @@ class HttpServer {
 							}
 						} else {
 							if (timeout == null) {
-								trace(err.toString());
-								trace(err.stack.toString());
+								Logger.debug(err.toString());
+								Logger.debug(err.stack.toString());
 							} else {
-								trace("Client ", client.socket.peer(), " has timed out.");
+								Logger.debug("Client ", client.socket.peer(), " has timed out.");
 							}
 							client.socket.close();
 							return;
@@ -89,7 +88,7 @@ class HttpServer {
 					}
 				}
 			} catch (err) {
-				trace("FATAL: got a unhandled exception when handling a socket!\n" + err.toString());
+				Logger.debug("FATAL: got a unhandled exception when handling a socket!\n" + err.toString());
 			}
 		});
 	}

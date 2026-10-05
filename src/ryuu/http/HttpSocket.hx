@@ -1,5 +1,6 @@
 package ryuu.http;
 
+import ryuu.Console.Logger;
 import haxe.Exception;
 import haxe.io.Input;
 import haxe.io.Encoding;
@@ -232,7 +233,7 @@ class HttpSocket {
 				socket.setTimeout(SOCKET_TIMEOUT_SECONDS);
 
 				if (bytes.length >= MAX_CRLF_LINE_LENGTH) {
-					trace("Warning: Hit CRLF-terminated line maximum limit of " + MAX_CRLF_LINE_LENGTH);
+					Logger.debug("Warning: Hit CRLF-terminated line maximum limit of " + MAX_CRLF_LINE_LENGTH);
 					throw new HttpResponse(400, {"content-type": "text/html"},
 						Bytes.ofString("CRLF Line too long (limit " + MAX_CRLF_LINE_LENGTH + " yours: " + bytes.length + ")"));
 				}
@@ -252,7 +253,7 @@ class HttpSocket {
 			}
 			if (Std.isOfType(err, HttpResponse))
 				throw err;
-			trace("readUntilCRLF failed: ", err.toString());
+			Logger.debug("readUntilCRLF failed: ", err.toString());
 			throw Error.Blocked;
 		}
 	}
