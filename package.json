@@ -19,6 +19,7 @@
   "packageManager": "pnpm@12.9.1",
   "type": "module",
   "dependencies": {
-    "@types/node": "^26.6.4"
+    "@types/node": "^26.6.4",
+    "zod": "^4.6.5"
   }
 }

@@ -1,5 +1,6 @@
 package ryuu.std;
 
+import haxe.macro.Type.ClassType;
 import haxe.macro.Context;
 import sys.io.File;
 import haxe.io.Path;
@@ -26,11 +27,15 @@ class MimeTypes {
 	// i basically generate a big ass switch statement containing extension -> mime type.
 	// better than hand writing it :)
 	private static macro function generate_extension_to_mime() {
+		var posInfos = Context.getPosInfos(Context.currentPos());
+		var directory = Path.directory(posInfos.file);
+		var filePath:String = Path.join([directory, "mime.types"]);
 		// if for some reason that file turned into dust
 		// or the IRS taxed it
 		// take it from Apache's HTTPD.
 		// And please dont change the encoding of that file!
-		var decoderFile = File.read("src/external/mime.types")
+
+		var decoderFile = File.read(filePath)
 			.readAll()
 			.toString()
 			.split("\n")
