@@ -21,7 +21,15 @@ class MimeTypes {
 		generate_extension_to_mime();
 	}
 
+	// for the non-haxe nerds
+	// this is kind of like a mixin
+	// i basically generate a big ass switch statement containing extension -> mime type.
+	// better than hand writing it :)
 	private static macro function generate_extension_to_mime() {
+		// if for some reason that file turned into dust
+		// or the IRS taxed it
+		// take it from Apache's HTTPD.
+		// And please dont change the encoding of that file!
 		var decoderFile = File.read("src/external/mime.types")
 			.readAll()
 			.toString()

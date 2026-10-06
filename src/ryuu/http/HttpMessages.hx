@@ -1,5 +1,6 @@
 package ryuu.http;
 
+import haxe.io.Error;
 import haxe.extern.EitherType;
 import haxe.io.Bytes;
 import haxe.Exception;
@@ -50,8 +51,12 @@ class HttpResponse extends Exception {
 		this.status = status;
 		this.headers = new Map<String, String>();
 
+		final DisallowedInputHeaders = ["content-length", "transfer-encoding"];
 		final fields = Reflect.fields(headers);
 		for (field in fields) {
+			if (DisallowedInputHeaders.contains(field.toLowerCase())) {
+				throw Error.Custom("Hey buddy, this header: " + field + " is not allowed to be manually set.");
+			}
 			this.headers.set(field.toLowerCase(), Reflect.getProperty(headers, field));
 		}
 

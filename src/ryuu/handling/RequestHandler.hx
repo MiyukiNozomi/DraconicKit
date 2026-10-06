@@ -11,6 +11,28 @@ import sys.FileSystem;
 import ryuu.http.HttpMessages.HttpRequest;
 import ryuu.http.HttpSocket;
 
+/**
+
+	Oh boy.. get ready for the huge list of TODOs;
+
+	- Actual HMR:
+	  |_ WebSockets
+	  |_ Detecting file system changes
+	  |_ Emit said changes and update the page locally
+	- Custom Routes:
+	  |_ Load Haxe files and search for them on a 'source/routes' folder
+	  |_ Compile said haxe files
+	  |_ Load request handlers from them
+	  |_ Have HMR with them...
+	- Svelte
+	  |_ find a JS runtime that can run the svelte compiler
+	  |_ have svelte components building in routes
+	  |_ Server side rendering
+
+
+	aaaaand there's a lot more crap i have to do
+
+**/
 class RequestHandler {
 	private var staticRoutes:Array<String>;
 	private var staticRouteBasedir:String;

@@ -177,9 +177,11 @@ class URL {
 			rootPath = rootPath.substring(0, rootPath.lastIndexOf("/") + 1);
 		}
 
-		var finalPathComponents = (rootPath
+		var finalPathComponents = URL.decodeURI((rootPath
 			+ (!StringTools.endsWith(rootPath, "/") && !StringTools.startsWith(truePathname, "/") ? "/" : "")
-			+ truePathname).split("/").filter(v -> v.length > 0);
+			+ truePathname))
+			.split("/")
+			.filter(v -> v.length > 0);
 
 		var builtPath = new Array<String>();
 		for (finalPathComponent in finalPathComponents) {
