@@ -1,3 +1,7 @@
 *.jar
 payload.bin
 dump
+
+dist/
+pnpm-lock.yaml
+node_modules
