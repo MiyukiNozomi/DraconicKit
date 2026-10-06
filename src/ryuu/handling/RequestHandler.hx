@@ -38,16 +38,13 @@ class RequestHandler {
 	private var staticRouteBasedir:String;
 
 	public function new() {
-		this.staticRouteBasedir = "/dev/null";
+		this.staticRouteBasedir = Path.join([Configuration.WorkingDirectory, Configuration.StaticDirectory]);
 		this.staticRoutes = new Array();
 	}
 
-	public function loadStaticRoutes(basedir:Null<String> = null) {
-		if (basedir == null)
-			basedir = FileSystem.absolutePath("static");
-
-		if (!FileSystem.exists(basedir))
-			throw Error.Custom("static/ directory does not exist.");
+	public function loadStaticRoutes() {
+		if (!FileSystem.exists(staticRouteBasedir))
+			throw Error.Custom(staticRouteBasedir + ": directory does not exist.");
 
 		this.staticRoutes = new Array();
 
@@ -62,10 +59,9 @@ class RequestHandler {
 			}
 		};
 
-		this.staticRouteBasedir = basedir;
-		readDirRecursive(basedir, basedir);
+		readDirRecursive(staticRouteBasedir, staticRouteBasedir);
 
-		Logger.debug("Base directory: ", basedir);
+		Logger.debug("Base directory: ", staticRouteBasedir);
 		Logger.debug("Static routes:", "\n" + (this.staticRoutes.map(v -> ' - ${v}').join("\n")));
 	}
 
