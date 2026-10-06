@@ -14,7 +14,8 @@ class HttpServer {
 	private var running:Bool;
 
 	private var executor:Executor;
-	private var handler:RequestHandler;
+
+	public var requestHandler(default, null):RequestHandler;
 
 	public function new(host:Host, port:Int) {
 		this.socket = new Socket();
@@ -22,9 +23,9 @@ class HttpServer {
 		this.running = true;
 
 		this.executor = new Executor();
-		this.handler = new RequestHandler();
+		this.requestHandler = new RequestHandler();
 
-		this.handler.loadStaticRoutes();
+		this.requestHandler.loadStaticRoutes();
 	}
 
 	public function start() {
@@ -59,7 +60,7 @@ class HttpServer {
 							Logger.debug(req.status);
 						}
 
-						handler.handleRequest(client, req);
+						requestHandler.handleRequest(client, req);
 					} catch (err) {
 						var res = Std.downcast(err, HttpResponse);
 						var timeout = Std.downcast(err, HttpSocketTimeout);

@@ -1,4 +1,4 @@
 --class-path src
 --macro nullSafety("ryuu", Strict)
---main Main
+--main TestMain
 --jvm Ryuu.jar

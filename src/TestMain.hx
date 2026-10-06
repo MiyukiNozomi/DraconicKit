@@ -1,9 +1,19 @@
+import ryuu.handling.AbstractHandler;
+import ryuu.handling.RequestHandler;
 import ryuu.Configuration;
 import sys.FileSystem;
 import ryuu.http.HttpServer;
 import sys.net.Host;
 
-class Main {
+class TestHandler extends AbstractHandler {
+	public function new() {}
+
+	public function GET(event:RequestEvent) {
+		text("Hello?");
+	}
+}
+
+class TestMain {
 	private static function parseInputArguments() {
 		var arguments = Sys.args();
 		var errorParsing = false;
@@ -40,6 +50,7 @@ class Main {
 		parseInputArguments();
 
 		var server = new HttpServer(new Host("localhost"), 6173);
+		server.requestHandler.addDynamicRoute("/api/test", new TestHandler());
 		server.start();
 	}
 }

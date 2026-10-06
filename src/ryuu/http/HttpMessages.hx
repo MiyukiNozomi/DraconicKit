@@ -46,18 +46,17 @@ class HttpResponse extends Exception {
 	public var headers(default, null):Map<String, String>;
 	public var payload(default, null):Null<EitherType<Input, Bytes>>;
 
-	public function new(status:Int, headers:HttpHeaders = {}, payload:Null<EitherType<Input, Bytes>> = null) {
+	public function new(status:Int, headers:Map<String, String> = [], payload:Null<EitherType<Input, Bytes>> = null) {
 		super("HttpResponse");
 		this.status = status;
 		this.headers = new Map<String, String>();
 
 		final DisallowedInputHeaders = ["server", "content-length", "transfer-encoding"];
-		final fields = Reflect.fields(headers);
-		for (field in fields) {
-			if (DisallowedInputHeaders.contains(field.toLowerCase())) {
-				throw Error.Custom("Hey buddy, this header: " + field + " is not allowed to be manually set.");
+		for (key => value in headers) {
+			if (DisallowedInputHeaders.contains(key.toLowerCase())) {
+				throw Error.Custom("Hey buddy, this header: " + key + " is not allowed to be manually set.");
 			}
-			this.headers.set(field.toLowerCase(), Reflect.getProperty(headers, field));
+			this.headers.set(key.toLowerCase(), headers[key] + "");
 		}
 
 		this.payload = payload;
