@@ -68,10 +68,11 @@ class HttpServer {
 							res.sourceRequest = req;
 							Logger.debug("Response for ", client.socket.peer(), " is ", res.status);
 							client.sendResponse(res);
+							trace("Sent.");
 
-							var connectionHeader = req != null ? (req.getHeader("connection", "keep-alive")) : "keep-alive";
+							var connectionHeader = req != null ? ((req.getHeader("connection", "keep-alive") + "").toLowerCase()) : "keep-alive";
 
-							if (connectionHeader == "close") {
+							if (connectionHeader.indexOf("close") != -1) {
 								client.socket.close();
 								return;
 							}

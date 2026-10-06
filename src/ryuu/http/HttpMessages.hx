@@ -51,7 +51,7 @@ class HttpResponse extends Exception {
 		this.status = status;
 		this.headers = new Map<String, String>();
 
-		final DisallowedInputHeaders = ["content-length", "transfer-encoding"];
+		final DisallowedInputHeaders = ["server", "content-length", "transfer-encoding"];
 		final fields = Reflect.fields(headers);
 		for (field in fields) {
 			if (DisallowedInputHeaders.contains(field.toLowerCase())) {
@@ -99,8 +99,9 @@ class HttpResponse extends Exception {
 
 		headers.set("Server", "Moonlit Crimson Dragon");
 
+		var isHead = (this.sourceRequest != null && this.sourceRequest.status.method == "HEAD");
+
 		if (this.payload != null) {
-			var isHead = (this.sourceRequest != null && this.sourceRequest.status.method == "HEAD");
 			if (!isHead && this.isBodyDisallowed())
 				return;
 
@@ -112,6 +113,8 @@ class HttpResponse extends Exception {
 			} else if (stream != null) {
 				headers.set("Transfer-Encoding", "chunked");
 			}
+		} else if (!this.isBodyDisallowed()) {
+			headers.set("Content-Length", "0");
 		}
 	}
 
