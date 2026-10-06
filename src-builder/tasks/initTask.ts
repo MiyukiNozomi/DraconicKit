@@ -5,9 +5,12 @@ import {
   readdirSync,
   rmSync,
   symlinkSync,
+  writeFileSync,
 } from "fs";
 import path from "path";
 import { modulePath, stdinInquiry } from "../tools.js";
+import { zodTypeToTS } from "../typeConv.js";
+import { configSchema } from "../draconicConfig.js";
 
 export async function recreateShinkusFolder() {
   if (existsSync("./.shinku"))
@@ -23,6 +26,12 @@ export async function recreateShinkusFolder() {
     path.resolve("src"),
     path.resolve("./", ".shinku/src"),
     process.platform == "win32" ? "junction" : "dir",
+  );
+
+  mkdirSync("./.shinku/generated", { recursive: true });
+  writeFileSync(
+    "./.shinku/generated/draconic.config.d.ts",
+    `export declare interface DraconicConfig ${zodTypeToTS(configSchema, new Set())}`,
   );
 }
 

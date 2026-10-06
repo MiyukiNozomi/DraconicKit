@@ -54,7 +54,7 @@ function getAllServerFiles(
 }
 
 export async function buildProject(isDevMode: Boolean = false) {
-  let config = getProjectConfig();
+  let config = await getProjectConfig();
   if (!config) return;
 
   let thisBuildFile = [...TemplateHXML];

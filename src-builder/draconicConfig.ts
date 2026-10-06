@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import z from "zod";
 
 export const configSchema = z.strictObject({
@@ -10,8 +11,8 @@ export const configSchema = z.strictObject({
   }),
 });
 
-export function getProjectConfig() {
-  if (!existsSync("./dragon.config.json")) {
+export async function getProjectConfig() {
+  if (!existsSync("./dragon.config.js")) {
     console.log(
       "You are not in a ryuu project. Run this script with a 'init' param to create one.",
     );
@@ -20,9 +21,14 @@ export function getProjectConfig() {
 
   let file;
   try {
-    file = configSchema.safeParse(
-      JSON.parse(readFileSync("dragon.config.json").toString()),
-    );
+    const module = await import(path.resolve("./dragon.config.js"));
+    const getServerConfig = module.default;
+    if (!getServerConfig || typeof getServerConfig != "function") {
+      throw new Error(
+        "dragon.config.js does not export a default function named 'getServerConfig'.",
+      );
+    }
+    file = configSchema.safeParse(await getServerConfig());
   } catch (err) {
     console.log(err);
     console.log("Could not load project config.");
