@@ -10,10 +10,10 @@ async function main() {
   if (arg == "init") {
     await createProject();
   } else if (arg == "build") {
-    await buildProject();
+    await buildProject(true);
   } else {
     console.log(`
-    DraconicKit, Ryuu, whatever name I ended up giving it, Builder!
+    DraconicKit, DraconicKit, whatever name I ended up giving it, Builder!
 
     Functions:
 

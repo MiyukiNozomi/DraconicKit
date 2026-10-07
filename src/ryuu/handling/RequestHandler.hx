@@ -21,28 +21,6 @@ typedef RequestEvent = {
 	params:Map<String, String>
 }
 
-/**
-
-	Oh boy.. get ready for the huge list of TODOs;
-
-	- Actual HMR:
-	  |_ WebSockets
-	  |_ Detecting file system changes
-	  |_ Emit said changes and update the page locally
-	- Custom Routes:
-	  |_ Load Haxe files and search for them on a 'source/routes' folder
-	  |_ Compile said haxe files
-	  |_ Load request handlers from them
-	  |_ Have HMR with them...
-	- Svelte
-	  |_ find a JS runtime that can run the svelte compiler
-	  |_ have svelte components building in routes
-	  |_ Server side rendering
-
-
-	aaaaand there's a lot more crap i have to do
-
-**/
 final class RequestHandler {
 	private var staticRoutes:Array<String>;
 
@@ -52,6 +30,8 @@ final class RequestHandler {
 
 	public function new() {
 		this.staticRouteBasedir = Path.join([Configuration.WorkingDirectory, Configuration.StaticDirectory]);
+		trace("Working static directory: " + this.staticRouteBasedir);
+
 		this.staticRoutes = new Array();
 		this.dynamicRouter = new DynamicRouter();
 	}
@@ -66,8 +46,11 @@ final class RequestHandler {
 		readDirRecursive = (basedir:String, pathname:String) -> {
 			if (FileSystem.isDirectory(pathname)) {
 				var entries = FileSystem.readDirectory(pathname);
-				for (entry in entries)
-					readDirRecursive(basedir, Path.join([basedir, entry]));
+				for (entry in entries) {
+					if (entry.charAt(0) == '@')
+						continue;
+					readDirRecursive(basedir, Path.join([pathname, entry]));
+				}
 			} else {
 				staticRoutes.push(pathname.substring(basedir.length));
 			}

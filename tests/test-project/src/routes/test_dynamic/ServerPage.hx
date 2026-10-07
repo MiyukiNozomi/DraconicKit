@@ -6,7 +6,7 @@ import ryuu.handling.AbstractHandler.AbstractServerPage;
 class ServerPage extends AbstractServerPage {
 	public function pageServerLoad(event:RequestEvent) {
 		return {
-			message: "hello?"
+			message: "hello from Haxe!"
 		};
 	};
 }

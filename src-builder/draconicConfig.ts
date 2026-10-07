@@ -11,6 +11,8 @@ export const configSchema = z.strictObject({
   }),
 });
 
+export type DraconicConfig = z.infer<typeof configSchema>;
+
 export async function getProjectConfig() {
   if (!existsSync("./dragon.config.js")) {
     console.log(

@@ -8,11 +8,13 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { getProjectConfig } from "../draconicConfig.js";
+import { getProjectConfig, type DraconicConfig } from "../draconicConfig.js";
 import { TemplateHXML } from "../templates.js";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import { recreateShinkusFolder } from "./initTask.js";
+
+import { compile, compileModule, type CompileError } from "svelte/compiler";
 
 type ClassInformation = {
   pathname: string;
@@ -62,13 +64,21 @@ function getAllServerFiles(
   rootDir: string,
   directory: string,
   routeList: Array<ClassInformation>,
+  svelteFiles: Array<String>,
 ) {
   let basename = path.posix.basename(directory);
 
   if (statSync(directory).isDirectory()) {
     readdirSync(directory).forEach((v) =>
-      getAllServerFiles(rootDir, path.posix.join(directory, v), routeList),
+      getAllServerFiles(
+        rootDir,
+        path.posix.join(directory, v),
+        routeList,
+        svelteFiles,
+      ),
     );
+  } else if (basename.endsWith(".svelte")) {
+    svelteFiles.push(directory);
   } else if (basename == "Server.hx" || basename == "ServerPage.hx") {
     const classInfo = getClassInformation(
       directory,
@@ -140,7 +150,60 @@ function routename2Package(clazz: ClassInformation, asPackage = true) {
   );
 }
 
-export async function buildProject(isDevMode: Boolean = false) {
+function buildSvelte(
+  isDevMode: boolean,
+  config: DraconicConfig,
+  svelteFiles: Array<string>,
+) {
+  let pathnames = new Array<{ routename: string; physicalPath: string }>();
+  for (const file of svelteFiles) {
+    try {
+      const result = compile(readFileSync(file).toString(), {
+        dev: isDevMode,
+        rootDir: path.resolve("src/"),
+        generate: "server",
+        filename: file,
+      });
+
+      let routename = file.substring("src/routes/".length);
+      const thisModulePath = path.join(
+        ".shinku",
+        config.server.static_dir,
+        "@svelte",
+        routename,
+      );
+      mkdirSync(thisModulePath, { recursive: true });
+
+      writeFileSync(path.join(thisModulePath, "page.js"), result.js.code);
+      if (result.css)
+        writeFileSync(path.join(thisModulePath, "page.css"), result.css.code);
+      //console.log(result);
+
+      let rt = path.dirname("/" + routename);
+      pathnames.push({
+        routename: rt,
+        physicalPath: thisModulePath,
+      });
+    } catch (err) {
+      if (err && typeof err == "object" && `code` in err && `filename` in err) {
+        let other = err as CompileError;
+
+        console.log(
+          "Failed to compile " +
+            other.filename +
+            ": " +
+            other.message +
+            (other.frame ? "\n" + other.frame : ""),
+        );
+        throw "Svelte Build Failed!";
+      }
+      throw err;
+    }
+  }
+  return pathnames;
+}
+
+export async function buildProject(isDevMode: boolean = false) {
   let config = await getProjectConfig();
   if (!config) return;
 
@@ -150,7 +213,8 @@ export async function buildProject(isDevMode: Boolean = false) {
   await recreateShinkusFolder();
 
   let dynamicRouteFiles = new Array<ClassInformation>();
-  getAllServerFiles("src/routes", "src/routes", dynamicRouteFiles);
+  let svelteFiles = new Array<string>();
+  getAllServerFiles("src/routes", "src/routes", dynamicRouteFiles, svelteFiles);
 
   if (hasGetAllServerFilesFailed) throw "BUILD FAILED";
 
@@ -160,6 +224,9 @@ export async function buildProject(isDevMode: Boolean = false) {
     rmSync(".shinku/project-transformed-src", { recursive: true });
   }
   mkdirSync(".shinku/project-transformed-src", { recursive: true });
+
+  rmSync(".shinku/static", { recursive: true, force: true });
+  cpSync(config.server.static_dir, ".shinku/static", { recursive: true });
 
   console.log("Transforming...");
   dynamicRouteFiles.map((truePath) => {
@@ -173,16 +240,25 @@ export async function buildProject(isDevMode: Boolean = false) {
       recursive: true,
     });
   });
+  console.log("Svelte sources:", "\n" + svelteFiles.join("\n"));
+  console.log("Building..");
+  const svelteRouteFiles = buildSvelte(isDevMode, config, svelteFiles);
 
   // let's create the main server class
+
+  const svelteRoutes = svelteRouteFiles
+    .map((v) => {
+      return `server.requestHandler.dynamicRouter.addDynamicRoute(${JSON.stringify(v.routename)}, new SvelteRouter(null, ${JSON.stringify(v.physicalPath)}))`;
+    })
+    .join(";\n\t\t");
 
   const dynamicRoutes = dynamicRouteFiles
     .map((v) => {
       if (v.extendedClassName == "AbstractHandler")
         return `server.requestHandler.dynamicRouter.addDynamicRoute(${JSON.stringify(v.pathname)}, new ${routename2Package(v)}())`;
-
-      return `// Not implemented ${v.className} from ${v.pathname}`;
+      return null;
     })
+    .filter((v) => v)
     .join(";\n\t\t");
 
   writeFileSync(
@@ -198,16 +274,25 @@ import ryuu.Configuration;
 import ryuu.http.HttpServer;
 
 import ryuu.handling.RequestHandler;
+import ryuu.internal.SvelteRoute;
 
 // dynamic route imports
 ${dynamicRouteFiles.map((v) => `import ${routename2Package(v)};`).join("\n")}
 
 class ServerMain {
   static function main() {
+    #if dev
+		  Configuration.WorkingDirectory = ".shinku";
+    #end
+		Configuration.StaticDirectory = ${JSON.stringify(config.server.static_dir)};
+    Configuration.SvelteBaseHTML = ${JSON.stringify(readFileSync("src/app.html").toString())};
+
     var server = new HttpServer(new Host(${JSON.stringify(config.server.host)}), ${config.server.port});
     
     // dynamic route registry goes here..
     ${dynamicRoutes}${dynamicRoutes.length > 0 ? ";" : ""}
+    // svelte page routes go here..
+    ${svelteRoutes}${svelteRoutes.length > 0 ? ";" : ""}
 
     // finally, start the server.
     server.start();
