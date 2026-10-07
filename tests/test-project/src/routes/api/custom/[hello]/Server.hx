@@ -3,7 +3,7 @@ package routes.api.custom.hello;
 import ryuu.handling.RequestHandler.RequestEvent;
 import ryuu.handling.AbstractHandler;
 
-class ServerHandler extends AbstractHandler {
+class CustomHandler extends AbstractHandler {
 	public function new() {}
 
 	@:keep public function GET(event:RequestEvent) {

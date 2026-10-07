@@ -8,9 +8,9 @@ async function main() {
   let arg = process.argv.findLast(() => true);
 
   if (arg == "init") {
-    createProject();
+    await createProject();
   } else if (arg == "build") {
-    buildProject();
+    await buildProject();
   } else {
     console.log(`
     DraconicKit, Ryuu, whatever name I ended up giving it, Builder!
@@ -24,4 +24,9 @@ async function main() {
   }
 }
 
-await main();
+try {
+  await main();
+} catch (err) {
+  console.log(err);
+  process.exit(-5);
+}

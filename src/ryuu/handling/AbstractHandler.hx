@@ -1,5 +1,6 @@
 package ryuu.handling;
 
+import ryuu.handling.RequestHandler.RequestEvent;
 import haxe.Json;
 import haxe.io.Bytes;
 import ryuu.http.HttpMessages.HttpResponse;
@@ -7,6 +8,10 @@ import ryuu.http.HttpMessages.HttpResponse;
 typedef ResponseOptions = {
 	status:Null<Int>,
 	headers:Null<Map<String, String>>,
+}
+
+abstract class AbstractServerPage {
+	public abstract function pageServerLoad(event:RequestEvent):Dynamic;
 }
 
 abstract class AbstractHandler {

@@ -14,52 +14,129 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import { recreateShinkusFolder } from "./initTask.js";
 
+type ClassInformation = {
+  pathname: string;
+  className: string;
+  moduleName: String;
+  extendedClassName: string | null;
+};
+
+function getClassInformation(pathname: string, expectedExtendedClass: string) {
+  const tokens = readFileSync(pathname)
+    .toString()
+    .split("\n")
+    .map((v) => v.trim())
+    .flatMap((v) => v.split(" ").filter((v) => v.length > 0))
+    .filter((v) => v.length > 0);
+
+  let className = null as string | null;
+  let extendedClass = null as string | null;
+
+  let i = 0;
+  while (i < tokens.length) {
+    if (tokens[i++] == "class") {
+      className = tokens[i++] ?? null;
+      if (
+        className &&
+        tokens[i++] == "extends" &&
+        expectedExtendedClass == tokens[i++]
+      ) {
+        extendedClass = expectedExtendedClass;
+        break;
+      }
+      console.log(className, extendedClass);
+    }
+  }
+
+  console.log("class", className, "is extending", extendedClass);
+  return {
+    className,
+    moduleName: path.basename(pathname).replace(".hx", ""),
+    extendedClass,
+  };
+}
+
+let hasGetAllServerFilesFailed = false;
+
 function getAllServerFiles(
   rootDir: string,
   directory: string,
-  routeList: Array<string>,
+  routeList: Array<ClassInformation>,
 ) {
+  let basename = path.posix.basename(directory);
+
   if (statSync(directory).isDirectory()) {
     readdirSync(directory).forEach((v) =>
       getAllServerFiles(rootDir, path.posix.join(directory, v), routeList),
     );
-  } else if (path.posix.basename(directory) == "Server.hx") {
-    let content = readFileSync(directory).toString();
+  } else if (basename == "Server.hx" || basename == "ServerPage.hx") {
+    const classInfo = getClassInformation(
+      directory,
+      basename == "Server.hx" ? "AbstractHandler" : "AbstractServerPage",
+    );
+
     if (
-      !content.includes("ServerHandler") ||
-      !content.includes("AbstractHandler")
+      !classInfo.className ||
+      (basename == "Server.hx" &&
+        classInfo.extendedClass != "AbstractHandler") ||
+      (basename == "ServerPage.hx" &&
+        classInfo.extendedClass != "AbstractServerPage")
     ) {
       console.error(
-        "Warning: Not an acceptable server.hx file at",
+        "Error: Not an acceptable Server.hx/ServerPage.hx file at",
         directory,
-        " class name is not ServerHandler or it isnt extending Abstract Handler.",
+        `
+Server.hx files must have ONE class extending AbstractHandler.
+ServerPage.hx files must have ONE class extending AbstractServerPage.
+`,
       );
+      hasGetAllServerFilesFailed = true;
       return;
     }
 
     let route = path.posix.dirname(directory);
 
-    let existing = routeList.find((v) => v == route);
+    let existing = routeList.find((v) => v.pathname == route);
     if (existing) {
       console.error(
         `Warning: route ${route} has a duplicated server handler with the name: ${existing}`,
       );
       return;
     }
-    routeList.push(route.substring(rootDir.length));
+
+    routeList.push({
+      pathname: route.substring(rootDir.length),
+      className: classInfo.className,
+      moduleName: classInfo.moduleName,
+      extendedClassName: classInfo.extendedClass,
+    });
   }
 }
 
-function routename2Package(routename: string, asPackage = true) {
+function routename2Package(clazz: ClassInformation, asPackage = true) {
   return (
     "routes" +
     (asPackage ? "." : "/") +
-    routename
+    clazz.pathname
       .split("/")
       .filter(Boolean)
-      .map((v) => v.replace(/^\[\.*/, "").replace(/\]$/, ""))
+      .map((v) =>
+        v
+          .replace(/^\[\.*/, "")
+          .replace(/\]$/, "")
+          .replaceAll("-", "_"),
+      )
+      .filter((v) => {
+        if (!v.match(/^[A-Za-z_][A-Za-z0-9_]*$/))
+          throw (
+            "This pathname " +
+            clazz.pathname +
+            "has a bad package name. DraconicKit doesnt really support routes that dont have valid haxe identifiers. sorry."
+          );
+        return true;
+      })
       .join(asPackage ? "." : "/") +
-    (asPackage ? ".Server.ServerHandler" : "")
+    (asPackage ? "." + clazz.moduleName + "." + clazz.className : "")
   );
 }
 
@@ -72,8 +149,10 @@ export async function buildProject(isDevMode: Boolean = false) {
 
   await recreateShinkusFolder();
 
-  let dynamicRouteFiles = new Array<string>();
+  let dynamicRouteFiles = new Array<ClassInformation>();
   getAllServerFiles("src/routes", "src/routes", dynamicRouteFiles);
+
+  if (hasGetAllServerFilesFailed) throw "BUILD FAILED";
 
   mkdirSync(".shinku/generated", { recursive: true });
   writeFileSync(".shinku/build.hxml", thisBuildFile.join("\n"));
@@ -90,19 +169,28 @@ export async function buildProject(isDevMode: Boolean = false) {
     );
     console.log(truePath, "->", finalPath);
 
-    cpSync(path.posix.join("src/routes", truePath), finalPath, {
+    cpSync(path.posix.join("src/routes", truePath.pathname), finalPath, {
       recursive: true,
     });
   });
 
   // let's create the main server class
 
+  const dynamicRoutes = dynamicRouteFiles
+    .map((v) => {
+      if (v.extendedClassName == "AbstractHandler")
+        return `server.requestHandler.dynamicRouter.addDynamicRoute(${JSON.stringify(v.pathname)}, new ${routename2Package(v)}())`;
+
+      return `// Not implemented ${v.className} from ${v.pathname}`;
+    })
+    .join(";\n\t\t");
+
   writeFileSync(
     ".shinku/generated/ServerMain.hx",
     `
 /**
  *  GENERATED CLASS, PLEASE DO NOT MODIFY OR CALL MANUALLY!
- */  
+*/  
 
 import sys.net.Host;
 
@@ -115,26 +203,46 @@ import ryuu.handling.RequestHandler;
 ${dynamicRouteFiles.map((v) => `import ${routename2Package(v)};`).join("\n")}
 
 class ServerMain {
-    static function main() {
-        var server = new HttpServer(new Host(${JSON.stringify(config.server.host)}), ${config.server.port});
+  static function main() {
+    var server = new HttpServer(new Host(${JSON.stringify(config.server.host)}), ${config.server.port});
+    
+    // dynamic route registry goes here..
+    ${dynamicRoutes}${dynamicRoutes.length > 0 ? ";" : ""}
 
-        // dynamic route registry goes here..
-        ${dynamicRouteFiles.map((v) => `server.requestHandler.dynamicRouter.addDynamicRoute(${JSON.stringify(v)}, new ${routename2Package(v)}())`).join(";\n")};
-
-        // finally, start the server.
-        server.start();
-    }
+    // finally, start the server.
+    server.start();
+  }
 }
 `,
   );
 
   try {
-    execSync("haxe .shinku/build.hxml", {
-      stdio: "inherit",
+    const output = execSync("haxe .shinku/build.hxml", {
+      encoding: "utf8",
     });
+
+    console.log(output.replaceAll(".shinku/project-transformed-src/", "src/"));
     console.log("Build complete.");
-  } catch {
+  } catch (error) {
+    const err = error as {
+      stdout?: Buffer | string;
+      stderr?: Buffer | string;
+      status?: number;
+    };
+
+    const stdout = err.stdout?.toString() ?? "";
+    const stderr = err.stderr?.toString() ?? "";
+
+    const output = `${stdout}${stderr}`.replaceAll(
+      ".shinku/project-transformed-src/",
+      "src/",
+    );
+
+    if (output) {
+      console.error(output);
+    }
+
     console.error("Build failed!");
-    process.exit(-5);
+    process.exit(1);
   }
 }
