@@ -1,3 +1,4 @@
+import haxe.Json;
 import ryuu.handling.AbstractHandler;
 import ryuu.handling.RequestHandler;
 import ryuu.Configuration;
@@ -10,6 +11,14 @@ class TestHandler extends AbstractHandler {
 
 	public function GET(event:RequestEvent) {
 		text("Hello?");
+	}
+}
+
+class TestDynamicRouteHandler extends AbstractHandler {
+	public function new() {}
+
+	public function GET(event:RequestEvent) {
+		text("Hello with " + event.params.toString());
 	}
 }
 
@@ -50,7 +59,11 @@ class TestMain {
 		parseInputArguments();
 
 		var server = new HttpServer(new Host("localhost"), 6173);
-		server.requestHandler.addDynamicRoute("/api/test", new TestHandler());
+		server.requestHandler.dynamicRouter.addDynamicRoute("/api/test", new TestHandler());
+		server.requestHandler.dynamicRouter.addDynamicRoute("/api/[callname]/test", new TestDynamicRouteHandler());
+		server.requestHandler.dynamicRouter.addDynamicRoute("/api/[callname]/test/[last]", new TestDynamicRouteHandler());
+		server.requestHandler.dynamicRouter.addDynamicRoute("/api/[callname]/test/[...lastIsVariadic]", new TestDynamicRouteHandler());
+		server.requestHandler.dynamicRouter.addDynamicRoute("/api/[callname]/test/", new TestDynamicRouteHandler());
 		server.start();
 	}
 }

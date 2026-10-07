@@ -1,5 +1,6 @@
 package ryuu.handling;
 
+import ryuu.handling.Routing.DynamicRouter;
 import ryuu.handling.AbstractHandler;
 import haxe.Constraints.Function;
 import java.lang.Error;
@@ -17,11 +18,7 @@ import ryuu.http.HttpSocket;
 typedef RequestEvent = {
 	socket:HttpSocket,
 	req:HttpRequest,
-}
-
-private typedef DynamicHandler = {
-	instance:AbstractHandler,
-	handlers:Map<String, Dynamic>
+	params:Map<String, String>
 }
 
 /**
@@ -48,13 +45,15 @@ private typedef DynamicHandler = {
 **/
 final class RequestHandler {
 	private var staticRoutes:Array<String>;
-	private var dynamicRoutes:Map<String, DynamicHandler>;
+
 	private var staticRouteBasedir:String;
+
+	public var dynamicRouter(default, null):DynamicRouter;
 
 	public function new() {
 		this.staticRouteBasedir = Path.join([Configuration.WorkingDirectory, Configuration.StaticDirectory]);
 		this.staticRoutes = new Array();
-		this.dynamicRoutes = new Map<String, DynamicHandler>();
+		this.dynamicRouter = new DynamicRouter();
 	}
 
 	public function loadStaticRoutes() {
@@ -80,50 +79,6 @@ final class RequestHandler {
 		Logger.debug("Static routes:", "\n" + (this.staticRoutes.map(v -> ' - ${v}').join("\n")));
 	}
 
-	public function addDynamicRoute<T:AbstractHandler>(path:String, handler:T) {
-		var clazz = Type.getClass(handler);
-		if (clazz == null)
-			throw Error.Custom("Not a valid class.");
-		var fields = Type.getInstanceFields(clazz);
-
-		var entry:DynamicHandler = {
-			instance: handler,
-			handlers: new Map()
-		};
-
-		for (field in fields) {
-			var method = Reflect.field(handler, field);
-			if (method == null || !Reflect.isFunction(method))
-				continue;
-
-			if (!HttpSocket.ACCEPTED_METHODS.contains(field)) {
-				if (~/\b[A-Z]+\b/.match(field)) {
-					Sys.println("\nWARNING: In handler for "
-						+ path
-						+ " there is a method named: "
-						+ field
-						+ ". but this is not a valid http header. please only put functions with fully upper-case names for HTTP request handling.\n");
-				}
-				continue;
-			}
-
-			entry.handlers.set(field, method);
-		}
-
-		if (entry.handlers.size() == 0) {
-			throw Error.Custom("The handler: "
-				+ path
-				+ " has no handler callbacks. please remove it or introduce a function with like: @:keep public function GET(event : Request Event) {.");
-		}
-		this.dynamicRoutes.set(path, entry);
-
-		var list = new Array();
-		for (key => _ in entry.handlers) {
-			list.push(key);
-		}
-		Logger.debug("Supported methods in dynamic route " + path + " are: " + list.join(', '));
-	}
-
 	public function handleRequest(socket:HttpSocket, req:HttpRequest) {
 		var url = new URL(req.status.target, "http://0.0.0.0");
 		Logger.debug(req.status.method, url.href, req.status.version);
@@ -136,22 +91,7 @@ final class RequestHandler {
 			throw new HttpResponse(200, ["content-type" => MimeTypes.forFilename(url.pathname)], fileStream);
 		}
 
-		var dynamicRoute = this.dynamicRoutes.get(url.pathname);
-
-		if (dynamicRoute != null) {
-			var handler = dynamicRoute.handlers.get(req.status.method);
-
-			if (handler != null) {
-				var event:RequestEvent = {
-					socket: socket,
-					req: req
-				};
-				Reflect.callMethod(dynamicRoute.instance, handler, [event]);
-			} else {
-				throw new HttpResponse(405);
-			}
-		}
-
+		this.dynamicRouter.tryHandleRequest(socket, url, req);
 		throw new HttpResponse(404);
 	}
 }
