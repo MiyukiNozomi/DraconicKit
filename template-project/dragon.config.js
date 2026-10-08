@@ -1,6 +1,6 @@
 /**
  *
- * Welcome to DragonKit!
+ * Welcome to DraconicKit!
  *
  * This is your project's config file.
  * You can also alter Svelte's Compiler options here.
