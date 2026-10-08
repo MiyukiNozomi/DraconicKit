@@ -34,7 +34,7 @@ class SvelteRouter extends AbstractHandler {
 		if (FileSystem.exists(cssPath)) {
 			head += '<style>${File.read(cssPath).readAll().toString()}</style>';
 		}
-		head += '<script type="module">${File.read(Path.join([this.thisPathname, "page.js"])).readAll().toString()}</script>';
+		head += '<script type="module">${JavaScriptTransformer.transform(File.read(Path.join([this.thisPathname, "page.js"])).readAll().toString())}</script>';
 
 		appPage = StringTools.replace(appPage, "%draconic.svelte.head%", head);
 		appPage = StringTools.replace(appPage, "%draconic.svelte.body%", body);
