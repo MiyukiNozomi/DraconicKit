@@ -26,3 +26,23 @@ export function stdinInquiry(question: String) {
     });
   });
 }
+
+export async function stdinSelect(question: string, options: string[]) {
+  console.log(question);
+
+  options.forEach((option, i) => {
+    console.log(`  ${i + 1}) ${option}`);
+  });
+
+  while (true) {
+    const answer = await stdinInquiry("Choose an option:");
+
+    const index = Number(answer) - 1;
+
+    if (Number.isInteger(index) && index >= 0 && index < options.length) {
+      return options[index];
+    }
+
+    console.log("Invalid choice. Please choose one of the numbers above.");
+  }
+}

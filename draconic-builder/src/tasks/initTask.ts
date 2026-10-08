@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -11,6 +12,9 @@ import path from "path";
 import { modulePath, stdinInquiry } from "../tools.js";
 import { zodTypeToTS } from "../typeConv.js";
 import { configSchema } from "../draconicConfig.js";
+import { select } from "@inquirer/prompts";
+
+import { execFileSync } from "child_process";
 
 export async function recreateShinkusFolder() {
   if (existsSync("./.shinku"))
@@ -38,10 +42,39 @@ export async function createProject() {
   }
 
   // lets create the project now..
-  const basedir = path.join(modulePath, "template-project");
+  const basedir = path.join(modulePath, "../template-project");
   readdirSync(basedir).forEach((v) =>
     cpSync(path.join(basedir, v), path.join("./", v), { recursive: true }),
   );
+
+  const packageManager = await select({
+    message: "Which package manager do you want to use?",
+    choices: [
+      { name: "npm", value: "npm" },
+      { name: "pnpm", value: "pnpm" },
+      { name: "yarn", value: "yarn" },
+      { name: "bun", value: "bun" },
+    ],
+  });
+
+  const command = packageManager === "npm" ? "install" : "add";
+
+  const ourSvelteVersion = JSON.parse(
+    readFileSync(path.join(modulePath, "package.json")).toString(),
+  ).dependencies?.svelte;
+
+  execFileSync(
+    packageManager,
+    [command, ourSvelteVersion ? `svelte@${ourSvelteVersion}` : "svelte"],
+    {
+      stdio: "inherit",
+    },
+  );
+
+  // Force it to be ESM
+  const packageJson = JSON.parse(readFileSync("./package.json", "utf8"));
+  packageJson.type = "module";
+  writeFileSync("./package.json", JSON.stringify(packageJson, null, 2) + "\n");
 
   await recreateShinkusFolder();
 
