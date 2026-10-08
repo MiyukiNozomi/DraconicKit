@@ -16,6 +16,7 @@ import ryuu.http.HttpMessages.HttpRequest;
 import ryuu.http.HttpSocket;
 
 typedef RequestEvent = {
+	url:URL,
 	socket:HttpSocket,
 	req:HttpRequest,
 	params:Map<String, String>

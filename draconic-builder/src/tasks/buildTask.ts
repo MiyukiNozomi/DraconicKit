@@ -161,7 +161,7 @@ function buildSvelte(
       const result = compile(readFileSync(file).toString(), {
         dev: isDevMode,
         rootDir: path.resolve("src/"),
-        generate: "server",
+        generate: "client",
         filename: file,
       });
 
@@ -276,7 +276,9 @@ import ryuu.http.HttpServer;
 import ryuu.handling.RequestHandler;
 
 import ryuu.internal.SvelteRoute;
+#if dev
 import ryuu.internal.ESModuleRoute;
+#end
 
 // dynamic route imports
 ${dynamicRouteFiles.map((v) => `import ${routename2Package(v)};`).join("\n")}
@@ -290,8 +292,10 @@ class ServerMain {
     Configuration.SvelteBaseHTML = ${JSON.stringify(readFileSync("src/app.html").toString())};
 
     var server = new HttpServer(new Host(${JSON.stringify(config.server.host)}), ${config.server.port});
-    
-    server.requestHandler.dynamicRouter.addDynamicRoute("/@module/[...path]", new ESModuleRoute());
+
+    #if dev
+      server.requestHandler.dynamicRouter.addDynamicRoute("/@module/[...path]", new ESModuleRoute());
+    #end
 
     // dynamic route registry goes here..
     ${dynamicRoutes}${dynamicRoutes.length > 0 ? ";" : ""}

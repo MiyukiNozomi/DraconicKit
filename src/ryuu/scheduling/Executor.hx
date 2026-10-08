@@ -10,6 +10,7 @@ class Executor {
 
 	public function new() {
 		var n = Executor.getProcessorCores();
+		// TODO: replace this with an ElasticThreadPool instead.
 		this.workers = new ThreadPool(n);
 		Logger.debug("Working with " + this.workers.threadsCount + " worker threads.");
 	}

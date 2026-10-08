@@ -84,7 +84,6 @@ class DynamicRouter {
 	}
 
 	public function tryHandleRequest(socket:HttpSocket, url:URL, req:HttpRequest) {
-		// TODO..
 		for (dynamicRoute in this.routes) {
 			var params = this.matchRoute(dynamicRoute, url.pathname);
 
@@ -95,6 +94,7 @@ class DynamicRouter {
 					var event:RequestEvent = {
 						socket: socket,
 						req: req,
+						url: url,
 						params: params
 					};
 					Reflect.callMethod(dynamicRoute.handler.instance, handler, [event]);

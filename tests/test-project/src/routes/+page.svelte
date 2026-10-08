@@ -1,7 +1,9 @@
 <script lang="ts">
+  /*  
+  import shit from "@hate/bananas";
   import("some-weird").then(console.log);
 
-  (async () => console.log(await import("some-weird")))();
+  (async () => console.log(await import("some-weird")))();*/
 </script>
 
 <svelte:head>

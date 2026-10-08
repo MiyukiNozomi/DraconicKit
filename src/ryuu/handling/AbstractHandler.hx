@@ -15,7 +15,7 @@ abstract class AbstractServerPage {
 }
 
 abstract class AbstractHandler {
-	private function error(status:Int, message:String) {
+	private function error(status:Int, message:String = "Error " + status) {
 		// TODO support for custom error pages?
 		throw new HttpResponse(status, ["content-type" => "text/plain"], Bytes.ofString(message, haxe.io.Encoding.UTF8));
 	}
