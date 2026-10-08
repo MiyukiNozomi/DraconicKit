@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { buildProject } from "./tasks/buildTask.js";
 import { createProject } from "./tasks/initTask.js";
 import { modulePath } from "./tools.js";

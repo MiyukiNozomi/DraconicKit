@@ -14,7 +14,7 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import { recreateShinkusFolder } from "./initTask.js";
 
-import { compile, compileModule, type CompileError } from "svelte/compiler";
+import { compile, type CompileError } from "svelte/compiler";
 
 type ClassInformation = {
   pathname: string;
@@ -274,7 +274,9 @@ import ryuu.Configuration;
 import ryuu.http.HttpServer;
 
 import ryuu.handling.RequestHandler;
+
 import ryuu.internal.SvelteRoute;
+import ryuu.internal.ESModuleRoute;
 
 // dynamic route imports
 ${dynamicRouteFiles.map((v) => `import ${routename2Package(v)};`).join("\n")}
@@ -289,6 +291,8 @@ class ServerMain {
 
     var server = new HttpServer(new Host(${JSON.stringify(config.server.host)}), ${config.server.port});
     
+    server.requestHandler.dynamicRouter.addDynamicRoute("/@module/[...path]", new ESModuleRoute());
+
     // dynamic route registry goes here..
     ${dynamicRoutes}${dynamicRoutes.length > 0 ? ";" : ""}
     // svelte page routes go here..

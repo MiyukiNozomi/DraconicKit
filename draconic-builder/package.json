@@ -1,25 +1,21 @@
 {
-  "name": "ryuu-builder",
+  "name": "draconic-builder",
   "version": "1.0.0",
-  "description": "",
+  "description": "The CLI interface of the DraconicKit project builder.",
+  "bin": {
+    "draconic-builder": "./dist/index.js"
+  },
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "12.9.1",
-      "onFail": "download"
-    }
-  },
-  "packageManager": "pnpm@12.9.1",
+  "license": "Apache-2.0",
   "type": "module",
   "dependencies": {
     "@types/node": "^26.6.4",
+    "draconic-builder": "link:",
     "svelte": "^5.57.1",
     "typescript": "^7.0.2",
     "zod": "^4.6.5"

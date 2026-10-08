@@ -18,7 +18,7 @@ export async function recreateShinkusFolder() {
 
   mkdirSync("./.shinku", { recursive: true });
   symlinkSync(
-    path.join(modulePath, "src/"),
+    path.join(modulePath, "../src/"),
     path.resolve("./", ".shinku/server-impl"),
     process.platform == "win32" ? "junction" : "dir",
   );
