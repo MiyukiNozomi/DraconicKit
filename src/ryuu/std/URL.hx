@@ -1,5 +1,6 @@
 package ryuu.std;
 
+import haxe.io.Path;
 import haxe.Json;
 import haxe.io.BytesBuffer;
 import haxe.io.Bytes;
@@ -304,6 +305,25 @@ class URL {
 		return this.href;
 	}
 
+	public static function join(url:URL, other:String) {
+		if (other.length == 0)
+			return new URL(url.href);
+		// Absolute URL: don't use the existing URL as a base.
+		if (other.indexOf("://") != -1 || StringTools.startsWith(other, "mailto:")) {
+			return new URL(other);
+		}
+		return new URL(other, url.href);
+	}
+
+	public static overload function fromFileURL(url:URL) {
+		return fromFileURL(url.href);
+	}
+
+	public static overload function fromFileURL(url:String) {
+		var parsed = new URL(url);
+		return Path.join(['/', parsed.hostname, parsed.pathname].filter(v -> v.length > 0));
+	}
+
 	/** 
 		Please be aware this function is slightly different than JS's encodeURI.
 		Specifically, JS appears not to encode some arbitrary characters,
@@ -325,6 +345,15 @@ class URL {
 		}
 
 		return encodedStr;
+	}
+
+	public static function canParse(src:String) {
+		try {
+			new URL(src);
+			return true;
+		} catch (err) {
+			return false;
+		}
 	}
 
 	/** Please be aware this function may be slightly different than the JS's implementation.*/

@@ -24,6 +24,8 @@
 
 package ryuu.std.ds;
 
+import haxe.io.Error;
+
 /**
 	A set is a list of unique values.  Value equality is determined using `==`.
 
@@ -104,7 +106,10 @@ abstract Set<T>(Map<T, Bool>) {
 		Creates an empty copy of the current set.
 	**/
 	public function empty():Set<T> {
-		var inst:Map<T, Bool> = Type.createInstance(Type.getClass(this), []);
+		var r = Type.getClass(this);
+		if (r == null)
+			throw Error.Blocked;
+		var inst:Map<T, Bool> = Type.createInstance(r, []);
 		return new Set(inst);
 	}
 

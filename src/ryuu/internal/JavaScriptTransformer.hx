@@ -1,5 +1,7 @@
 package ryuu.internal;
 
+import sys.FileSystem;
+import ryuu.internal.esm.ESMResolver.ESMResolve;
 import haxe.io.Error;
 import haxe.io.Path;
 import haxe.Json;
@@ -60,7 +62,24 @@ class JavaScriptTransformer {
 		return tokens;
 	}
 
-	public static function transform(input:String) {
+	private static function resolveImport(pathname:String, thisPath:String) {
+		trace("Need to resolve: " + pathname + " for " + thisPath);
+		try {
+			var resolved = ESMResolve.esmResolve(pathname, Right(FileSystem.absolutePath(thisPath)), {
+				experimentalWasmModules: false,
+				conditions: null
+			});
+
+			trace(resolved);
+			return resolved.url.href;
+		} catch (err) {
+			trace("Could not resolve " + pathname + " because: ", err);
+			return pathname;
+		}
+		return "<null>";
+	}
+
+	public static function transform(input:String, thisPath:String) {
 		#if dev
 		#else
 		return input;
@@ -69,7 +88,7 @@ class JavaScriptTransformer {
 		final transformPathname = (pathname:String) -> {
 			if (!StringTools.startsWith(pathname, pathname.charAt(0) + '.')) {
 				//		trace("Found a import statement towards " + pathname);
-				var dst = (Json.stringify(Path.join(["/@module", pathname.substring(1, pathname.length - 1)])));
+				var dst = (Json.stringify(Path.join(["/@module", resolveImport(pathname.substring(1, pathname.length - 1), thisPath)])));
 				return dst;
 			} else {
 				return (pathname);

@@ -40,97 +40,16 @@ class ESModuleRoute extends AbstractHandler {
 		this.cache = new Map();
 	}
 
-	private function dash(path:String) {
-		return ~/(^|\/)\.\.(?=$|\/)/g.replace(path, "$1__");
-	}
-
-	private function undash(path:String) {
-		return ~/(^|\/)__(?=$|\/)/g.replace(path, "$1..");
-	}
-
-	private function countParentRefs(path:String) {
-		var re = ~/(^|\/)\.\.(?=\/|$)/g;
-		var count = 0;
-		while (re.match(path))
-			count++;
-		return count;
-	}
-
-	private function getPackageName(pathStr:String) {
-		var components = pathStr.split('/').filter(v -> v.length > 0);
-		var packageName = components[0];
-
-		var freeComponents;
-		if (packageName.charAt(0) == '@') {
-			if (components.length == 1)
-				text("Forbiddden! bad package name: " + pathStr, {status: 403, headers: []});
-			packageName += '/' + components[1];
-			freeComponents = components.slice(2);
-		} else {
-			freeComponents = components.slice(1);
-		}
-		return {packageName: packageName, fragment: (freeComponents.length > 0 ? "./" + freeComponents.join('/') : '.')};
-	}
-
 	@:keep public function GET(event:RequestEvent) {
 		var pathStr = event.params.get("path");
 		if (pathStr == null)
 			return error(404);
-		pathStr = this.undash(pathStr);
 
 		var cached = this.cache[pathStr];
 		if (cached == null) {
-			if (pathStr.charAt(0) == '/' || countParentRefs(pathStr) > MAX_RESOLUTION_DEPTH)
-				return error(403, "Access is denied.");
-
-			var packageInfo = getPackageName(pathStr);
 			try {
-				var dependencyFile = Json.parse(File.getContent(Path.join(["node_modules", packageInfo.packageName, "package.json"])));
-				var exports = Reflect.getProperty(dependencyFile, "exports");
-				var target = Reflect.getProperty(exports, packageInfo.fragment);
-
-				var srcCode = "<error>";
-				var rootDir = "<error>";
-
-				if (target == null) {
-					var physicalPath = Path.join(["node_modules", packageInfo.packageName, packageInfo.fragment]);
-					var successful = false;
-
-					if (FileSystem.exists(physicalPath)) {
-						var iJSFile = Path.join([physicalPath, "index.js"]);
-						var isDir = false;
-
-						if (FileSystem.isDirectory(physicalPath) && FileSystem.exists(iJSFile)) {
-							physicalPath = iJSFile;
-							isDir = true;
-						}
-
-						srcCode = File.getContent(physicalPath);
-
-						var b = Path.join([packageInfo.packageName, packageInfo.fragment]);
-						rootDir = isDir ? b : Path.directory(b);
-						successful = true;
-					}
-
-					if (!successful) {
-						throw Error.Custom("No 'target' for " + packageInfo.fragment + " on package " + packageInfo.packageName);
-					}
-				} else {
-					var defaultVariant = Reflect.getProperty(target, "default");
-					var browserVariant = Reflect.getProperty(target, "browser");
-
-					var variantToLoad = browserVariant == null ? defaultVariant : browserVariant;
-					if (variantToLoad == null) {
-						throw Error.Custom("Target " + packageInfo.fragment + " on package " + packageInfo.packageName
-							+ " has no emittable candidate, it's exports are " + Json.stringify(target));
-					}
-
-					var resolvedPath = Path.normalize(Path.join(["node_modules", packageInfo.packageName, variantToLoad]));
-					srcCode = File.getContent(resolvedPath);
-					rootDir = Path.directory(Path.join([packageInfo.packageName, variantToLoad]));
-				}
-
-				cached = new CachedESModule(JavaScriptTransformer.transform(srcCode), "text/javascript");
+				var srcCode = Json.parse(File.getContent(Path.join(["node_modules", pathStr])));
+				cached = new CachedESModule(JavaScriptTransformer.transform(srcCode, pathStr), "text/javascript");
 				this.cache.set(pathStr, cached);
 				throw new HttpResponse(200, cached.headers, cached.content);
 			} catch (err) {

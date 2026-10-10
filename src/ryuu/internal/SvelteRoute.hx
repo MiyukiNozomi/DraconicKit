@@ -27,7 +27,7 @@ class SvelteRouter extends AbstractHandler {
 
 		if (event.url.search.indexOf("script") != -1) {
 			throw new HttpResponse(200, ["content-type" => "text/javascript; charset=utf-8"],
-				Bytes.ofString(JavaScriptTransformer.transform(File.read(Path.join([this.thisPathname, "page.js"])).readAll().toString())));
+				Bytes.ofString(JavaScriptTransformer.transform(File.getContent(Path.join([this.thisPathname, "page.js"])), this.thisPathname)));
 		}
 
 		var appPage = Configuration.SvelteBaseHTML + "";
@@ -39,21 +39,19 @@ class SvelteRouter extends AbstractHandler {
 
 		var cssPath = Path.join([this.thisPathname, "page.css"]);
 		if (FileSystem.exists(cssPath)) {
-			head += '<style>${File.read(cssPath).readAll().toString()}</style>';
+			head += '<style>${File.getContent(cssPath)}</style>';
 		}
 		// TODO: make server page do something
 
 		//	head += '<script type="module" src="${event.url.pathname}?script=true"></script>';
 
-		body += '<script type="module">
-		import { mount } from "/@module/svelte";
+		body += '<script type="module">${JavaScriptTransformer.transform('import { mount } from "svelte";
 		import App from "./?script=true";
 
 mount(App, {
 	target: document.querySelector("#app-container"),
 	props: {}
-});
-</script>';
+});',  this.thisPathname)}</script>';
 
 		appPage = StringTools.replace(appPage, "%draconic.svelte.head%", head);
 		appPage = StringTools.replace(appPage, "%draconic.svelte.body%", body);
