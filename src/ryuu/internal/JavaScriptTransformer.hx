@@ -1,7 +1,7 @@
 package ryuu.internal;
 
 import sys.FileSystem;
-import ryuu.internal.esm.ESMResolver.ESMResolve;
+import ryuu.internal.esm.ESMResolver;
 import haxe.io.Error;
 import haxe.io.Path;
 import haxe.Json;
@@ -63,17 +63,13 @@ class JavaScriptTransformer {
 	}
 
 	private static function resolveImport(pathname:String, thisPath:String) {
-		trace("Need to resolve: " + pathname + " for " + thisPath);
 		try {
-			var resolved = ESMResolve.esmResolve(pathname, Right(FileSystem.absolutePath(thisPath)), {
-				experimentalWasmModules: false,
-				conditions: null
-			});
+			var resolved = ESMResolver.esmResolve(pathname, (FileSystem.absolutePath(thisPath)));
 
-			trace(resolved);
-			return resolved.url.href;
+			// trace(resolved);
+			return resolved;
 		} catch (err) {
-			trace("Could not resolve " + pathname + " because: ", err);
+			trace("Could not resolve " + pathname + " because: ", err, err.stack);
 			return pathname;
 		}
 		return "<null>";

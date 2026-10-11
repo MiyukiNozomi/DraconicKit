@@ -44,11 +44,17 @@ class ESModuleRoute extends AbstractHandler {
 		var pathStr = event.params.get("path");
 		if (pathStr == null)
 			return error(404);
+		pathStr = '/' + pathStr;
+
+		final thisDir = FileSystem.absolutePath("./") + "/";
+		if (!StringTools.startsWith(pathStr, thisDir))
+			return error(403);
 
 		var cached = this.cache[pathStr];
+
 		if (cached == null) {
 			try {
-				var srcCode = Json.parse(File.getContent(Path.join(["node_modules", pathStr])));
+				var srcCode = File.getContent(pathStr);
 				cached = new CachedESModule(JavaScriptTransformer.transform(srcCode, pathStr), "text/javascript");
 				this.cache.set(pathStr, cached);
 				throw new HttpResponse(200, cached.headers, cached.content);
@@ -56,6 +62,7 @@ class ESModuleRoute extends AbstractHandler {
 				if (Std.downcast(err, HttpResponse) != null)
 					throw err;
 				Logger.debug("Could not resolve import: " + pathStr + " because: ", err);
+				trace(err.stack);
 				return error(404, "Dependency may not exist as specified.");
 			}
 		}
