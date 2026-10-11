@@ -44,11 +44,6 @@ class ESModuleRoute extends AbstractHandler {
 		var pathStr = event.params.get("path");
 		if (pathStr == null)
 			return error(404);
-		pathStr = '/' + pathStr;
-
-		final thisDir = FileSystem.absolutePath("./") + "/";
-		if (!StringTools.startsWith(pathStr, thisDir))
-			return error(403);
 
 		var cached = this.cache[pathStr];
 

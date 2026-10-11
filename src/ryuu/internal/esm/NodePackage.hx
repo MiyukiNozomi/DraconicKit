@@ -1,11 +1,11 @@
 package ryuu.internal.esm;
 
+import ryuu.internal.esm.ESMErrors.InvalidModuleSpecifierError;
 import ryuu.internal.esm.ESMErrors.InvalidPackageConfigurationError;
+import ryuu.internal.esm.ESMErrors.ModuleNotFoundError;
 import haxe.io.Path;
-import haxe.exceptions.NotImplementedException;
 import sys.io.File;
 import haxe.Json;
-import ryuu.internal.esm.ESMErrors.ModuleNotFoundError;
 import sys.FileSystem;
 
 using StringTools;
@@ -32,136 +32,205 @@ class NodePackage {
 		}
 	}
 
-	private function joinAndCheckPath(moduleFolder:String, path:String) {
+	/**
+	 * Joins `path` onto `moduleFolder` and makes sure it doesn't escape it.
+	 * NOTE: returns a plain file path (no trailing slash).
+	 */
+	private function joinAndCheckPath(moduleFolder:String, path:String):String {
 		if (path.startsWith("/")) {
-			throw new InvalidPackageConfigurationError("Invalid exports target.");
+			throw new InvalidPackageConfigurationError("Invalid exports target: " + path);
 		}
 
-		var pth = Path.normalize(Path.join([moduleFolder, path])) + "/";
-		if (!pth.startsWith(Path.normalize(moduleFolder) + "/")) {
-			throw new InvalidPackageConfigurationError("Exports target escapes package boundary.");
+		var root = Path.removeTrailingSlashes(Path.normalize(moduleFolder));
+		var full = Path.normalize(Path.join([root, path]));
+		if (full != root && !full.startsWith(root + "/")) {
+			throw new InvalidPackageConfigurationError("Exports target escapes package boundary: " + path);
 		}
 
-		return pth;
+		return full;
 	}
 
-	private function resolveExports(subpath:String, moduleFolder:String):String {
-		var exports = Reflect.getProperty(data, "exports");
-		if (exports == null)
-			throw new ModuleNotFoundError("Invalid exports on " + moduleFolder);
-		if (!subpath.startsWith("./") && subpath != '.')
-			subpath = "./" + subpath;
-		return resolveExportsTarget(exports, subpath, moduleFolder);
+	private function substitute(pattern:String, match:String):String {
+		return pattern.replace("*", match);
 	}
 
-	private function resolveExportsTarget(exports:Dynamic, subpath:String, moduleFolder:String) {
-		if (Std.isOfType(exports, String)) {
-			return joinAndCheckPath(moduleFolder, subpath);
+	/**
+	 * Resolves a target (string | array | conditions object | null).
+	 * Returns null when nothing matched (so the caller can keep looking).
+	 */
+	private function resolveTarget(target:Dynamic, match:String, moduleFolder:String, isImports:Bool, resolveBare:Null<String->String>):Null<String> {
+		if (target == null)
+			return null;
+
+		if (Std.isOfType(target, String)) {
+			var t = substitute(cast(target, String), match);
+			if (t.startsWith("./"))
+				return joinAndCheckPath(moduleFolder, t);
+
+			// "imports" may point at bare specifiers like { "#dep": "some-package" }
+			if (isImports && resolveBare != null && !t.startsWith("/") && !t.startsWith("../"))
+				return resolveBare(t);
+
+			throw new InvalidPackageConfigurationError('Invalid target "' + t + '" in ' + moduleFolder);
 		}
-		if (Std.isOfType(exports, Array)) {
-			var list = cast(exports, Array<Dynamic>);
+
+		if (Std.isOfType(target, Array)) {
+			var list:Array<Dynamic> = cast target;
 			for (entry in list) {
 				try {
-					if (entry == null)
-						continue;
-					return resolveExportsTarget(entry, subpath, moduleFolder);
-				} catch (e:ModuleNotFoundError) {
+					var r = resolveTarget(entry, match, moduleFolder, isImports, resolveBare);
+					if (r != null)
+						return r;
+				} catch (e:InvalidPackageConfigurationError) {
 					continue;
 				}
 			}
-			throw new ModuleNotFoundError("No export target resolved.");
+			return null;
 		}
 
-		var isConditions = Reflect.fields(exports).filter(v -> !v.startsWith(".")).length > 0;
-		var isSubpaths = Reflect.fields(exports).filter(v -> v.startsWith(".")).length > 0;
-
-		if (isConditions && isSubpaths) {
-			throw new InvalidPackageConfigurationError("Module at "
-				+ moduleFolder
-				+ " has both conditions and subpaths on its exports object. this is disallowed.");
+		if (Reflect.isObject(target)) {
+			for (key in matchingConditionKeys(target)) {
+				var r = resolveTarget(Reflect.field(target, key), match, moduleFolder, isImports, resolveBare);
+				if (r != null)
+					return r;
+			}
+			return null;
 		}
 
-		if (isConditions) {
-			for (key in Reflect.fields(exports)) {
-				if (conditions.contains(key)) {
-					return resolveExportsTarget(Reflect.getProperty(exports, key), subpath, moduleFolder);
-				}
+		throw new InvalidPackageConfigurationError("Invalid target in " + moduleFolder);
+	}
+
+	/**
+	 * Node picks the first matching condition in the order written in package.json,
+	 * but Reflect.fields() doesn't guarantee that order on every Haxe target
+	 * (e.g. an alphabetical order puts "default" before "import" and you end up
+	 * with the CommonJS build). So rank the conditions instead, following the
+	 * convention that specific conditions come first and "default" comes last.
+	 */
+	private function matchingConditionKeys(obj:Dynamic):Array<String> {
+		var keys = Reflect.fields(obj).filter(k -> k == "default" || conditions.contains(k));
+		keys.sort((a, b) -> conditionRank(a) - conditionRank(b));
+		return keys;
+	}
+
+	private function conditionRank(key:String):Int {
+		return switch (key) {
+			case "development" | "production": 0;
+			case "browser": 1;
+			case "import": 2;
+			case "default": 3;
+			default: 4;
+		}
+	}
+
+	/**
+	 * Looks `subpath` up in a map of subpaths (exports / imports).
+	 */
+	private function resolveMap(map:Dynamic, subpath:String, moduleFolder:String, isImports:Bool, resolveBare:Null<String->String>):String {
+		// exact match
+		if (subpath.indexOf("*") == -1 && Reflect.hasField(map, subpath)) {
+			var r = resolveTarget(Reflect.field(map, subpath), "", moduleFolder, isImports, resolveBare);
+			if (r == null)
+				throw new ModuleNotFoundError('Subpath ${subpath} has no matching condition in ${moduleFolder}');
+			return r;
+		}
+
+		// pattern match ("./features/*"), longest prefix wins
+		var bestKey:Null<String> = null;
+		var bestPrefixLen = -1;
+		var bestMatch = "";
+		for (key in Reflect.fields(map)) {
+			var star = key.indexOf("*");
+			if (star == -1 || star != key.lastIndexOf("*"))
+				continue;
+
+			var prefix = key.substr(0, star);
+			var suffix = key.substr(star + 1);
+			if (subpath.length >= key.length && subpath.startsWith(prefix) && subpath.endsWith(suffix) && star > bestPrefixLen) {
+				bestKey = key;
+				bestPrefixLen = star;
+				bestMatch = subpath.substring(prefix.length, subpath.length - suffix.length);
 			}
 		}
 
-		if (isSubpaths) {
-			for (key in Reflect.fields(exports)) {
-				if (matchPath(key, subpath)) {
-					var value = Reflect.field(exports, key);
-					var target:Dynamic = value;
-					if (Std.isOfType(value, String)) {
-						target = substitute(cast(value, String), subpath);
-					}
-					return resolveExportsTarget(target, subpath, moduleFolder);
-				}
-			}
+		if (bestKey != null) {
+			var r = resolveTarget(Reflect.field(map, bestKey), bestMatch, moduleFolder, isImports, resolveBare);
+			if (r == null)
+				throw new ModuleNotFoundError('Subpath ${subpath} has no matching condition in ${moduleFolder}');
+			return r;
 		}
 
 		throw new ModuleNotFoundError('Could not locate subpath ${subpath} in module ${moduleFolder}');
 	}
 
-	private function substitute(pattern:String, request:String):String {
-		var index = pattern.indexOf("*");
-		if (index == -1)
-			return pattern;
+	private function resolveExports(exports:Dynamic, subpath:String, moduleFolder:String):String {
+		var map:Dynamic = exports;
 
-		var prefix = pattern.substr(0, index);
-		var suffix = pattern.substr(index + 1);
+		var isObject = !Std.isOfType(exports, String) && !Std.isOfType(exports, Array) && Reflect.isObject(exports);
+		var keys = isObject ? Reflect.fields(exports) : [];
+		var dotKeys = keys.filter(v -> v.startsWith(".")).length;
 
-		var middle = request.substr(prefix.length, request.length - prefix.length - suffix.length);
+		if (dotKeys > 0 && dotKeys != keys.length) {
+			throw new InvalidPackageConfigurationError("Module at "
+				+ moduleFolder
+				+ " has both conditions and subpaths on its exports object. this is disallowed.");
+		}
 
-		return pattern.replace("*", middle);
+		// sugar: "exports": "./x.js" / [...] / { "import": ... } all mean { ".": <that> }
+		if (dotKeys == 0) {
+			map = {};
+			Reflect.setField(map, ".", exports);
+		}
+
+		return resolveMap(map, subpath, moduleFolder, false, null);
 	}
 
-	private function matchPath(pattern:String, path:String):Bool {
-		var p = 0, s = 0, star = -1, mark = 0;
-		while (s < path.length) {
-			if (p < pattern.length && (pattern.charAt(p) == "?" || pattern.charAt(p) == path.charAt(s))) {
-				p++;
-				s++;
-			} else if (p < pattern.length && pattern.charAt(p) == "*") {
-				star = p;
-				mark = s;
-				p++;
-			} else if (star != -1) {
-				p = star + 1;
-				s = ++mark;
-			} else {
-				return false;
-			}
+	/** Node's fallback when there is no "exports": main, then index.js */
+	private function resolveLegacyMain(moduleFolder:String):String {
+		var main = "index.js";
+		var declared = Reflect.field(data, "main");
+		if (declared != null && Std.isOfType(declared, String) && cast(declared, String).length > 0)
+			main = declared;
+
+		for (candidate in [main, main + ".js", main + ".json", main + "/index.js", "index.js"]) {
+			var p = joinAndCheckPath(moduleFolder, candidate);
+			if (FileSystem.exists(p) && !FileSystem.isDirectory(p))
+				return p;
 		}
-		while (p < pattern.length && pattern.charAt(p) == "*")
-			p++;
-		return p == pattern.length;
+		throw new ModuleNotFoundError("Could not find the entry point of package: " + moduleFolder);
 	}
 
-	public function resolveFromImports(subpath:String, moduleFolder:String) {
-		if (Reflect.hasField(data, "imports")) {
-			return resolveExportsTarget(data.imports, subpath, moduleFolder);
+	/**
+	 * Resolves a "#specifier" using this package's "imports" field.
+	 * `resolveBare` is used when an imports target is a bare package name.
+	 */
+	public function resolveFromImports(specifier:String, moduleFolder:String, ?resolveBare:String->String):String {
+		var imports = Reflect.field(data, "imports");
+		if (imports == null) {
+			throw new InvalidPackageConfigurationError("Package "
+				+ moduleFolder
+				+ " is attempting to use a imports map without a imports on it's package.json");
+		}
+		if (specifier == "#" || specifier.startsWith("#/")) {
+			throw new InvalidModuleSpecifierError("Invalid imports specifier: " + specifier);
 		}
 
-		throw new InvalidPackageConfigurationError("Package " + moduleFolder + " is attempting to use a imports map without a imports on it's package.json");
+		return resolveMap(imports, specifier, moduleFolder, true, resolveBare);
 	}
 
-	public function resolve(subpath:String, moduleFolder:String) {
-		/*if (!Reflect.hasField(data, "type") || Reflect.getProperty(data, "type") != "module") {
-			throw new InvalidPackageTargetError("Module at " + moduleFolder + " is not a ES module.");
-		}*/
-		// trace(subpath, moduleFolder);
-		if (Reflect.hasField(data, "exports")) {
-			return resolveExports(subpath, moduleFolder);
-		}
+	/**
+	 * `subpath` is "." for the package root, or "./something".
+	 */
+	public function resolve(subpath:String, moduleFolder:String):String {
+		if (subpath != "." && !subpath.startsWith("./"))
+			subpath = "./" + subpath;
 
-		if (subpath == ".") {
-			if (Reflect.hasField(data, "main"))
-				return joinAndCheckPath(moduleFolder, Reflect.getProperty(data, "main"));
-			throw new ModuleNotFoundError("No 'main' in package: " + moduleFolder);
-		}
+		var exports = Reflect.field(data, "exports");
+		if (exports != null)
+			return resolveExports(exports, subpath, moduleFolder);
+
+		if (subpath == ".")
+			return resolveLegacyMain(moduleFolder);
 
 		return joinAndCheckPath(moduleFolder, subpath);
 	}

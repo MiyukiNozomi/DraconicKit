@@ -15,5 +15,6 @@ Also, be aware of a few limitations.
 ## TODO list
 
 [ ] HMR
+[X] Svelte
 [X] Routing
 [ ] Documentation
