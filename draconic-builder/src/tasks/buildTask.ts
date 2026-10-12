@@ -1,6 +1,6 @@
+import { execSync } from "node:child_process";
 import {
   cpSync,
-  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -8,49 +8,84 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import path from "node:path";
+import { compile, type CompileError } from "svelte/compiler";
+
 import { getProjectConfig, type DraconicConfig } from "../draconicConfig.js";
 import { TemplateHXML } from "../templates.js";
-import path from "node:path";
-import { execSync } from "node:child_process";
 import { recreateShinkusFolder } from "./initTask.js";
+import { isJSDocOverloadTag } from "typescript/unstable/ast";
+import { directoryExplore } from "../tools.js";
 
-import { compile, type CompileError } from "svelte/compiler";
+const ROUTES_DIR = "src/routes";
+const SHINKU_DIR = ".shinku";
+const TRANSFORMED_SRC_DIR = `${SHINKU_DIR}/project-transformed-src`;
+const GENERATED_DIR = `${SHINKU_DIR}/generated`;
+
+const HANDLER_KINDS = {
+  "Server.hx": "AbstractHandler",
+  "ServerPage.hx": "AbstractServerPage",
+} as const;
 
 type ClassInformation = {
   pathname: string;
   className: string;
-  moduleName: String;
+  moduleName: string;
   extendedClassName: string | null;
 };
 
-function getClassInformation(pathname: string, expectedExtendedClass: string) {
-  const tokens = readFileSync(pathname)
+type ParsedClass = {
+  className: string | null;
+  moduleName: string;
+  extendedClass: string | null;
+};
+
+type SvelteRoute = {
+  routename: string;
+  physicalPath: string;
+};
+
+type DiscoveryResult = {
+  routes: ClassInformation[];
+  svelteFiles: string[];
+  failed: boolean;
+};
+
+function tokenize(pathname: string): string[] {
+  return readFileSync(pathname)
     .toString()
     .split("\n")
-    .map((v) => v.trim())
-    .flatMap((v) => v.split(" ").filter((v) => v.length > 0))
-    .filter((v) => v.length > 0);
+    .map((line) => line.trim())
+    .flatMap((line) => line.split(" "))
+    .filter((token) => token.length > 0);
+}
 
-  let className = null as string | null;
-  let extendedClass = null as string | null;
+function getClassInformation(
+  pathname: string,
+  expectedExtendedClass: string,
+): ParsedClass {
+  const tokens = tokenize(pathname);
+
+  let className: string | null = null;
+  let extendedClass: string | null = null;
 
   let i = 0;
   while (i < tokens.length) {
-    if (tokens[i++] == "class") {
-      className = tokens[i++] ?? null;
-      if (
-        className &&
-        tokens[i++] == "extends" &&
-        expectedExtendedClass == tokens[i++]
-      ) {
-        extendedClass = expectedExtendedClass;
-        break;
-      }
-      console.log(className, extendedClass);
+    if (tokens[i++] !== "class") continue;
+
+    className = tokens[i++] ?? null;
+    if (
+      className &&
+      tokens[i++] === "extends" &&
+      tokens[i++] === expectedExtendedClass
+    ) {
+      extendedClass = expectedExtendedClass;
+      break;
     }
   }
 
   console.log("class", className, "is extending", extendedClass);
+
   return {
     className,
     moduleName: path.basename(pathname).replace(".hx", ""),
@@ -58,287 +93,329 @@ function getClassInformation(pathname: string, expectedExtendedClass: string) {
   };
 }
 
-let hasGetAllServerFilesFailed = false;
+function isValidHandlerClass(
+  info: ParsedClass,
+  expectedExtendedClass: string,
+): boolean {
+  return !!info.className && info.extendedClass === expectedExtendedClass;
+}
 
-function getAllServerFiles(
-  rootDir: string,
-  directory: string,
-  routeList: Array<ClassInformation>,
-  svelteFiles: Array<String>,
-) {
-  let basename = path.posix.basename(directory);
+function discoverRoutes(rootDir: string, directory: string): DiscoveryResult {
+  const result: DiscoveryResult = {
+    routes: [],
+    svelteFiles: [],
+    failed: false,
+  };
 
-  if (statSync(directory).isDirectory()) {
-    readdirSync(directory).forEach((v) =>
-      getAllServerFiles(
-        rootDir,
-        path.posix.join(directory, v),
-        routeList,
-        svelteFiles,
-      ),
-    );
-  } else if (basename.endsWith(".svelte")) {
-    svelteFiles.push(directory);
-  } else if (basename == "Server.hx" || basename == "ServerPage.hx") {
-    const classInfo = getClassInformation(
-      directory,
-      basename == "Server.hx" ? "AbstractHandler" : "AbstractServerPage",
-    );
+  const visit = (current: string) => {
+    const basename = path.posix.basename(current);
 
-    if (
-      !classInfo.className ||
-      (basename == "Server.hx" &&
-        classInfo.extendedClass != "AbstractHandler") ||
-      (basename == "ServerPage.hx" &&
-        classInfo.extendedClass != "AbstractServerPage")
-    ) {
+    if (statSync(current).isDirectory()) {
+      readdirSync(current).forEach((entry) =>
+        visit(path.posix.join(current, entry)),
+      );
+      return;
+    }
+
+    if (basename.endsWith(".svelte")) {
+      result.svelteFiles.push(current);
+      return;
+    }
+
+    if (!(basename in HANDLER_KINDS)) return;
+
+    const expectedClass = HANDLER_KINDS[basename as keyof typeof HANDLER_KINDS];
+    const info = getClassInformation(current, expectedClass);
+
+    if (!isValidHandlerClass(info, expectedClass)) {
       console.error(
         "Error: Not an acceptable Server.hx/ServerPage.hx file at",
-        directory,
+        current,
         `
 Server.hx files must have ONE class extending AbstractHandler.
 ServerPage.hx files must have ONE class extending AbstractServerPage.
 `,
       );
-      hasGetAllServerFilesFailed = true;
+      result.failed = true;
       return;
     }
 
-    let route = path.posix.dirname(directory);
+    const route = path.posix.dirname(current);
 
-    let existing = routeList.find((v) => v.pathname == route);
+    const existing = result.routes.find(
+      (r) => r.pathname === route.substring(rootDir.length),
+    );
     if (existing) {
       console.error(
-        `Warning: route ${route} has a duplicated server handler with the name: ${existing}`,
+        `Warning: route ${route} has a duplicated server handler with the name: ${existing.className}
+Cannot have both Server.hx and ServerPage.hx in the same folder.`,
       );
       return;
     }
 
-    routeList.push({
+    result.routes.push({
       pathname: route.substring(rootDir.length),
-      className: classInfo.className,
-      moduleName: classInfo.moduleName,
-      extendedClassName: classInfo.extendedClass,
+      className: info.className!,
+      moduleName: info.moduleName,
+      extendedClassName: info.extendedClass,
     });
-  }
+  };
+
+  visit(directory);
+  return result;
 }
 
-function routename2Package(clazz: ClassInformation, asPackage = true) {
-  return (
-    "routes" +
-    (asPackage ? "." : "/") +
-    clazz.pathname
-      .split("/")
-      .filter(Boolean)
-      .map((v) =>
-        v
-          .replace(/^\[\.*/, "")
-          .replace(/\]$/, "")
-          .replaceAll("-", "_"),
-      )
-      .filter((v) => {
-        if (!v.match(/^[A-Za-z_][A-Za-z0-9_]*$/))
-          throw (
-            "This pathname " +
-            clazz.pathname +
-            "has a bad package name. DraconicKit doesnt really support routes that dont have valid haxe identifiers. sorry."
-          );
-        return true;
-      })
-      .join(asPackage ? "." : "/") +
-    (asPackage ? "." + clazz.moduleName + "." + clazz.className : "")
+const HAXE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function routeSegments(route: ClassInformation): string[] {
+  return route.pathname
+    .split("/")
+    .filter(Boolean)
+    .map((segment) =>
+      segment
+        .replace(/^\[\.*/, "")
+        .replace(/\]$/, "")
+        .replaceAll("-", "_"),
+    )
+    .map((segment) => {
+      if (!HAXE_IDENTIFIER.test(segment)) {
+        throw (
+          "This pathname " +
+          route.pathname +
+          "has a bad package name. DraconicKit doesnt really support routes that dont have valid haxe identifiers. sorry."
+        );
+      }
+      return segment;
+    });
+}
+
+function routeDirectory(route: ClassInformation): string {
+  return ["routes", ...routeSegments(route)].join("/");
+}
+
+function routeClassName(route: ClassInformation): string {
+  return [
+    "routes",
+    ...routeSegments(route),
+    route.moduleName,
+    route.className,
+  ].join(".");
+}
+
+async function handleFrontendJSFiles(
+  isDevMode: boolean,
+  config: DraconicConfig,
+) {
+  await directoryExplore("src/lib", (fp, filename) => {
+    if (filename.endsWith(".js")) {
+      const directory = path.dirname(fp.substring("src/lib".length));
+      const modulePath = path.join(
+        SHINKU_DIR,
+        config.server.static_dir,
+        "@library",
+        directory,
+      );
+      mkdirSync(modulePath, { recursive: true });
+      cpSync(fp, path.join(modulePath, filename));
+    }
+  });
+}
+
+function compileSvelteFile(
+  file: string,
+  isDevMode: boolean,
+  config: DraconicConfig,
+): SvelteRoute {
+  const result = compile(readFileSync(file).toString(), {
+    dev: isDevMode,
+    rootDir: path.resolve("src/"),
+    generate: "client",
+    filename: file,
+  });
+
+  const routename = file.substring("src/routes/".length);
+  const modulePath = path.join(
+    SHINKU_DIR,
+    config.server.static_dir,
+    "@svelte",
+    routename,
   );
+  mkdirSync(modulePath, { recursive: true });
+
+  writeFileSync(path.join(modulePath, "page.js"), result.js.code);
+  if (result.css) {
+    writeFileSync(path.join(modulePath, "page.css"), result.css.code);
+  }
+
+  return {
+    routename: path.dirname("/" + routename),
+    physicalPath: modulePath,
+  };
+}
+
+function isSvelteCompileError(err: unknown): err is CompileError {
+  return !!err && typeof err === "object" && "code" in err && "filename" in err;
 }
 
 function buildSvelte(
   isDevMode: boolean,
   config: DraconicConfig,
-  svelteFiles: Array<string>,
-) {
-  let pathnames = new Array<{ routename: string; physicalPath: string }>();
-  for (const file of svelteFiles) {
+  svelteFiles: string[],
+): SvelteRoute[] {
+  return svelteFiles.map((file) => {
     try {
-      const result = compile(readFileSync(file).toString(), {
-        dev: isDevMode,
-        rootDir: path.resolve("src/"),
-        generate: "client",
-        filename: file,
-      });
-
-      let routename = file.substring("src/routes/".length);
-      const thisModulePath = path.join(
-        ".shinku",
-        config.server.static_dir,
-        "@svelte",
-        routename,
-      );
-      mkdirSync(thisModulePath, { recursive: true });
-
-      writeFileSync(path.join(thisModulePath, "page.js"), result.js.code);
-      if (result.css)
-        writeFileSync(path.join(thisModulePath, "page.css"), result.css.code);
-      //console.log(result);
-
-      let rt = path.dirname("/" + routename);
-      pathnames.push({
-        routename: rt,
-        physicalPath: thisModulePath,
-      });
+      return compileSvelteFile(file, isDevMode, config);
     } catch (err) {
-      if (err && typeof err == "object" && `code` in err && `filename` in err) {
-        let other = err as CompileError;
-
+      if (isSvelteCompileError(err)) {
         console.log(
           "Failed to compile " +
-            other.filename +
+            err.filename +
             ": " +
-            other.message +
-            (other.frame ? "\n" + other.frame : ""),
+            err.message +
+            (err.frame ? "\n" + err.frame : ""),
         );
         throw "Svelte Build Failed!";
       }
       throw err;
     }
-  }
-  return pathnames;
+  });
 }
 
-export async function buildProject(isDevMode: boolean = false) {
-  let config = await getProjectConfig();
-  if (!config) return;
+function prepareOutputFolders(config: DraconicConfig, isDevMode: boolean) {
+  const hxml = [...TemplateHXML];
+  if (isDevMode) hxml.unshift("-D dev");
 
-  let thisBuildFile = [...TemplateHXML];
-  if (isDevMode) thisBuildFile.unshift("-D dev");
+  mkdirSync(GENERATED_DIR, { recursive: true });
+  writeFileSync(`${SHINKU_DIR}/build.hxml`, hxml.join("\n"));
 
-  await recreateShinkusFolder();
+  rmSync(TRANSFORMED_SRC_DIR, { recursive: true, force: true });
+  mkdirSync(TRANSFORMED_SRC_DIR, { recursive: true });
 
-  let dynamicRouteFiles = new Array<ClassInformation>();
-  let svelteFiles = new Array<string>();
-  getAllServerFiles("src/routes", "src/routes", dynamicRouteFiles, svelteFiles);
+  rmSync(`${SHINKU_DIR}/static`, { recursive: true, force: true });
+  cpSync(config.server.static_dir, `${SHINKU_DIR}/static`, { recursive: true });
+}
 
-  if (hasGetAllServerFilesFailed) throw "BUILD FAILED";
-
-  mkdirSync(".shinku/generated", { recursive: true });
-  writeFileSync(".shinku/build.hxml", thisBuildFile.join("\n"));
-  if (existsSync(".shinku/project-transformed-src")) {
-    rmSync(".shinku/project-transformed-src", { recursive: true });
-  }
-  mkdirSync(".shinku/project-transformed-src", { recursive: true });
-
-  rmSync(".shinku/static", { recursive: true, force: true });
-  cpSync(config.server.static_dir, ".shinku/static", { recursive: true });
-
+function transformRouteSources(routes: ClassInformation[]) {
   console.log("Transforming...");
-  dynamicRouteFiles.map((truePath) => {
-    const finalPath = path.join(
-      ".shinku/project-transformed-src",
-      routename2Package(truePath, false),
-    );
-    console.log(truePath, "->", finalPath);
+  for (const route of routes) {
+    const finalPath = path.join(TRANSFORMED_SRC_DIR, routeDirectory(route));
+    console.log(route, "->", finalPath);
 
-    cpSync(path.posix.join("src/routes", truePath.pathname), finalPath, {
+    cpSync(path.posix.join(ROUTES_DIR, route.pathname), finalPath, {
       recursive: true,
     });
+  }
+}
+
+const ADD_ROUTE = "server.requestHandler.dynamicRouter.addDynamicRoute";
+
+function buildHandlerRegistrations(routes: ClassInformation[]): string[] {
+  return routes
+    .filter((r) => r.extendedClassName === "AbstractHandler")
+    .map(
+      (r) =>
+        `${ADD_ROUTE}(${JSON.stringify(r.pathname)}, new ${routeClassName(r)}())`,
+    );
+}
+
+function buildSvelteRegistrations(
+  routes: ClassInformation[],
+  svelteRoutes: SvelteRoute[],
+): string[] {
+  const serverPages = routes.filter(
+    (r) => r.extendedClassName === "AbstractServerPage",
+  );
+  const used = new Set<string>();
+
+  const registrations = svelteRoutes.map((svelte) => {
+    const page = serverPages.find((r) => r.pathname === svelte.routename);
+    if (page) used.add(page.pathname);
+
+    const serverPage = page ? `new ${routeClassName(page)}()` : "null";
+    return `${ADD_ROUTE}(${JSON.stringify(svelte.routename)}, new SvelteRouter(${serverPage}, ${JSON.stringify(svelte.physicalPath)}))`;
   });
-  console.log("Svelte sources:", "\n" + svelteFiles.join("\n"));
-  console.log("Building..");
-  const svelteRouteFiles = buildSvelte(isDevMode, config, svelteFiles);
 
-  // let's create the main server class
-
-  const serverPageRoutes = dynamicRouteFiles.filter(
-    (v) => v.extendedClassName === "AbstractServerPage",
-  );
-
-  const includedSvelteRoutes = new Array<string>();
-
-  const svelteRoutes = svelteRouteFiles
-    .map((v) => {
-      return `server.requestHandler.dynamicRouter.addDynamicRoute(${JSON.stringify(v.routename)}, new SvelteRouter(${(() => {
-        const target = serverPageRoutes.find((r) => r.pathname == v.routename);
-
-        if (target) {
-          includedSvelteRoutes.push(target.pathname);
-          return `new ${routename2Package(target)}()`;
-        }
-        return "null";
-      })()}, ${JSON.stringify(v.physicalPath)}))`;
-    })
-    .join(";\n\t\t");
-
-  const er = serverPageRoutes.find(
-    (v) => !includedSvelteRoutes.includes(v.pathname),
-  );
-  if (er) {
+  const orphan = serverPages.find((r) => !used.has(r.pathname));
+  if (orphan) {
     throw (
       "We have a ServerPage.hx but no +page.svelte! ServerPage.hx is located at: " +
-      er.pathname
+      orphan.pathname
     );
   }
 
-  const dynamicRoutes = dynamicRouteFiles
-    .map((v) => {
-      if (v.extendedClassName == "AbstractHandler")
-        return `server.requestHandler.dynamicRouter.addDynamicRoute(${JSON.stringify(v.pathname)}, new ${routename2Package(v)}())`;
-      return null;
-    })
-    .filter((v) => v)
-    .join(";\n\t\t");
+  return registrations;
+}
 
-  writeFileSync(
-    ".shinku/generated/ServerMain.hx",
-    `
+function joinStatements(statements: string[]): string {
+  return statements.length > 0 ? statements.join(";\n\t\t") + ";" : "";
+}
+
+function generateServerMain(
+  config: DraconicConfig,
+  routes: ClassInformation[],
+  svelteRoutes: SvelteRoute[],
+): string {
+  const routeImports = routes
+    .map((r) => `import ${routeClassName(r)};`)
+    .join("\n");
+
+  const handlers = joinStatements(buildHandlerRegistrations(routes));
+  const svelte = joinStatements(buildSvelteRegistrations(routes, svelteRoutes));
+
+  return `
 /**
  *  GENERATED CLASS, PLEASE DO NOT MODIFY OR CALL MANUALLY!
 */  
-
+ 
 import sys.net.Host;
-
+ 
 import ryuu.Configuration;
 import ryuu.http.HttpServer;
-
+ 
 import ryuu.handling.RequestHandler;
-
+ 
 import ryuu.internal.SvelteRoute;
 #if dev
 import ryuu.internal.ESModuleRoute;
 #end
-
+ 
 // dynamic route imports
-${dynamicRouteFiles.map((v) => `import ${routename2Package(v)};`).join("\n")}
-
+${routeImports}
+ 
 class ServerMain {
   static function main() {
     #if dev
-		  Configuration.WorkingDirectory = ".shinku";
+		  Configuration.WorkingDirectory = ${JSON.stringify(path.resolve(".shinku"))};
     #end
 		Configuration.StaticDirectory = ${JSON.stringify(config.server.static_dir)};
     Configuration.SvelteBaseHTML = ${JSON.stringify(readFileSync("src/app.html").toString())};
-
+ 
     var server = new HttpServer(new Host(${JSON.stringify(config.server.host)}), ${config.server.port});
-
+ 
     #if dev
       server.requestHandler.dynamicRouter.addDynamicRoute("/@module/[...path]", new ESModuleRoute());
     #end
-
+ 
     // dynamic route registry goes here..
-    ${dynamicRoutes}${dynamicRoutes.length > 0 ? ";" : ""}
+    ${handlers}
     // svelte page routes go here..
-    ${svelteRoutes}${svelteRoutes.length > 0 ? ";" : ""}
-
+    ${svelte}
+ 
     // finally, start the server.
     server.start();
   }
 }
-`,
-  );
+`;
+}
 
+function cleanHaxeOutput(output: string): string {
+  return output.replaceAll(`${TRANSFORMED_SRC_DIR}/`, "src/");
+}
+
+function compileHaxe() {
   try {
-    const output = execSync("haxe project.hxml", {
-      encoding: "utf8",
-    });
-
-    console.log(output.replaceAll(".shinku/project-transformed-src/", "src/"));
+    const output = execSync("haxe project.hxml", { encoding: "utf8" });
+    console.log(cleanHaxeOutput(output));
     console.log("Build complete.");
   } catch (error) {
     const err = error as {
@@ -347,19 +424,41 @@ class ServerMain {
       status?: number;
     };
 
-    const stdout = err.stdout?.toString() ?? "";
-    const stderr = err.stderr?.toString() ?? "";
-
-    const output = `${stdout}${stderr}`.replaceAll(
-      ".shinku/project-transformed-src/",
-      "src/",
+    const output = cleanHaxeOutput(
+      `${err.stdout?.toString() ?? ""}${err.stderr?.toString() ?? ""}`,
     );
 
-    if (output) {
-      console.error(output);
-    }
-
+    if (output) console.error(output);
     console.error("Build failed!");
     process.exit(1);
   }
+}
+
+export async function buildProject(isDevMode: boolean = false) {
+  const config = await getProjectConfig();
+  if (!config) return;
+
+  await recreateShinkusFolder();
+
+  const { routes, svelteFiles, failed } = discoverRoutes(
+    ROUTES_DIR,
+    ROUTES_DIR,
+  );
+  if (failed) throw "BUILD FAILED";
+
+  prepareOutputFolders(config, isDevMode);
+  transformRouteSources(routes);
+
+  console.log("Svelte sources:", "\n" + svelteFiles.join("\n"));
+  console.log("Building..");
+  const svelteRoutes = buildSvelte(isDevMode, config, svelteFiles);
+
+  await handleFrontendJSFiles(isDevMode, config);
+
+  writeFileSync(
+    `${GENERATED_DIR}/ServerMain.hx`,
+    generateServerMain(config, routes, svelteRoutes),
+  );
+
+  compileHaxe();
 }

@@ -1,3 +1,4 @@
+import { readdirSync, statSync } from "fs";
 import path from "path";
 import readline from "readline";
 import { fileURLToPath } from "url";
@@ -44,5 +45,20 @@ export async function stdinSelect(question: string, options: string[]) {
     }
 
     console.log("Invalid choice. Please choose one of the numbers above.");
+  }
+}
+
+export async function directoryExplore(
+  entry: string,
+  predicate: (fullPath: string, filename: string) => Promise<void> | void,
+) {
+  if (statSync(entry).isDirectory()) {
+    await Promise.all(
+      readdirSync(entry).map(async (v) => {
+        await directoryExplore(path.join(entry, v), predicate);
+      }),
+    );
+  } else {
+    await predicate(entry, path.basename(entry));
   }
 }

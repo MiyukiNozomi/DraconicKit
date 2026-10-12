@@ -45,6 +45,15 @@ class ESModuleRoute extends AbstractHandler {
 		if (pathStr == null)
 			return error(404);
 
+		if (StringTools.startsWith(pathStr, "$lib")) {
+			pathStr = FileSystem.absolutePath(Path.join([
+				Configuration.WorkingDirectory,
+				Configuration.StaticDirectory,
+				"@library",
+				pathStr.substring(4)
+			]));
+		}
+
 		var cached = this.cache[pathStr];
 
 		if (cached == null) {
