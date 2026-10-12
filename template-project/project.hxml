@@ -1,0 +1,11 @@
+# Welcome to Draconic Kit!
+# This is your project build file.
+# It is also the file used by your project during build time.
+# You can add libraries and compiler parameters here.
+
+# Put your other settings here
+--macro nullSafety("lib", Strict)
+--macro nullSafety("routes", Strict)
+
+# DO NOT REMOVE THIS LINE!
+.shinku/build.hxml

@@ -1,10 +1,3 @@
-<script lang="ts">
-  /*  
-  import("some-weird").then(console.log);
-
-  (async () => console.log(await import("some-weird")))();*/
-</script>
-
 <svelte:head>
   <title>Draconic Web Server!</title>
 </svelte:head>

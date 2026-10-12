@@ -334,7 +334,7 @@ class ServerMain {
   );
 
   try {
-    const output = execSync("haxe .shinku/build.hxml", {
+    const output = execSync("haxe project.hxml", {
       encoding: "utf8",
     });
 
