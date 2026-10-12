@@ -13,6 +13,10 @@ class ServerHooks extends AbstractServerHooks {
 			kidding, you actually found the secret route defined in ServerHooks.hx!");
 		}
 
+		ev.locals = {
+			trollface: ":eanimface:",
+		};
+
 		resolve(ev);
 	}
 }
