@@ -246,11 +246,35 @@ export async function buildProject(isDevMode: boolean = false) {
 
   // let's create the main server class
 
+  const serverPageRoutes = dynamicRouteFiles.filter(
+    (v) => v.extendedClassName === "AbstractServerPage",
+  );
+
+  const includedSvelteRoutes = new Array<string>();
+
   const svelteRoutes = svelteRouteFiles
     .map((v) => {
-      return `server.requestHandler.dynamicRouter.addDynamicRoute(${JSON.stringify(v.routename)}, new SvelteRouter(null, ${JSON.stringify(v.physicalPath)}))`;
+      return `server.requestHandler.dynamicRouter.addDynamicRoute(${JSON.stringify(v.routename)}, new SvelteRouter(${(() => {
+        const target = serverPageRoutes.find((r) => r.pathname == v.routename);
+
+        if (target) {
+          includedSvelteRoutes.push(target.pathname);
+          return `new ${routename2Package(target)}()`;
+        }
+        return "null";
+      })()}, ${JSON.stringify(v.physicalPath)}))`;
     })
     .join(";\n\t\t");
+
+  const er = serverPageRoutes.find(
+    (v) => !includedSvelteRoutes.includes(v.pathname),
+  );
+  if (er) {
+    throw (
+      "We have a ServerPage.hx but no +page.svelte! ServerPage.hx is located at: " +
+      er.pathname
+    );
+  }
 
   const dynamicRoutes = dynamicRouteFiles
     .map((v) => {

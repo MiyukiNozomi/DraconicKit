@@ -1,5 +1,6 @@
 package ryuu.internal;
 
+import haxe.Json;
 import haxe.io.Bytes;
 import ryuu.http.HttpMessages.HttpResponse;
 import sys.FileSystem;
@@ -51,7 +52,7 @@ class SvelteRouter extends AbstractHandler {
 
 mount(App, {
 	target: document.querySelector("#app-container"),
-	props: {}
+	props: ${Json.stringify(serverPage != null ?serverPage.pageServerLoad(event) : {})}
 });',  path)}</script>';
 
 		appPage = StringTools.replace(appPage, "%draconic.svelte.head%", head);
