@@ -1,13 +1,14 @@
 package ryuu.handling;
 
-import ryuu.http.HttpMessages.HttpResponse;
-import ryuu.handling.RequestHandler.RequestEvent;
-import ryuu.std.URL;
-import ryuu.http.HttpMessages.HttpRequest;
-import ryuu.Console.Logger;
-import ryuu.http.HttpSocket;
+import ryuu.handling.AbstractHooks.AbstractServerHooks;
 import haxe.io.Error;
+import ryuu.Console.Logger;
 import ryuu.handling.AbstractHandler;
+import ryuu.handling.RequestHandler.RequestEvent;
+import ryuu.http.HttpMessages.HttpRequest;
+import ryuu.http.HttpMessages.HttpResponse;
+import ryuu.http.HttpSocket;
+import ryuu.std.URL;
 
 typedef DynamicHandler = {
 	instance:AbstractHandler,
@@ -28,8 +29,15 @@ typedef RouteSegment = {
 class DynamicRouter {
 	public var routes:Array<RouteEntry>;
 
+	private var hooks:Null<AbstractServerHooks>;
+
 	public function new() {
+		this.hooks = null;
 		this.routes = new Array();
+	}
+
+	public function setServerHooks(hooks:Null<AbstractServerHooks>) {
+		this.hooks = hooks;
 	}
 
 	public function addDynamicRoute<T:AbstractHandler>(path:String, handler:T) {
@@ -84,25 +92,36 @@ class DynamicRouter {
 	}
 
 	public function tryHandleRequest(socket:HttpSocket, url:URL, req:HttpRequest) {
-		for (dynamicRoute in this.routes) {
-			var params = this.matchRoute(dynamicRoute, url.pathname);
+		var e:RequestEvent = {
+			socket: socket,
+			req: req,
+			url: url,
+			locals: {},
+			params: []
+		};
 
-			if (params != null) {
-				var handler = dynamicRoute.handler.methodToCallbackMap.get(req.status.method);
+		final resolve = (event:RequestEvent) -> {
+			for (dynamicRoute in this.routes) {
+				var params = this.matchRoute(dynamicRoute, url.pathname);
 
-				if (handler != null) {
-					var event:RequestEvent = {
-						socket: socket,
-						req: req,
-						url: url,
-						params: params
-					};
-					Reflect.callMethod(dynamicRoute.handler.instance, handler, [event]);
-				} else {
-					throw new HttpResponse(405);
+				if (params != null) {
+					var handler = dynamicRoute.handler.methodToCallbackMap.get(req.status.method);
+
+					if (handler != null) {
+						event.params = params;
+						Reflect.callMethod(dynamicRoute.handler.instance, handler, [event]);
+					} else {
+						throw new HttpResponse(405);
+					}
+					break;
 				}
-				break;
 			}
+		}
+
+		if (this.hooks != null) {
+			this.hooks.handle(e, resolve);
+		} else {
+			resolve(e);
 		}
 	}
 

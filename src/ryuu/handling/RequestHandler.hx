@@ -1,24 +1,22 @@
 package ryuu.handling;
 
-import ryuu.handling.Routing.DynamicRouter;
-import ryuu.handling.AbstractHandler;
-import haxe.Constraints.Function;
-import java.lang.Error;
-import ryuu.std.MimeTypes;
-import sys.io.File;
-import ryuu.http.HttpMessages.HttpResponse;
-import ryuu.std.URL;
-import ryuu.Console.Logger;
-import haxe.io.Path;
 import haxe.io.Error;
-import sys.FileSystem;
+import haxe.io.Path;
+import ryuu.Console.Logger;
+import ryuu.handling.DynamicRouter;
 import ryuu.http.HttpMessages.HttpRequest;
+import ryuu.http.HttpMessages.HttpResponse;
 import ryuu.http.HttpSocket;
+import ryuu.std.MimeTypes;
+import ryuu.std.URL;
+import sys.FileSystem;
+import sys.io.File;
 
-typedef RequestEvent = {
+typedef RequestEvent<T = Dynamic> = {
 	url:URL,
 	socket:HttpSocket,
 	req:HttpRequest,
+	locals:T,
 	params:Map<String, String>
 }
 

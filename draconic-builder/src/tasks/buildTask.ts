@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -13,9 +14,8 @@ import { compile, type CompileError } from "svelte/compiler";
 
 import { getProjectConfig, type DraconicConfig } from "../draconicConfig.js";
 import { TemplateHXML } from "../templates.js";
-import { recreateShinkusFolder } from "./initTask.js";
-import { isJSDocOverloadTag } from "typescript/unstable/ast";
 import { directoryExplore } from "../tools.js";
+import { recreateShinkusFolder } from "./initTask.js";
 
 const ROUTES_DIR = "src/routes";
 const SHINKU_DIR = ".shinku";
@@ -297,6 +297,16 @@ function prepareOutputFolders(config: DraconicConfig, isDevMode: boolean) {
 
 function transformRouteSources(routes: ClassInformation[]) {
   console.log("Transforming...");
+
+  if (existsSync("src/routes/ServerHooks.hx"))
+    cpSync(
+      path.posix.join(ROUTES_DIR, "ServerHooks.hx"),
+      path.join(TRANSFORMED_SRC_DIR, "routes/ServerHooks.hx"),
+      {
+        recursive: true,
+      },
+    );
+
   for (const route of routes) {
     const finalPath = path.join(TRANSFORMED_SRC_DIR, routeDirectory(route));
     console.log(route, "->", finalPath);
@@ -307,6 +317,7 @@ function transformRouteSources(routes: ClassInformation[]) {
   }
 }
 
+const SET_HOOKS = "server.requestHandler.dynamicRouter.setServerHooks";
 const ADD_ROUTE = "server.requestHandler.dynamicRouter.addDynamicRoute";
 
 function buildHandlerRegistrations(routes: ClassInformation[]): string[] {
@@ -355,9 +366,25 @@ function generateServerMain(
   routes: ClassInformation[],
   svelteRoutes: SvelteRoute[],
 ): string {
-  const routeImports = routes
+  let routeImports = routes
     .map((r) => `import ${routeClassName(r)};`)
     .join("\n");
+
+  let hooksLine = "";
+
+  if (existsSync("src/routes/ServerHooks.hx")) {
+    const hooksFile = getClassInformation(
+      "src/routes/ServerHooks.hx",
+      "AbstractServerHooks",
+    );
+
+    if (hooksFile.extendedClass != "AbstractServerHooks")
+      throw "File src/ServerHooks.hx must have a class extending AbstractServerHooks..";
+
+    routeImports =
+      `import routes.ServerHooks.${hooksFile.className};\n` + routeImports;
+    hooksLine = `${SET_HOOKS}(new routes.ServerHooks.${hooksFile.className}());`;
+  }
 
   const handlers = joinStatements(buildHandlerRegistrations(routes));
   const svelte = joinStatements(buildSvelteRegistrations(routes, svelteRoutes));
@@ -395,7 +422,8 @@ class ServerMain {
     #if dev
       server.requestHandler.dynamicRouter.addDynamicRoute("/@module/[...path]", new ESModuleRoute());
     #end
- 
+  
+    ${hooksLine}
     // dynamic route registry goes here..
     ${handlers}
     // svelte page routes go here..
