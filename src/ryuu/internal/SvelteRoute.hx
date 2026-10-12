@@ -47,7 +47,7 @@ class SvelteRouter extends AbstractHandler {
 		//	head += '<script type="module" src="${event.url.pathname}?script=true"></script>';
 		var path = Path.join([this.thisPathname, "page.js"]);
 		body += '<script type="module">${JavaScriptTransformer.transform('import { mount } from "svelte";
-		import App from "./?script=true";
+		import App from "${event.url.pathname}?script=true";
 
 mount(App, {
 	target: document.querySelector("#app-container"),
