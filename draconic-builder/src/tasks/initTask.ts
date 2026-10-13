@@ -25,13 +25,17 @@ function generateTypescriptConfig(config: DraconicConfig) {
     "./.shinku/tsconfig.json",
     JSON.stringify({
       compilerOptions: {
-        paths: {},
+        paths: {
+          $lib: ["./types/lib/index.d.ts"],
+          "$lib/*": ["./types/lib/*"],
+        },
         rootDirs: ["../", "../.shinku/types"],
-        types: ["./.shinku/types"],
+        types: [],
         lib: ["ESNext", "DOM", "DOM.Iterable"],
         verbatimModuleSyntax: true,
         isolatedModules: true,
         allowJs: true,
+        declaration: true,
         checkJs: true,
         forceConsistentCasingInFileNames: true,
         resolveJsonModule: true,
@@ -109,6 +113,7 @@ export async function recreateShinkusFolder(config: DraconicConfig) {
   );
 
   if (config.builder.typescriptSupport) {
+    mkdirSync("./.shinku/types", { recursive: true });
     await generateTypescriptConfig(config);
   }
 }

@@ -234,8 +234,17 @@ async function handleFrontendScriptFiles(
         "@library",
         directory,
       );
+      const typesModulePath = path.join(SHINKU_DIR, "types", directory);
       mkdirSync(modulePath, { recursive: true });
-      writeFileSync(path.join(modulePath, path.basename(key)), value);
+      mkdirSync(typesModulePath, { recursive: true });
+      writeFileSync(
+        path.join(modulePath, path.basename(key).replace(".ts", ".js")),
+        value.source,
+      );
+      writeFileSync(
+        path.join(typesModulePath, path.basename(key).replace(".ts", ".d.ts")),
+        value.typeDeclarations,
+      );
     }
   } else {
     await directoryExplore("src", (fp, filename) => {

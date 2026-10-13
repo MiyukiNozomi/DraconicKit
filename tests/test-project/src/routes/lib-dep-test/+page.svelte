@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getSomethingFromHere } from "$lib/index.js";
+  import { getSomethingFromHere } from "$lib";
   import { onMount } from "svelte";
 
   let value = $state();

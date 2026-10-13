@@ -2,10 +2,15 @@ import ts from "typescript";
 
 export function tsCompile(
   fileNames: string[],
-  options: ts.CompilerOptions,
-): Record<string, string> {
+  rawOptions: ts.CompilerOptions,
+): Record<string, { source: string; typeDeclarations: string }> {
+  const options = {
+    ...rawOptions,
+    declaration: true,
+  };
   const program = ts.createProgram(fileNames, options);
-  const outputs: Record<string, string> = {};
+  const outputs: Record<string, { source: string; typeDeclarations: string }> =
+    {};
 
   const originalHost = ts.createCompilerHost(options);
 
@@ -19,7 +24,20 @@ export function tsCompile(
       onError?: (message: string) => void,
       sourceFiles?: readonly ts.SourceFile[],
     ) {
-      outputs[fileName] = data;
+      const sourceFile = sourceFiles?.[0];
+
+      const key = sourceFile?.fileName ?? fileName;
+
+      outputs[key] ??= {
+        source: "",
+        typeDeclarations: "",
+      };
+
+      if (fileName.endsWith(".d.ts")) {
+        outputs[key].typeDeclarations = data;
+      } else {
+        outputs[key].source = data;
+      }
     },
   };
 
