@@ -12,6 +12,15 @@ DraconicKit gives you the convinience of a SvelteKit project, but without JavaSc
 
 Also, be aware of a few limitations.
 
+# How to use this?
+
+First, run `tsc` inside of draconic-builder, and run `node <path to draconic builder> init` on the folder you want to setup your project at
+and it will work!
+
+To build, run `node <path to draconic builder> build`, and to run `java -jar .shinku/Ryuu.jar`.
+
+Somewhat simple, isnt it? be aware you do need the entirety of DraconicKit in your disk for it to work, so dont move draconic-builder ;)
+
 ## TODO list
 
 [ ] HMR

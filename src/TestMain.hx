@@ -1,4 +1,3 @@
-import ryuu.internal.esm.NodeTools.NodeTools;
 import ryuu.std.URL;
 import haxe.Json;
 import ryuu.handling.AbstractHandler;
@@ -60,7 +59,7 @@ class TestMain {
 	static function main() {
 		parseInputArguments();
 
-		trace(NodeTools.getParentURL(new URL("file://a/file/url")).pathname);
+		//		trace(NodeTools.getParentURL(new URL("file://a/file/url")).pathname);
 
 		var server = new HttpServer(new Host("localhost"), 6173);
 		server.requestHandler.dynamicRouter.addDynamicRoute("/api/test", new TestHandler());
