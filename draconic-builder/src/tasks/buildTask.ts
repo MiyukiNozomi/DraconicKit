@@ -131,7 +131,8 @@ function discoverRoutes(rootDir: string, directory: string): DiscoveryResult {
       return;
     }
 
-    if (!(basename in HANDLER_KINDS)) return;
+    if (!(basename in HANDLER_KINDS) || !directory.startsWith("src/routes"))
+      return;
 
     const expectedClass = HANDLER_KINDS[basename as keyof typeof HANDLER_KINDS];
     const info = getClassInformation(current, expectedClass);
@@ -267,7 +268,7 @@ async function compileSvelteFile(
   file: string,
   isDevMode: boolean,
   config: DraconicConfig,
-): Promise<SvelteRoute> {
+): Promise<SvelteRoute | null> {
   const src = readFileSync(file).toString();
   const preprocessorConfig = config.svelteOptions?.preprocess;
   let target: string | Processed = src;
@@ -284,12 +285,11 @@ async function compileSvelteFile(
     filename: file,
   });
 
-  const routename = file.substring("src/routes/".length);
+  const routename = file.substring("src/".length);
   const modulePath = path.join(
     SHINKU_DIR,
     config.server.static_dir,
     "@library",
-    "routes",
     routename,
   );
   mkdirSync(modulePath, { recursive: true });
@@ -299,40 +299,44 @@ async function compileSvelteFile(
     writeFileSync(path.join(modulePath, "page.css"), result.css.code);
   }
 
-  return {
-    routename: path.dirname("/" + routename),
-    physicalPath: modulePath,
-  };
+  if (routename.startsWith("routes"))
+    return {
+      routename: path.dirname(routename.substring("routes".length)),
+      physicalPath: modulePath,
+    };
+  return null;
 }
 
 function isSvelteCompileError(err: unknown): err is CompileError {
   return !!err && typeof err === "object" && "code" in err && "filename" in err;
 }
 
-function buildSvelte(
+async function buildSvelte(
   isDevMode: boolean,
   config: DraconicConfig,
   svelteFiles: string[],
 ): Promise<SvelteRoute[]> {
-  return Promise.all(
-    svelteFiles.map(async (file) => {
-      try {
-        return await compileSvelteFile(file, isDevMode, config);
-      } catch (err) {
-        if (isSvelteCompileError(err)) {
-          console.log(
-            "Failed to compile " +
-              err.filename +
-              ": " +
-              err.message +
-              (err.frame ? "\n" + err.frame : ""),
-          );
-          throw "Svelte Build Failed!";
+  return (
+    await Promise.all(
+      svelteFiles.map(async (file) => {
+        try {
+          return await compileSvelteFile(file, isDevMode, config);
+        } catch (err) {
+          if (isSvelteCompileError(err)) {
+            console.log(
+              "Failed to compile " +
+                err.filename +
+                ": " +
+                err.message +
+                (err.frame ? "\n" + err.frame : ""),
+            );
+            throw "Svelte Build Failed!";
+          }
+          throw err;
         }
-        throw err;
-      }
-    }),
-  );
+      }),
+    )
+  ).filter((v) => v != null);
 }
 
 function prepareOutputFolders(config: DraconicConfig, isDevMode: boolean) {
@@ -365,7 +369,7 @@ function transformRouteSources(routes: ClassInformation[]) {
     const finalPath = path.join(TRANSFORMED_SRC_DIR, routeDirectory(route));
     console.log(route.pathname, "->", finalPath);
 
-    cpSync(path.posix.join(ROUTES_DIR, route.pathname), finalPath, {
+    cpSync(path.posix.join("src", route.pathname), finalPath, {
       recursive: true,
     });
   }
@@ -525,10 +529,7 @@ export async function buildProject(isDevMode: boolean = false) {
 
   await recreateShinkusFolder(config);
 
-  const { routes, svelteFiles, failed } = discoverRoutes(
-    ROUTES_DIR,
-    ROUTES_DIR,
-  );
+  const { routes, svelteFiles, failed } = discoverRoutes("src", "src");
   if (failed) throw "BUILD FAILED";
 
   prepareOutputFolders(config, isDevMode);
