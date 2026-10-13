@@ -10,12 +10,21 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { compile, type CompileError } from "svelte/compiler";
+import {
+  compile,
+  preprocess,
+  type CompileError,
+  type Processed,
+} from "svelte/compiler";
 
-import { getProjectConfig, type DraconicConfig } from "../draconicConfig.js";
+import {
+  getProjectConfig,
+  type DraconicConfig,
+} from "../configs/draconicConfig.js";
 import { TemplateHXML } from "../templates.js";
-import { directoryExplore } from "../tools.js";
+import { directoryExplore } from "../io.js";
 import { recreateShinkusFolder } from "./initTask.js";
+import { tsCompile } from "../toolkit/tsc.js";
 
 const ROUTES_DIR = "src/routes";
 const SHINKU_DIR = ".shinku";
@@ -202,13 +211,23 @@ function routeClassName(route: ClassInformation): string {
   ].join(".");
 }
 
-async function handleFrontendJSFiles(
+async function handleFrontendScriptFiles(
   isDevMode: boolean,
   config: DraconicConfig,
 ) {
-  await directoryExplore("src/lib", (fp, filename) => {
-    if (filename.endsWith(".js")) {
-      const directory = path.dirname(fp.substring("src/lib".length));
+  if (config.builder.typescriptSupport) {
+    let tsFiles = new Array<string>();
+    await directoryExplore("src", (fp, filename) => {
+      if (filename.endsWith(".ts")) {
+        tsFiles.push(fp);
+      }
+    });
+
+    const tsConfig = JSON.parse(readFileSync("./tsconfig.json").toString());
+    const files = await tsCompile(tsFiles, tsConfig);
+
+    for (const [key, value] of Object.entries(files)) {
+      const directory = path.dirname(key.substring("src".length));
       const modulePath = path.join(
         SHINKU_DIR,
         config.server.static_dir,
@@ -216,17 +235,40 @@ async function handleFrontendJSFiles(
         directory,
       );
       mkdirSync(modulePath, { recursive: true });
-      cpSync(fp, path.join(modulePath, filename));
+      writeFileSync(path.join(modulePath, path.basename(key)), value);
     }
-  });
+  } else {
+    await directoryExplore("src", (fp, filename) => {
+      if (filename.endsWith(".js")) {
+        const directory = path.dirname(fp.substring("src".length));
+        const modulePath = path.join(
+          SHINKU_DIR,
+          config.server.static_dir,
+          "@library",
+          directory,
+        );
+        mkdirSync(modulePath, { recursive: true });
+        cpSync(fp, path.join(modulePath, filename));
+      }
+    });
+  }
 }
 
-function compileSvelteFile(
+async function compileSvelteFile(
   file: string,
   isDevMode: boolean,
   config: DraconicConfig,
-): SvelteRoute {
-  const result = compile(readFileSync(file).toString(), {
+): Promise<SvelteRoute> {
+  const src = readFileSync(file).toString();
+  const preprocessorConfig = config.svelteOptions?.preprocess;
+  let target: string | Processed = src;
+
+  if (preprocessorConfig) {
+    // what a cheap hack!
+    const preprocessed = await preprocess(src, preprocessorConfig as any, {});
+    target = preprocessed;
+  }
+  const result = compile(typeof target == "string" ? target : target.code, {
     dev: isDevMode,
     rootDir: path.resolve("src/"),
     generate: "client",
@@ -237,7 +279,8 @@ function compileSvelteFile(
   const modulePath = path.join(
     SHINKU_DIR,
     config.server.static_dir,
-    "@svelte",
+    "@library",
+    "routes",
     routename,
   );
   mkdirSync(modulePath, { recursive: true });
@@ -261,24 +304,26 @@ function buildSvelte(
   isDevMode: boolean,
   config: DraconicConfig,
   svelteFiles: string[],
-): SvelteRoute[] {
-  return svelteFiles.map((file) => {
-    try {
-      return compileSvelteFile(file, isDevMode, config);
-    } catch (err) {
-      if (isSvelteCompileError(err)) {
-        console.log(
-          "Failed to compile " +
-            err.filename +
-            ": " +
-            err.message +
-            (err.frame ? "\n" + err.frame : ""),
-        );
-        throw "Svelte Build Failed!";
+): Promise<SvelteRoute[]> {
+  return Promise.all(
+    svelteFiles.map(async (file) => {
+      try {
+        return await compileSvelteFile(file, isDevMode, config);
+      } catch (err) {
+        if (isSvelteCompileError(err)) {
+          console.log(
+            "Failed to compile " +
+              err.filename +
+              ": " +
+              err.message +
+              (err.frame ? "\n" + err.frame : ""),
+          );
+          throw "Svelte Build Failed!";
+        }
+        throw err;
       }
-      throw err;
-    }
-  });
+    }),
+  );
 }
 
 function prepareOutputFolders(config: DraconicConfig, isDevMode: boolean) {
@@ -309,7 +354,7 @@ function transformRouteSources(routes: ClassInformation[]) {
 
   for (const route of routes) {
     const finalPath = path.join(TRANSFORMED_SRC_DIR, routeDirectory(route));
-    console.log(route, "->", finalPath);
+    console.log(route.pathname, "->", finalPath);
 
     cpSync(path.posix.join(ROUTES_DIR, route.pathname), finalPath, {
       recursive: true,
@@ -444,7 +489,10 @@ function compileHaxe() {
   try {
     const output = execSync("haxe project.hxml", { encoding: "utf8" });
     console.log(cleanHaxeOutput(output));
-    console.log("Build complete.");
+    console.log(`=======================
+Build complete.
+=======================
+`);
   } catch (error) {
     const err = error as {
       stdout?: Buffer | string;
@@ -466,7 +514,7 @@ export async function buildProject(isDevMode: boolean = false) {
   const config = await getProjectConfig();
   if (!config) return;
 
-  await recreateShinkusFolder();
+  await recreateShinkusFolder(config);
 
   const { routes, svelteFiles, failed } = discoverRoutes(
     ROUTES_DIR,
@@ -479,9 +527,9 @@ export async function buildProject(isDevMode: boolean = false) {
 
   console.log("Svelte sources:", "\n" + svelteFiles.join("\n"));
   console.log("Building..");
-  const svelteRoutes = buildSvelte(isDevMode, config, svelteFiles);
+  const svelteRoutes = await buildSvelte(isDevMode, config, svelteFiles);
 
-  await handleFrontendJSFiles(isDevMode, config);
+  await handleFrontendScriptFiles(isDevMode, config);
 
   writeFileSync(
     `${GENERATED_DIR}/ServerMain.hx`,

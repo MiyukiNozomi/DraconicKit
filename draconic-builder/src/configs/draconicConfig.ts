@@ -1,14 +1,25 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import z from "zod";
+import { PreprocessorGroupSchema } from "./svelteConfig.js";
 
 export const configSchema = z.strictObject({
-  builder: z.strictObject({}),
+  builder: z.strictObject({
+    typescriptSupport: z.boolean().default(false),
+  }),
   server: z.strictObject({
     host: z.string().optional().default("localhost"),
     port: z.number().min(1).max(65535).optional().default(6173),
     static_dir: z.string().optional().default("static/"),
   }),
+
+  svelteOptions: z
+    .strictObject({
+      preprocess: PreprocessorGroupSchema.or(
+        z.array(PreprocessorGroupSchema),
+      ).optional(),
+    })
+    .optional(),
 });
 
 export type DraconicConfig = z.infer<typeof configSchema>;

@@ -2,7 +2,7 @@
 
 import { buildProject } from "./tasks/buildTask.js";
 import { createProject } from "./tasks/initTask.js";
-import { modulePath } from "./tools.js";
+import { modulePath } from "./io.js";
 
 async function main() {
   console.log("Running at", modulePath);

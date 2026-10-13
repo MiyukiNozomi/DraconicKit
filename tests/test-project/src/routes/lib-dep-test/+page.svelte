@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { getSomethingFromHere } from "$lib/index.js";
   import { onMount } from "svelte";
 

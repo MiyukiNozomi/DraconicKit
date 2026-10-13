@@ -1,74 +1,96 @@
-import {
-  ZodAny,
-  ZodArray,
-  ZodBoolean,
-  ZodDefault,
-  ZodEnum,
-  ZodNullable,
-  ZodNumber,
-  ZodObject,
-  ZodOptional,
-  ZodPromise,
-  ZodRecord,
-  ZodString,
-  ZodStringFormat,
-  ZodUnion,
-  ZodVoid,
-} from "zod";
+import type { z } from "zod";
 
-/*** A MASSIVE function intended to convert runtime type definitions from zod into typescript, basically the reverse process of
- * z.infer
+type Schema = z.core.$ZodType;
+
+const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
+/**
+ * Converts a zod schema into a TypeScript type expression (roughly the
+ * reverse of z.infer). Schemas with a `.describe("Name")` are emitted as
+ * that name and recorded in `namedTypes` so the caller can declare them.
  */
-export function zodTypeToTS(type: any, descriptedTypes: Set<string>): string {
-  const existingName = type.description;
-  if (existingName) {
-    descriptedTypes.add(existingName);
-    return existingName;
+export function zodTypeToTS(schema: Schema, namedTypes: Set<string>): string {
+  const toTS = (s: Schema) => zodTypeToTS(s, namedTypes);
+
+  const name = (schema as { description?: string }).description;
+  if (name) {
+    namedTypes.add(name);
+    return name;
   }
 
-  if (type instanceof ZodDefault)
-    return zodTypeToTS(type.unwrap(), descriptedTypes);
-  if (type instanceof ZodNumber) return "number";
-  if (type instanceof ZodBoolean) return "boolean";
-  if (type instanceof ZodString || type instanceof ZodStringFormat)
-    return "string";
-  if (type instanceof ZodVoid) return "void";
-  if (type instanceof ZodOptional)
-    return `${zodTypeToTS(type.unwrap() as ZodAny, descriptedTypes)} | undefined`;
-  if (type instanceof ZodArray)
-    return `Array<${zodTypeToTS(type.element, descriptedTypes)}>`;
-  if (type instanceof ZodRecord)
-    return `Record<${zodTypeToTS(
-      type.keyType,
-      descriptedTypes,
-    )}, ${zodTypeToTS(type.valueType, descriptedTypes)}>`;
-  if (type instanceof ZodEnum) {
-    return `(${Object.values(type.enum)
-      .map((v) => JSON.stringify(v))
-      .join(" | ")})`;
-  }
-  if (type instanceof ZodUnion) {
-    return `(${Object.values(type.options)
-      .map((v) => zodTypeToTS(v, descriptedTypes))
-      .join(" | ")})`;
-  }
-  if (type instanceof ZodNullable) {
-    return `(${zodTypeToTS(type.unwrap(), descriptedTypes)} | null)`;
-  }
-  if (type instanceof ZodPromise) {
-    return zodTypeToTS(type.unwrap(), descriptedTypes);
-  }
-  if (type instanceof ZodObject) {
-    let fields = new Array<string>();
-    const shape = (type as ZodObject<any>).shape;
-    for (const key in shape) {
-      fields.push(`${key}: ${zodTypeToTS(shape[key], descriptedTypes)}`);
+  const def = schema._zod.def as any;
+
+  switch (def.type) {
+    case "string":
+    case "template_literal":
+    case "number":
+    case "boolean":
+    case "bigint":
+    case "date":
+    case "void":
+    case "null":
+    case "undefined":
+    case "any":
+    case "unknown":
+    case "never":
+      return def.type;
+
+    case "literal":
+      return (def.values as unknown[])
+        .map((v) => JSON.stringify(v))
+        .join(" | ");
+
+    case "enum":
+      return `(${Object.values(def.entries)
+        .map((v) => JSON.stringify(v))
+        .join(" | ")})`;
+
+    case "optional":
+      return `(${toTS(def.innerType)} | undefined)`;
+    case "nullable":
+      return `(${toTS(def.innerType)} | null)`;
+    case "nonoptional":
+    case "default":
+    case "prefault":
+    case "readonly":
+    case "catch":
+      return toTS(def.innerType);
+
+    case "array":
+      return `Array<${toTS(def.element)}>`;
+    case "tuple":
+      return `[${(def.items as Schema[]).map(toTS).join(", ")}]`;
+    case "set":
+      return `Set<${toTS(def.valueType)}>`;
+    case "map":
+      return `Map<${toTS(def.keyType)}, ${toTS(def.valueType)}>`;
+    case "record":
+      return `Record<${toTS(def.keyType)}, ${toTS(def.valueType)}>`;
+
+    case "union":
+      return `(${(def.options as Schema[]).map(toTS).join(" | ")})`;
+    case "intersection":
+      return `(${toTS(def.left)} & ${toTS(def.right)})`;
+
+    case "promise":
+      return `Promise<${toTS(def.innerType)}>`;
+    case "function": // TODO: render real function signatures :P
+      return "(...args: any[]) => any";
+    case "lazy":
+      return toTS(def.getter());
+
+    case "object": {
+      const fields = Object.entries(def.shape as Record<string, Schema>).map(
+        ([key, value]) => {
+          const isOptional = (value as any)._zod.def.type === "optional";
+          const inner = isOptional ? (value as any)._zod.def.innerType : value;
+          return `${IDENTIFIER.test(key) ? key : JSON.stringify(key)}${isOptional ? "?" : ""}: ${toTS(inner)}`;
+        },
+      );
+      return `{ ${fields.join("; ")} }`;
     }
-    return `{${fields.join(", ")}}`;
+
+    default:
+      throw new TypeError(`zodTypeToTS: unsupported zod type "${def.type}"`);
   }
-  if (type instanceof ZodAny) return "any";
-  throw new TypeError(
-    "Could not create schema -> typescript declaration script! unsupported type: " +
-      JSON.stringify(type),
-  );
 }

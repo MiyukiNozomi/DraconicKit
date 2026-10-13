@@ -16,7 +16,7 @@
  */
 export default function getServerConfig() {
   return {
-    builder: {},
+    builder: { typescriptSupport: true },
     server: {
       host: "0.0.0.0",
       port: 8173,

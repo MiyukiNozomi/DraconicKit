@@ -50,8 +50,10 @@ class ESModuleRoute extends AbstractHandler {
 				Configuration.WorkingDirectory,
 				Configuration.StaticDirectory,
 				"@library",
+				"lib",
 				pathStr.substring(4)
 			]));
+			trace("Path: " + pathStr);
 		}
 
 		var cached = this.cache[pathStr];
