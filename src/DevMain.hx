@@ -23,11 +23,6 @@ you're in big trouble!");
 
 		NodeRunner.ensureNodeJSIsInstalled();
 
-		Logger.info("Test");
-		Logger.warn("Test");
-		Logger.error("Test");
-		Logger.debug("Test");
-
 		// TODO: read config
 		final httpServer = new HttpServer(new Host("localhost"), 8173);
 		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@module/[...path]", new ESModuleRoute());
