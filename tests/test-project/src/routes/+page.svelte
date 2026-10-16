@@ -18,9 +18,15 @@
 
 <p>Take this!</p>
 
+<p class="thing">dayumn bro that's some crazy stuff..</p>
+
 <TestComponent />
 
 <style>
+  p.thing {
+    color: #fafafa;
+    font-size: 12px;
+  }
   body {
     background-color: black;
     color: white;

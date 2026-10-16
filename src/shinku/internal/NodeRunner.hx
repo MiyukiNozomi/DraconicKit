@@ -1,5 +1,6 @@
 package shinku.internal;
 
+import shinku.std.io.SystemTools;
 import shinku.Console.Logger;
 import sys.FileSystem;
 import haxe.io.Path;
@@ -53,7 +54,7 @@ class NodeRunner {
 	}
 
 	public static function runNodeScript<T>(name:String, input:Dynamic):T {
-		var pathname = FileSystem.absolutePath(Path.join([Path.directory(Path.directory(Sys.programPath())), "scripts", name]));
+		var pathname = FileSystem.absolutePath(Path.join([SystemTools.thisHomeDir(), "scripts", name]));
 		if (!FileSystem.exists(pathname)) {
 			throw "Attempted to run a NodeJS script that does not exist: " + pathname;
 		}

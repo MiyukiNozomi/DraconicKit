@@ -19,4 +19,11 @@ class SystemTools {
 		var absolute = FileSystem.absolutePath(Path.normalize(directory));
 		visitDirImpl(absolute, visit);
 	}
+
+	/***
+		# INTERNAL USAGE ONLY!
+	**/
+	public static function thisHomeDir() {
+		return Path.directory(Path.directory(Sys.programPath()));
+	}
 }
