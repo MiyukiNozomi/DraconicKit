@@ -63,8 +63,13 @@ class URL {
 	/** A string indicating the URL's parameter string; if any parameters are provided, this string includes all of them, beginning with the leading ? character. */
 	public var search:String = "";
 
-	/** A URLSearchParams object which can be used to access the individual query parameters found in search. */
-	// public var searchParams(default, null):URLSearchParams;
+	/** A URLSearchParams object which can be used to access the individual query parameters found in search. 
+
+		### WARNING 
+		Every time you access this property, a new URLSearchParams will be returned.
+		You should store the result of this property into a variable.	
+	 */
+	public var searchParams(get, never):URLSearchParams;
 
 	/** A string containing the username specified before the domain name. */
 	public var username:String = "";
@@ -178,7 +183,7 @@ class URL {
 			rootPath = rootPath.substring(0, rootPath.lastIndexOf("/") + 1);
 		}
 
-		var finalPathComponents = URL.decodeURI((rootPath
+		var finalPathComponents = URL.decodeURIComponent((rootPath
 			+ (!StringTools.endsWith(rootPath, "/") && !StringTools.startsWith(truePathname, "/") ? "/" : "")
 			+ truePathname))
 			.split("/")
@@ -357,7 +362,7 @@ class URL {
 	}
 
 	/** Please be aware this function may be slightly different than the JS's implementation.*/
-	public static function decodeURI(src:String):String {
+	public static function decodeURIComponent(src:String):String {
 		final bytes = new BytesBuffer();
 		var i = 0;
 
@@ -384,5 +389,9 @@ class URL {
 		}
 
 		return bytes.getBytes().toString();
+	}
+
+	function get_searchParams():URLSearchParams {
+		return new URLSearchParams(this.search);
 	}
 }
