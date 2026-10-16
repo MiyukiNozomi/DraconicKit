@@ -1,5 +1,6 @@
 -D dev
 --class-path src
---macro nullSafety("ryuu", Strict)
+--macro nullSafety("shinku", Strict)
 --main TestMain
+--library haxe-concurrent
 --jvm RyuuTest.jar

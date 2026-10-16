@@ -1,10 +1,10 @@
-import ryuu.std.URL;
+import shinku.std.URL;
 import haxe.Json;
-import ryuu.handling.AbstractHandler;
-import ryuu.handling.RequestHandler;
-import ryuu.Configuration;
+import shinku.handling.AbstractHandler;
+import shinku.handling.RequestHandler;
+import shinku.Configuration;
 import sys.FileSystem;
-import ryuu.http.HttpServer;
+import shinku.http.HttpServer;
 import sys.net.Host;
 
 class TestHandler extends AbstractHandler {

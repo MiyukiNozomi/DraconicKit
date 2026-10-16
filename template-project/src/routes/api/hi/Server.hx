@@ -1,7 +1,7 @@
 package routes.api.hi;
 
-import ryuu.handling.RequestHandler.RequestEvent;
-import ryuu.handling.AbstractHandler;
+import shinku.handling.RequestHandler.RequestEvent;
+import shinku.handling.AbstractHandler;
 
 class ServerHandler extends AbstractHandler {
 	public function new() {}

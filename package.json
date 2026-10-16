@@ -1,0 +1,13 @@
+{
+  "name": "draconickit",
+  "version": "1.0.0",
+  "main": "<none>",
+  "type": "module",
+  "repository": "https://github.com/MiyukiNozomi/DraconicKit.git",
+  "author": "miyuki <miyuki@ane.jp.net>",
+  "license": "MIT",
+  "dependencies": {
+    "svelte": "^5.57.2",
+    "typescript": "^7.0.2"
+  }
+}
