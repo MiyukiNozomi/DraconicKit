@@ -1,5 +1,6 @@
 package shinku.internal;
 
+import shinku.Console.Logger;
 import sys.FileSystem;
 import haxe.io.Path;
 import haxe.Json;
@@ -14,8 +15,6 @@ class NodeRunner {
 	private static var PATH_TO_NODEJS = "false";
 
 	private static function runCommandAndGetOutput(command:Array<String>, ?inputData:Null<Bytes>):String {
-		trace(command);
-
 		var output = new Process(command[0], command.slice(1), false);
 		if (inputData != null) {
 			output.stdin.write(inputData);
@@ -46,9 +45,9 @@ class NodeRunner {
 	public static function ensureNodeJSIsInstalled() {
 		try {
 			NodeRunner.PATH_TO_NODEJS = StringTools.trim(runCommandAndGetOutput(["which", "node"]));
-			trace("Node.JS path: " + NodeRunner.PATH_TO_NODEJS);
+			Logger.debug("Node.JS path: " + NodeRunner.PATH_TO_NODEJS);
 		} catch (e:Dynamic) {
-			trace(e);
+			Logger.error(e);
 			throw "Node.JS is not installed or is not on PATH!";
 		}
 	}

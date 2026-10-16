@@ -76,8 +76,8 @@ class ESModuleRoute extends AbstractHandler {
 				} catch (err) {
 					if (Std.downcast(err, HttpResponse) != null)
 						throw err;
-					Logger.debug("Could not resolve import: " + pathStr + " because: ", err);
-					trace(err.stack);
+					Logger.error("Could not resolve import: " + pathStr + " because: ", err);
+					Logger.debug(err.stack);
 					return error(404, "Dependency may not exist as specified.");
 				}
 			}

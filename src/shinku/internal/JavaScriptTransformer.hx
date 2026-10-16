@@ -1,5 +1,6 @@
 package shinku.internal;
 
+import shinku.Console.Logger;
 import sys.FileSystem;
 import shinku.internal.esm.ESMResolver;
 import haxe.io.Path;
@@ -249,7 +250,7 @@ class JavaScriptTransformer {
 		try {
 			return ESMResolver.esmResolve(pathname, FileSystem.absolutePath(thisPath));
 		} catch (err) {
-			trace("Could not resolve " + pathname + " because: ", err, err.stack);
+			Logger.error("Could not resolve " + pathname + " because: ", err, err.stack);
 			// fall back to the bare specifier; the /@module/ handler can try to resolve it
 			return pathname;
 		}

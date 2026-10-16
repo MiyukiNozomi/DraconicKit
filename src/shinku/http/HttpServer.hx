@@ -32,7 +32,7 @@ class HttpServer {
 		this.socket.listen(40);
 		var host = this.socket.host();
 
-		Logger.debug("Server is now listening on http://" + host.host + ":" + host.port);
+		Logger.info("Server is now listening on http://" + host.host + ":" + host.port);
 		while (running) {
 			try {
 				var client = new HttpSocket(this.socket.accept());
@@ -53,11 +53,11 @@ class HttpServer {
 					try {
 						req = client.nextRequest();
 						if (req == null) {
-							Logger.debug("Got a broken request!");
+							Logger.warn("Got a broken request!");
 							client.socket.close();
 							return;
 						} else {
-							Logger.debug(req.status);
+							Logger.info(req.status);
 						}
 
 						requestHandler.handleRequest(client, req);
@@ -69,7 +69,6 @@ class HttpServer {
 							res.sourceRequest = req;
 							Logger.debug("Response for ", client.socket.peer(), " is ", res.status);
 							client.sendResponse(res);
-							//	trace("Sent.");
 
 							var connectionHeader = req != null ? ((req.getHeader("connection", "keep-alive") + "").toLowerCase()) : "keep-alive";
 
@@ -79,8 +78,8 @@ class HttpServer {
 							}
 						} else {
 							if (timeout == null) {
-								Logger.debug(err.toString());
-								Logger.debug(err.stack.toString());
+								Logger.error(err.toString());
+								Logger.error(err.stack.toString());
 							} else {
 								Logger.debug("Client ", client.socket.peer(), " has timed out.");
 							}
@@ -90,7 +89,7 @@ class HttpServer {
 					}
 				}
 			} catch (err) {
-				Logger.debug("FATAL: got a unhandled exception when handling a socket!\n" + err.toString());
+				Logger.error("FATAL: got a unhandled exception when handling a socket!\n" + err.toString());
 			}
 		});
 	}

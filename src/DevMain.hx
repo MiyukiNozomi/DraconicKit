@@ -1,3 +1,4 @@
+import shinku.Console.Logger;
 import shinku.internal.ESModuleRoute;
 import shinku.internal.SvelteRoute;
 import sys.thread.Thread;
@@ -14,13 +15,18 @@ using StringTools;
 
 class DevMain {
 	static function main() {
-		trace("Hello there!
+		Sys.println("Hello there!
         
 You've launched the development version of DraconicKit. if you  intended this, it's fine! But if this is supposed to be a production environment,
 you're in big trouble!");
 		Configuration.WorkingDirectory = "tests/test-project";
 
 		NodeRunner.ensureNodeJSIsInstalled();
+
+		Logger.info("Test");
+		Logger.warn("Test");
+		Logger.error("Test");
+		Logger.debug("Test");
 
 		// TODO: read config
 		final httpServer = new HttpServer(new Host("localhost"), 8173);
@@ -50,10 +56,10 @@ you're in big trouble!");
 			var route = getRoutename(fp);
 			if (route != null) {
 				if (fp.endsWith(".svelte")) {
-					trace("Adding route: ", route, " (svelte)");
+					Logger.debug("Adding route: ", route, " (svelte)");
 					httpServer.requestHandler.dynamicRouter.addDynamicRoute(route, new SvelteRoute(null, fp.substring(Path.directory(srcDir).length + 1)));
 				} else {
-					trace("Route not implemented: ", route, " at ", fp);
+					Logger.debug("Route not implemented: ", route, " at ", fp);
 				}
 			}
 		}
@@ -61,7 +67,7 @@ you're in big trouble!");
 		final handleFileDeletion = (fp:String) -> {
 			var route = getRoutename(fp);
 			if (route != null) {
-				trace("Deleted route for ", fp, " ?", httpServer.requestHandler.dynamicRouter.removeRouteByName(route));
+				Logger.debug("Deleted route for ", fp, " ?", httpServer.requestHandler.dynamicRouter.removeRouteByName(route));
 			}
 		}
 
