@@ -68,9 +68,6 @@ class MimeTypes {
 		}
 
 		var code = "return switch(ext) {\n" + cases.join("\n") + '\n\tdefault: "application/octet-stream";\n}';
-
-		// trace("List of supported Extension -> mimeType : ", alreadyAddedCases);
-
 		return Context.parse(code, Context.currentPos());
 	}
 }

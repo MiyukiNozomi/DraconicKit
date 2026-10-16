@@ -205,8 +205,6 @@ class DynamicRouter {
 			}
 		}
 
-		// trace(isRouteVariadic, entries);
-
 		return {
 			isRouteVariadic: isRouteVariadic,
 			entries: entries

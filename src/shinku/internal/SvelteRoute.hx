@@ -1,48 +1,11 @@
 package shinku.internal;
 
-import haxe.DynamicAccess;
-import haxe.crypto.Sha1;
 import haxe.Json;
-import haxe.io.Bytes;
-import shinku.http.HttpMessages.HttpResponse;
-import sys.FileSystem;
 import haxe.io.Path;
-import sys.io.File;
-import shinku.handling.RequestHandler.RequestEvent;
 import shinku.handling.AbstractHandler;
-
-typedef SvelteCompileResult = {
-	/** The compiled JavaScript */
-	js:{
-		/** The generated code */
-		code:String, /** A source map */ map:Dynamic
-	},
-
-	/** The compiled CSS */
-	css:Null<{
-		/** The generated code */
-		code:String,
-		/** A source map */
-		map:Dynamic,
-		/** Whether or not the CSS includes global rules */
-		hasGlobal:Bool
-	}>,
-
-	/** An array of warning objects generated during compilation */
-	warnings:Array<Dynamic>,
-
-	/** Metadata about the compiled component */
-	metadata:{
-		/**
-		 * Whether the file was compiled in runes mode.
-		 * For compileModule, this is always true.
-		 */
-		runes:Bool
-	},
-
-	/** The AST */
-	ast:Dynamic
-}
+import shinku.handling.RequestHandler.RequestEvent;
+import shinku.internal.interop.Svelte.SvelteBuilder;
+import sys.io.File;
 
 #if dev
 class SvelteRoute extends AbstractHandler {
@@ -61,75 +24,39 @@ class SvelteRoute extends AbstractHandler {
 		this.thisPathname = thisPathname;
 	}
 
-	private function compileIfNeeded(physicalPathname:String):{
-		js:String,
-		css:String
-	} {
-		var source = File.getContent(physicalPathname);
-		var sourceTag = Sha1.encode(source);
-
-		if (sourceTag == eTag) {
-			return cachedPageSrc;
-		}
-
-		trace("ETag doesn't match! ", sourceTag + " vs " + eTag, " rebuilding!");
-
-		var compileResult:SvelteCompileResult = NodeRunner.runNodeScript("sveltecc.js", {
-			src: source,
-			filename: thisPathname,
-			preprocessorConfig: null,
-			rootDir: FileSystem.absolutePath(Path.join([Configuration.WorkingDirectory, "src/"]))
-		});
-
-		var css = "";
-		if (compileResult.css != null) {
-			css = compileResult.css.code;
-		}
-
-		var pageSrc = {
-			js: compileResult.js.code,
-			css: css
-		};
-
-		cachedPageSrc = pageSrc;
-		eTag = sourceTag;
-
-		return pageSrc;
-	}
-
 	@:keep public function GET(event:RequestEvent) {
-		var physicalPathname = Path.join([Configuration.WorkingDirectory, this.thisPathname]);
-		if (!FileSystem.exists(physicalPathname)) {
-			error(404, "File not found on disk: " + physicalPathname);
-		}
+		final searchParams = event.url.searchParams;
 
-		// TODO: implement Server Side Rendering
-		var pageSrc = compileIfNeeded(physicalPathname);
+		var component = SvelteBuilder.getComponent(this.thisPathname);
 
-		if (event.url.search.indexOf("script") != -1) {
-			throw new HttpResponse(200, ["content-type" => "text/javascript; charset=utf-8"],
-				Bytes.ofString(JavaScriptTransformer.transform(pageSrc.js, this.thisPathname)));
+		if (searchParams.has("shinkureqtype")) {
+			var script = SvelteBuilder.getComponentScript(component, event.url.pathname, searchParams);
+			return text(script, {
+				status: 200,
+				headers: ["content-type" => "text/javascript"]
+			});
 		}
 
 		var appPage = File.getContent(Path.join([Configuration.WorkingDirectory, "src/app.html"]));
 
-		var head = '<style>${pageSrc.css}</style>';
+		var head = "";
 		var body = "";
 
-		// TODO: make server page do something
-		trace("AA: ", physicalPathname);
-
 		body += '<script type="module">${JavaScriptTransformer.transform('import { mount } from "svelte";
-		import App from ${Json.stringify(event.url.pathname + "?script=true")};
+		import App from ${Json.stringify(event.url.pathname + "?shinkureqtype=script")};
 
 mount(App, {
 	target: document.querySelector("#app-container"),
 	props: ${Json.stringify(serverPage != null ?serverPage.pageServerLoad(event) : {})}
-});',  this.thisPathname)}</script>';
+});',  component.filename)}</script>';
 
 		appPage = StringTools.replace(appPage, "%draconic.svelte.head%", head);
 		appPage = StringTools.replace(appPage, "%draconic.svelte.body%", body);
-		throw new HttpResponse(200, ["content-type" => "text/html"], Bytes.ofString(appPage));
+
+		return text(appPage, {
+			status: 200,
+			headers: ["content-type" => "text/html"]
+		});
 	}
 }
 #end

@@ -22,6 +22,11 @@ class ESMResolver {
 			throw new InvalidModuleSpecifierError("Built-in node modules are not allowed in front-end code.");
 		}
 
+		// we do not operate on $lib-prefixed pathnames...
+		if (isProjectLibPrefix(targetPathname)) {
+			return targetPathname;
+		}
+
 		// only "./", "../", "/" (and "." / "..") are paths; ".foo" is a bare package name
 		if (isPathSpecifier(targetPathname)) {
 			return resolvePath(targetPathname, thisScript);
@@ -36,6 +41,10 @@ class ESMResolver {
 		}
 
 		return toModuleURL(resolveNodeModulePath(targetPathname, thisScript));
+	}
+
+	private static function isProjectLibPrefix(spec:String) {
+		return spec.startsWith("$lib");
 	}
 
 	private static function isPathSpecifier(spec:String):Bool {

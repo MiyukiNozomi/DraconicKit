@@ -59,8 +59,6 @@ class TestMain {
 	static function main() {
 		parseInputArguments();
 
-		//		trace(NodeTools.getParentURL(new URL("file://a/file/url")).pathname);
-
 		var server = new HttpServer(new Host("localhost"), 6173);
 		server.requestHandler.dynamicRouter.addDynamicRoute("/api/test", new TestHandler());
 		server.requestHandler.dynamicRouter.addDynamicRoute("/api/[callname]/test", new TestDynamicRouteHandler());

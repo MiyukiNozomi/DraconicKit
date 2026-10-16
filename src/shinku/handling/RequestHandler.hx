@@ -29,8 +29,6 @@ final class RequestHandler {
 
 	public function new() {
 		this.staticRouteBasedir = Path.join([Configuration.WorkingDirectory, Configuration.StaticDirectory]);
-		trace("Working static directory: " + this.staticRouteBasedir);
-
 		this.staticRoutes = new Array();
 		this.dynamicRouter = new DynamicRouter();
 	}

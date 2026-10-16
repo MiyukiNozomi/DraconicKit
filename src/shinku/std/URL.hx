@@ -75,7 +75,6 @@ class URL {
 	public var username:String = "";
 
 	public function new(url:String, base:Null<String> = null) {
-		//	trace("Working with: ", url, base);
 		if (base != null) {
 			var trueBase = findTrueBase(base);
 			if (url.length == 0) {
