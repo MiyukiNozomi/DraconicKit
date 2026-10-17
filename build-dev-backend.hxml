@@ -1,4 +1,5 @@
 -D dev
+--dce std
 --class-path src
 --macro nullSafety("shinku", Strict)
 --main DevMain

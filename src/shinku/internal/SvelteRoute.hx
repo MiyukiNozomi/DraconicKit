@@ -11,7 +11,7 @@ import sys.io.File;
 class SvelteRoute extends AbstractHandler {
 	private var thisPathname:String;
 
-	private var serverPage:Null<AbstractServerPage>;
+	public var serverPage:Null<AbstractServerPage>;
 
 	private var eTag:String = "";
 	private var cachedPageSrc:{

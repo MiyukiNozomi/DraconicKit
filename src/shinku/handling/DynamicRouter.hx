@@ -55,6 +55,15 @@ class DynamicRouter {
 		return false;
 	}
 
+	public function getRouteByName(name:String):Null<RouteEntry> {
+		for (i => rt in this.routes) {
+			if (rt.rawRoutePath == name) {
+				return rt;
+			}
+		}
+		return null;
+	}
+
 	public function addDynamicRoute<T:AbstractHandler>(path:String, handler:T) {
 		var entryInfo = this.parseRoute(path);
 

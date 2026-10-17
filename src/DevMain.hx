@@ -1,3 +1,6 @@
+import shinku.handling.AbstractHandler;
+import shinku.internal.backend.HotReloader.HotReloader;
+import shinku.internal.backend.HaxeBuilder;
 import haxe.io.Path;
 import shinku.Configuration;
 import shinku.Console.Logger;
@@ -17,6 +20,7 @@ using StringTools;
 
 class DevMain {
 	private static var srcDir:String;
+	private static var builder:HaxeBuilder;
 
 	private static function getRoutename(fp:String) {
 		final normalizedPath = fp.substring(srcDir.length);
@@ -28,46 +32,6 @@ class DevMain {
 		if (routeName.length == 0)
 			routeName = "/";
 		return routeName;
-	}
-
-	private static function compileHaxe() {
-		final shinkuDir = Path.join([Configuration.WorkingDirectory, ".shinku"]);
-		FileSystem.createDirectory(shinkuDir);
-
-		final hacksDir = Path.join([shinkuDir, "hacks"]);
-		FileSystem.createDirectory(hacksDir);
-
-		final hxmlFilePath = Path.join([shinkuDir, "build.hxml"]);
-		if (!FileSystem.exists(hxmlFilePath)) {
-			File.saveContent(hxmlFilePath, '
-# just sanity check
--dce std
---class-path src
---class-path .shinku/hacks
---class-path ${FileSystem.absolutePath(Path.join([SystemTools.thisHomeDir(), "src/"]))}
---main StubsMain
---jvm .shinku/DynamicServerCode.jar
-');
-		}
-
-		var haxeFiles = new Array<String>();
-		SystemTools.visitDirRecursive(srcDir, (fp) -> {
-			if (fp.endsWith(".hx"))
-				haxeFiles.push(fp);
-		});
-
-		final stubMainPath = Path.join([hacksDir, "StubsMain.hx"]);
-		if (!FileSystem.exists(stubMainPath)) {
-			final stubsMainCode = '
-@:build(IncludeAll.run("../../src"))
-class StubsMain {
-	static function main() {
-		trace("DO NOT RUN THIS! - this is not your server! read the docs!"); 
-	}
-}		
-';
-			File.saveContent(stubMainPath, stubsMainCode);
-		}
 	}
 
 	static function main() {
@@ -88,6 +52,62 @@ you're in big trouble!");
 		});
 
 		srcDir = FileSystem.absolutePath(Path.join([Configuration.WorkingDirectory, "src"]));
+		final hotReloader = new HotReloader((cls, name) -> {
+			if (!name.startsWith("routes."))
+				return [];
+
+			try {
+				var clsInstance = cls.newInstance();
+
+				var handlerInstance = Std.downcast(clsInstance, AbstractHandler);
+				var serverPageInstance = Std.downcast(clsInstance, AbstractServerPage);
+
+				// route-like instancess
+				var routename = '/' + Path.directory(name.substring("routes.".length).split('.').join('/'));
+				trace(routename);
+				if (handlerInstance != null) {
+					httpServer.requestHandler.dynamicRouter.addDynamicRoute(routename, handlerInstance);
+					return [routename];
+				} else if (serverPageInstance != null) {
+					// we need to find an existing svelte route, or re-create it.
+					var existing = httpServer.requestHandler.dynamicRouter.getRouteByName(routename);
+					if (existing != null) {
+						var sveltePage = Std.downcast(existing.handler.instance, SvelteRoute);
+
+						if (sveltePage != null) {
+							sveltePage.serverPage = serverPageInstance;
+							return ["server-page:" + routename];
+						}
+					}
+					Logger.warn("WARNING: You have a ServerPage.hx on " + routename + " that has no matching +page.svelte, this will have no effect.");
+				} else {
+					Logger.debug("This class: ", cls,
+						" does not extend either AbstractHandler, or AbstractServerPage, we can't be sure of what it was because we cant tell what it's original filename was." +
+						"so we will politely ignore it.");
+				}
+				return [];
+			} catch (e) {
+				Logger.error("Could not instantiate " + cls.toString() + " because: ", e.message);
+				Logger.debug("Full exception of why: ", e);
+				return [];
+			}
+		}, (route) -> {
+			if (route.startsWith("server-page:")) {
+				var trueRoutename = route.substring("server-page:".length);
+				trace(trueRoutename);
+				var existing = httpServer.requestHandler.dynamicRouter.getRouteByName(trueRoutename);
+				if (existing != null) {
+					var sveltePage = Std.downcast(existing.handler.instance, SvelteRoute);
+					sveltePage.serverPage = null;
+				}
+			} else {
+				httpServer.requestHandler.dynamicRouter.removeRouteByName(route);
+			}
+		});
+
+		builder = new HaxeBuilder(FileSystem.absolutePath(Configuration.WorkingDirectory), jar -> hotReloader.reload(jar),
+			errors -> Logger.debug("Haxe build failed:
+", errors));
 
 		final handleNewFile = (fp:String) -> {
 			var route = getRoutename(fp);
@@ -97,7 +117,7 @@ you're in big trouble!");
 					httpServer.requestHandler.dynamicRouter.addDynamicRoute(route, new SvelteRoute(null, fp.substring(Path.directory(srcDir).length + 1)));
 				} else if (fp.endsWith(".hx")) {
 					Logger.debug("Haxe file changed: ", fp, " for route: ", route);
-					compileHaxe();
+					builder.request();
 				} else {
 					Logger.debug("Route not implemented: ", route, " at ", fp);
 				}

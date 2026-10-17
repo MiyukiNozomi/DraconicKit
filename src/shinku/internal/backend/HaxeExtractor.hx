@@ -1,4 +1,4 @@
-package shinku.internal;
+package shinku.internal.backend;
 
 import haxe.io.Path;
 import sys.io.File;
