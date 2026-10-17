@@ -1,3 +1,4 @@
+import shinku.internal.DraconicConfig.DraconicJSConfigLoader;
 import shinku.handling.AbstractHooks.AbstractServerHooks;
 import haxe.io.Path;
 import shinku.Configuration;
@@ -41,16 +42,24 @@ class DevMain {
 	}
 
 	static function main() {
-		Sys.println("Hello there!
-        
-You've launched the development version of DraconicKit. if you  intended this, it's fine! But if this is supposed to be a production environment,
-you're in big trouble!");
+		// hack purposes dont worry
 		Configuration.WorkingDirectory = "tests/test-project";
 
 		NodeRunner.ensureNodeJSIsInstalled();
 
-		// TODO: read config
-		final httpServer = new HttpServer(new Host("localhost"), 8173);
+		final serverConfig = DraconicJSConfigLoader.getConfig();
+		if (serverConfig == null) {
+			Sys.exit(-4);
+			return;
+		}
+		DraconicJSConfigLoader.installConfig(serverConfig);
+
+		Sys.println("Hello there!
+        
+You've launched the development version of DraconicKit. if you  intended this, it's fine! But if this is supposed to be a production environment,
+you're in big trouble!");
+
+		final httpServer = new HttpServer(new Host(serverConfig.server.host), serverConfig.server.port);
 		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@module/[...path]", new ESModuleRoute());
 		final attachServerPage = (routename:String) -> {
 			pagesLock.acquire();

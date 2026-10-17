@@ -38,7 +38,7 @@ process.stdin.on("end", async () => {
     console.log(JSON.stringify(result));
     process.exit(0);
   } catch (e) {
-    console.error("Invalid JSON: ", e);
+    console.error("Problem processing through the svelte compiler: ", e);
     process.exit(1);
   }
 });
