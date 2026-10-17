@@ -33,7 +33,6 @@ class HotReloader {
 		final scan = JarScanner.scan(jar);
 		final prev = current;
 
-		// 1. changed = new, modified or removed classes
 		final changed = new Map<String, Bool>();
 		for (n => h in scan.hashes)
 			if (prev == null || prev.hashes.get(n) != h)
@@ -49,7 +48,6 @@ class HotReloader {
 			return;
 		}
 
-		// 2. dirty = changed + everything that (transitively) references it
 		final rev = new Map<String, Array<String>>();
 		for (n => ds in scan.deps)
 			for (d in ds) {
@@ -71,7 +69,6 @@ class HotReloader {
 					queue.push(d);
 		}
 
-		// 3. new loader: dirty classes defined here, clean ones owned by their old loader
 		final owners = new Map<String, DynamicClassLoader>();
 		final urls = new java.NativeArray<URL>(1);
 		urls[0] = new java.io.File(jar).toURI().toURL();
@@ -79,7 +76,6 @@ class HotReloader {
 		for (n in scan.hashes.keys())
 			owners.set(n, (prev == null || dirty.exists(n)) ? next : prev.owners.get(n));
 
-		// 4. routes: clean ones carry over, dirty ones are re-scanned from the new loader
 		final routes = new Map<String, Array<String>>();
 		if (prev != null)
 			for (c => names in prev.routes)
@@ -89,9 +85,8 @@ class HotReloader {
 		final installed = new Map<String, Bool>();
 		for (n in dirty.keys()) {
 			if (!scan.hashes.exists(n) || n.indexOf("$") >= 0)
-				continue; // removed, or an inner class
+				continue;
 			try {
-				// Do NOT use Type.resolveClass here: it resolves through the server's loader.
 				final names = handleClass(next.loadClass(n), n);
 				if (names.length > 0) {
 					routes.set(n, names);
@@ -103,7 +98,6 @@ class HotReloader {
 			}
 		}
 
-		// 5. drop routes of dirty classes that were not re-installed
 		if (prev != null)
 			for (c => names in prev.routes)
 				if (dirty.exists(c))
@@ -111,7 +105,6 @@ class HotReloader {
 						if (!installed.exists(r))
 							removeClass(r);
 
-		// 6. commit, then retire loaders that no longer own anything
 		live.push({loader: next, jar: jar});
 		current = {hashes: scan.hashes, owners: owners, routes: routes};
 		final alive = [for (o in owners) o];
@@ -119,7 +112,7 @@ class HotReloader {
 			if (alive.indexOf(g.loader) < 0) {
 				live.remove(g);
 				Thread.create(() -> {
-					Sys.sleep(10); // grace period for in-flight requests
+					Sys.sleep(10);
 					try
 						g.loader.close()
 					catch (_) {}

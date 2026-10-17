@@ -46,7 +46,7 @@ class HaxeBuilder {
 		final jar = Path.join([genDir, 'user-${generation + 1}.jar']);
 		final t0 = Sys.time();
 		final p = new Process("haxe", ["--cwd", projectDir, hxml, "--jvm", jar]);
-		// haxe writes diagnostics to stderr; stdout is normally empty.
+
 		final err = p.stderr.readAll().toString();
 		final out = p.stdout.readAll().toString();
 		final code = p.exitCode();

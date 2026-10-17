@@ -1,3 +1,4 @@
+import shinku.handling.AbstractHooks.AbstractServerHooks;
 import haxe.io.Path;
 import shinku.Configuration;
 import shinku.Console.Logger;
@@ -80,10 +81,20 @@ you're in big trouble!");
 
 				var handlerInstance = Std.downcast(clsInstance, AbstractHandler);
 				var serverPageInstance = Std.downcast(clsInstance, AbstractServerPage);
+				var serverHooksIntance = Std.downcast(clsInstance, AbstractServerHooks);
+
+				if (cls.getPackage().getName() == "routes" && serverHooksIntance != null) {
+					httpServer.requestHandler.dynamicRouter.setServerHooks(serverHooksIntance);
+					try {
+						serverHooksIntance.onServerInit();
+					} catch (e) {
+						Logger.error(e);
+					}
+					return ["server:hooks"];
+				}
 
 				// route-like instancess
 				var routename = '/' + Path.directory(name.substring("routes.".length).split('.').join('/'));
-				trace(routename);
 				if (handlerInstance != null) {
 					httpServer.requestHandler.dynamicRouter.addDynamicRoute(routename, handlerInstance);
 					return [routename];
@@ -108,7 +119,9 @@ you're in big trouble!");
 				return [];
 			}
 		}, (route) -> {
-			if (route.startsWith("server-page:")) {
+			if (route == "server:hooks") {
+				httpServer.requestHandler.dynamicRouter.setServerHooks(null);
+			} else if (route.startsWith("server-page:")) {
 				final trueRoutename = route.substring("server-page:".length);
 				pagesLock.acquire();
 				serverPages.remove(trueRoutename);
@@ -125,6 +138,13 @@ you're in big trouble!");
 
 		final handleNewFile = (fp:String) -> {
 			var route = getRoutename(fp);
+
+			if (fp.endsWith(".hx")) {
+				Logger.debug("Haxe file changed: ", fp, " for route: (if route is null, this is 100% a library or server hooks).", route);
+				builder.request();
+				return;
+			}
+
 			if (route != null) {
 				if (fp.endsWith(".svelte")) {
 					Logger.debug("Adding route: ", route, " (svelte)");
@@ -133,9 +153,6 @@ you're in big trouble!");
 					svelte.serverPage = serverPages.get(route); // set before the route goes live
 					pagesLock.release();
 					httpServer.requestHandler.dynamicRouter.addDynamicRoute(route, svelte);
-				} else if (fp.endsWith(".hx")) {
-					Logger.debug("Haxe file changed: ", fp, " for route: ", route);
-					builder.request();
 				} else {
 					Logger.debug("Route not implemented: ", route, " at ", fp);
 				}
