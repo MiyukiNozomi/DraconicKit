@@ -8,6 +8,8 @@ typedef ResponseOptions = {
 }
 
 abstract class AbstractServerPage {
+	public function new() {}
+
 	public abstract function pageServerLoad(event:RequestEvent):Dynamic;
 }
 

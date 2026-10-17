@@ -1,18 +1,19 @@
-import shinku.handling.AbstractHandler;
-import shinku.internal.backend.HotReloader.HotReloader;
-import shinku.internal.backend.HaxeBuilder;
 import haxe.io.Path;
 import shinku.Configuration;
 import shinku.Console.Logger;
+import shinku.handling.AbstractHandler;
 import shinku.http.HttpServer;
 import shinku.internal.ESModuleRoute;
 import shinku.internal.NodeRunner;
 import shinku.internal.SvelteRoute;
+import shinku.internal.backend.HaxeBuilder;
+import shinku.internal.backend.HaxeExtractor;
+import shinku.internal.backend.HotReloader.HotReloader;
 import shinku.std.io.FileWatcher;
 import shinku.std.io.SystemTools;
 import sys.FileSystem;
-import sys.io.File;
 import sys.net.Host;
+import sys.thread.Mutex;
 import sys.thread.Thread;
 
 using Lambda;
@@ -21,6 +22,10 @@ using StringTools;
 class DevMain {
 	private static var srcDir:String;
 	private static var builder:HaxeBuilder;
+
+	private static final serverPages = new Map<String, AbstractServerPage>();
+	// build thread and watcher thread both touch this
+	private static final pagesLock = new Mutex();
 
 	private static function getRoutename(fp:String) {
 		final normalizedPath = fp.substring(srcDir.length);
@@ -46,6 +51,20 @@ you're in big trouble!");
 		// TODO: read config
 		final httpServer = new HttpServer(new Host("localhost"), 8173);
 		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@module/[...path]", new ESModuleRoute());
+		final attachServerPage = (routename:String) -> {
+			pagesLock.acquire();
+			final page = serverPages.get(routename); // null = detach
+			pagesLock.release();
+
+			final existing = httpServer.requestHandler.dynamicRouter.getRouteByName(routename);
+			if (existing == null)
+				return false;
+			final svelte = Std.downcast(existing.handler.instance, SvelteRoute);
+			if (svelte == null)
+				return false;
+			svelte.serverPage = page;
+			return true;
+		}
 
 		final httpServerThread = Thread.create("HttpServerThread", () -> {
 			httpServer.start();
@@ -69,17 +88,14 @@ you're in big trouble!");
 					httpServer.requestHandler.dynamicRouter.addDynamicRoute(routename, handlerInstance);
 					return [routename];
 				} else if (serverPageInstance != null) {
-					// we need to find an existing svelte route, or re-create it.
-					var existing = httpServer.requestHandler.dynamicRouter.getRouteByName(routename);
-					if (existing != null) {
-						var sveltePage = Std.downcast(existing.handler.instance, SvelteRoute);
+					pagesLock.acquire();
+					serverPages.set(routename, serverPageInstance);
+					pagesLock.release();
 
-						if (sveltePage != null) {
-							sveltePage.serverPage = serverPageInstance;
-							return ["server-page:" + routename];
-						}
-					}
-					Logger.warn("WARNING: You have a ServerPage.hx on " + routename + " that has no matching +page.svelte, this will have no effect.");
+					// we need to find an existing svelte route, or re-create it.
+					if (!attachServerPage(routename))
+						Logger.warn("WARNING: You have a ServerPage.hx on " + routename + " that has no matching +page.svelte, this will have no effect.");
+					return ["server-page:" + routename];
 				} else {
 					Logger.debug("This class: ", cls,
 						" does not extend either AbstractHandler, or AbstractServerPage, we can't be sure of what it was because we cant tell what it's original filename was." +
@@ -93,13 +109,11 @@ you're in big trouble!");
 			}
 		}, (route) -> {
 			if (route.startsWith("server-page:")) {
-				var trueRoutename = route.substring("server-page:".length);
-				trace(trueRoutename);
-				var existing = httpServer.requestHandler.dynamicRouter.getRouteByName(trueRoutename);
-				if (existing != null) {
-					var sveltePage = Std.downcast(existing.handler.instance, SvelteRoute);
-					sveltePage.serverPage = null;
-				}
+				final trueRoutename = route.substring("server-page:".length);
+				pagesLock.acquire();
+				serverPages.remove(trueRoutename);
+				pagesLock.release();
+				attachServerPage(trueRoutename); // registry is empty now, so this detaches
 			} else {
 				httpServer.requestHandler.dynamicRouter.removeRouteByName(route);
 			}
@@ -114,7 +128,11 @@ you're in big trouble!");
 			if (route != null) {
 				if (fp.endsWith(".svelte")) {
 					Logger.debug("Adding route: ", route, " (svelte)");
-					httpServer.requestHandler.dynamicRouter.addDynamicRoute(route, new SvelteRoute(null, fp.substring(Path.directory(srcDir).length + 1)));
+					final svelte = new SvelteRoute(null, fp.substring(Path.directory(srcDir).length + 1));
+					pagesLock.acquire();
+					svelte.serverPage = serverPages.get(route); // set before the route goes live
+					pagesLock.release();
+					httpServer.requestHandler.dynamicRouter.addDynamicRoute(route, svelte);
 				} else if (fp.endsWith(".hx")) {
 					Logger.debug("Haxe file changed: ", fp, " for route: ", route);
 					builder.request();
@@ -126,7 +144,9 @@ you're in big trouble!");
 
 		final handleFileDeletion = (fp:String) -> {
 			var route = getRoutename(fp);
-			if (route != null) {
+			if (route != null
+				&& (!fp.endsWith(".hx")
+					|| (HaxeExtractor.getClassInformation(fp, "AbstractServerPage").extendedClass != "AbstractServerPage"))) {
 				Logger.debug("Deleted route for ", fp, " ?", httpServer.requestHandler.dynamicRouter.removeRouteByName(route));
 			}
 		}
@@ -141,8 +161,9 @@ you're in big trouble!");
 				}
 			case Modified(p): {
 					Sys.println('~ $p');
-					var fullPath = FileSystem.absolutePath(p);
-					handleFileDeletion(fullPath);
+					final fullPath = FileSystem.absolutePath(p);
+					if (!fullPath.endsWith(".svelte"))
+						handleFileDeletion(fullPath);
 					handleNewFile(fullPath);
 				}
 			case Removed(p): {

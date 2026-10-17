@@ -1,5 +1,6 @@
 package shinku.handling;
 
+import sys.thread.Mutex;
 import shinku.handling.AbstractHooks.AbstractServerHooks;
 import haxe.io.Error;
 import shinku.Console.Logger;
@@ -32,6 +33,8 @@ class DynamicRouter {
 
 	private var hooks:Null<AbstractServerHooks>;
 
+	private final writeLock = new Mutex();
+
 	public function new() {
 		this.hooks = null;
 		this.routes = new Array();
@@ -46,13 +49,17 @@ class DynamicRouter {
 	}
 
 	public function removeRouteByName(name:String) {
-		for (i => rt in this.routes) {
-			if (rt.rawRoutePath == name) {
-				this.routes.remove(rt);
-				return true;
-			}
+		writeLock.acquire();
+		try {
+			final next = routes.filter(r -> r.rawRoutePath != name);
+			final removed = next.length != routes.length;
+			routes = next;
+			writeLock.release();
+			return removed;
+		} catch (e:Dynamic) {
+			writeLock.release();
+			throw e;
 		}
-		return false;
 	}
 
 	public function getRouteByName(name:String):Null<RouteEntry> {
@@ -102,12 +109,19 @@ class DynamicRouter {
 				+ " has no handler callbacks. please remove it or introduce a function with like: @:keep public function GET(event : Request Event) {.");
 		}
 
-		this.routes.push({
+		final entry:RouteEntry = {
 			rawRoutePath: path,
 			segments: entryInfo.entries,
 			isVariadic: entryInfo.isRouteVariadic,
 			handler: handlerEntry
-		});
+		};
+
+		writeLock.acquire();
+		final next = routes.filter(r -> r.rawRoutePath != path);
+		next.push(entry);
+		next.sort(compareRoutes);
+		routes = next;
+		writeLock.release();
 
 		var list = new Array();
 		for (key => _ in handlerEntry.methodToCallbackMap) {
@@ -148,6 +162,28 @@ class DynamicRouter {
 		} else {
 			resolve(e);
 		}
+	}
+
+	private static function compareRoutes(a:RouteEntry, b:RouteEntry):Int {
+		final segRank = (r:RouteEntry, i:Int) -> {
+			if (!r.segments[i].isDynamic)
+				return 0;
+			return (r.isVariadic && i == r.segments.length - 1) ? 2 : 1;
+		}
+
+		final n = Std.int(Math.max(a.segments.length, b.segments.length));
+		for (i in 0...n) {
+			final aHas = i < a.segments.length;
+			final bHas = i < b.segments.length;
+			if (!aHas || !bHas)
+				return aHas ? 1 : -1; // prefix route first (matters against a rest route)
+			final ra = segRank(a, i);
+			final rb = segRank(b, i);
+			if (ra != rb)
+				return ra - rb;
+		}
+		// deterministic tiebreak: Array.sort isn't guaranteed stable
+		return Reflect.compare(a.rawRoutePath, b.rawRoutePath);
 	}
 
 	private function matchRoute(route:RouteEntry, pathname:String):Null<Map<String, String>> {
