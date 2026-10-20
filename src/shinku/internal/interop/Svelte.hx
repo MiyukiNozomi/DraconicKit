@@ -1,5 +1,6 @@
 package shinku.internal.interop;
 
+import shinku.internal.esm.NodeRunner;
 import haxe.Json;
 import shinku.std.URLSearchParams;
 import haxe.crypto.Sha1;

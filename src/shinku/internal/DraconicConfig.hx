@@ -1,5 +1,6 @@
 package shinku.internal;
 
+import shinku.internal.esm.NodeRunner;
 import shinku.Console.Logger;
 import sys.FileSystem;
 import haxe.io.Path;

@@ -12,9 +12,10 @@ enum FileEvent {
 private typedef Stamp = {mtime:Float, size:Int};
 
 class FileWatcher {
+	public var intervalMs(default, null):Int;
+
 	final root:String;
 	final onEvent:FileEvent->Void;
-	final intervalMs:Int;
 	final ignore:String->Bool;
 	var snapshot:Map<String, Stamp>;
 	var running = false;

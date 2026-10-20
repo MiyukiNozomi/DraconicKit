@@ -1,4 +1,4 @@
-package shinku.internal;
+package shinku.internal.devserver.routes;
 
 import shinku.internal.interop.Svelte.SvelteBuilder;
 import haxe.crypto.Sha1;

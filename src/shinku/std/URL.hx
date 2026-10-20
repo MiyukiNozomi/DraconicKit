@@ -319,6 +319,8 @@ class URL {
 		return new URL(other, url.href);
 	}
 
+	#if !js
+	// can't use overload on the JS target.. weird.
 	public static overload function fromFileURL(url:URL) {
 		return fromFileURL(url.href);
 	}
@@ -327,6 +329,7 @@ class URL {
 		var parsed = new URL(url);
 		return Path.join(['/', parsed.hostname, parsed.pathname].filter(v -> v.length > 0));
 	}
+	#end
 
 	/** 
 		Please be aware this function is slightly different than JS's encodeURI.

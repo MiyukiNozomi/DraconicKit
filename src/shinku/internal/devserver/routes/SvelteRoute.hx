@@ -1,4 +1,4 @@
-package shinku.internal;
+package shinku.internal.devserver.routes;
 
 import haxe.Json;
 import haxe.io.Path;
@@ -19,7 +19,7 @@ class SvelteRoute extends AbstractHandler {
 		css:String
 	} = {js: "", css: ""};
 
-	public function new(serverPage:AbstractServerPage, thisPathname:String) {
+	public function new(serverPage:Null<AbstractServerPage>, thisPathname:String) {
 		this.serverPage = serverPage;
 		this.thisPathname = thisPathname;
 	}
