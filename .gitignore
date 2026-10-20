@@ -5,3 +5,5 @@ dump
 dist/
 pnpm-lock.yaml
 node_modules
+
+docsite/
