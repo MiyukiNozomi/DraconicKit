@@ -11,8 +11,8 @@ class HelpCommand {
 		},
 		{
 			name: "init",
-			description: "Initializes a DraconicKit project.\n" + "Use `init [dirname]` to specify a directory (optional).\n" +
-			"If omitted, the project name will be prompted."
+			description: "Initializes a DraconicKit project.\n" + "Use `draconickit init [dirname]` to specify a directory (optional).\n" +
+			"If [dirname] is omitted, the project name will be prompted."
 		},
 		{
 			name: "dev",
@@ -20,7 +20,7 @@ class HelpCommand {
 		},
 		{
 			name: "build",
-			description: "Builds your project in development mode,\n currently it will only build for the JVM target (still need to polish some stuff.)"
+			description: "Builds your project in production mode,\n currently it will only build for the JVM target (still need to polish some stuff.)"
 		}
 	];
 
