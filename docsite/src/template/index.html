@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DraconicKit</title>
+
+    <link
+      rel="shortcut icon"
+      href="/res/draconic-kit-favicon.webp"
+      type="image/x-icon"
+    />
+
+    <link rel="stylesheet" href="/res/style.css" />
+
+    <builder:hmr />
+  </head>
+  <body>
+    <div class="top-section">
+      <builder:import src="/res/html/header.html" />
+
+      <div class="welcome">
+        <div class="overhead">
+          <h1>Web development for those who snapped at JavaScript backends.</h1>
+          <p>
+            DraconicKit brings modern full-stack development to Haxe. Enjoy the
+            conveniences of SvelteKit, the benefits of a strongly typed
+            language, and the freedom to compile your backend to the target of
+            your choice.
+          </p>
+          <a href="/docs/getstarted/"> GET STARTED &RightArrow;</a>
+        </div>
+      </div>
+      <img src="/res/death2js.webp" alt="" class="death2js" />
+    </div>
+    <div class="section">
+      <builder:markdown>
+        <pre>
+# Markdown test
+ooohh, shiny!
+        </pre>
+      </builder:markdown>
+    </div>
+
+    <builder:import src="/res/html/footer.html" />
+  </body>
+</html>

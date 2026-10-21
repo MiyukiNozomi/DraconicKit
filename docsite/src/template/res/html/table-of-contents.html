@@ -1,0 +1,61 @@
+<div class="table-of-contents">
+  <h2>TABLE OF CONTENTS</h2>
+  <div class="tocline">
+    <img class="left" src="/res/scrollbar-up.webp" />
+    <img class="center" src="/res/draconic-kit-favicon.webp" />
+    <img class="right" src="/res/scrollbar-down.webp" />
+
+    <div class="middleline"></div>
+  </div>
+  <script lang="hx">
+    function createAnchor(thisDir, innerText, isTopLevel) {
+      if (isTopLevel) {
+        return "<a class=\"header-top\" href=" + Json.stringify(thisDir) + ">" + innerText + "</a>";
+      } else {
+        return "<li><a class=\"\" href=" + Json.stringify(thisDir+"#"+builder.slugify(innerText)) + ">" + innerText + "</a>"+
+              "<span class=\"toc-icon\" aria-hidden=\"true\"></span></li>";
+      }
+    }
+
+    final basePath = Path.join([builder.getWorkdir(), "docs/"]);
+    var directories = FileSystem.readDirectory(basePath).sort();
+
+    var mainList = builder.render(document.createElement("ul"));
+    for (dir in directories) {
+      var target = Path.join([basePath, dir, "index.md"]);
+      if (!FileSystem.exists(target) || FileSystem.isDirectory(target)) continue;
+      var markdownText = File.getContent(target);
+      var elm = document.createElement("a");
+
+      var markdown = document.parseMarkdown(markdownText);
+
+      var title = markdown.querySelector("h1");
+
+      if (title != null) {
+       //  trace(title);
+       final thisDir = "/docs/"+dir;
+        var list = document.createElement("li");
+
+        if (builder.thisURL() == thisDir) {
+        list.classList.add("active");
+        }
+
+        list.classList.add("header-toplist");
+        mainList.appendChild(list);
+        list.appendChild(document.parse(createAnchor(thisDir, title.innerText, true)));
+
+        var subtitles = markdown.querySelectorAll("h2");
+
+       // trace(subtitles);
+
+        if (subtitles.length > 0) {
+          var sublist = document.createElement("ul");
+          list.appendChild(sublist);
+          for (subtitle in subtitles) {
+            sublist.appendChild(document.parse(createAnchor(thisDir, subtitle.innerText, false)));
+          }
+        }
+      }
+    }
+  </script>
+</div>

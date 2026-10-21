@@ -1,0 +1,9 @@
+--class-path src
+--class-path ../src
+--macro nullSafety("server", Strict)
+--library hxnodejs
+--library markdown
+--library node-html-parser
+--library hscript
+--js dist/main.js
+--main server.Main

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DraconicKit</title>
+
+    <link
+      rel="shortcut icon"
+      href="/res/draconic-kit-favicon.webp"
+      type="image/x-icon"
+    />
+
+    <link rel="stylesheet" href="/res/style.css" />
+
+    <builder:hmr />
+  </head>
+  <body>
+    <builder:import src="/res/html/header.html" />
+    <div class="docmain">
+      <builder:import src="/res/html/table-of-contents.html"></builder:import>
+      <div class="main">
+        <builder:placeholder />
+      </div>
+    </div>
+    <builder:import src="/res/html/footer.html" />
+  </body>
+</html>

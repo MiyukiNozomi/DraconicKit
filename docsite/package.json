@@ -1,0 +1,13 @@
+{
+  "name": "docsite",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "dist/main.js",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "node-html-parser": "^9.0.4"
+  },
+  "devDependencies": {
+    "dts2hx": "^0.34.0"
+  }
+}
