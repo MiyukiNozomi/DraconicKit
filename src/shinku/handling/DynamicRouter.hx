@@ -223,14 +223,15 @@ class DynamicRouter {
 
 		var comp;
 		while ((comp = components.shift()) != null) {
-			if (StringTools.startsWith(comp, "[") && StringTools.endsWith(comp, "]")) {
+			if ((StringTools.startsWith(comp, "[") && StringTools.endsWith(comp, "]"))
+				|| (StringTools.startsWith(comp, "_") && StringTools.endsWith(comp, "_"))) {
 				var cleanName = comp.substring(1, comp.length - 1);
 				var isLast = components.length == 0;
 
-				if (StringTools.startsWith(cleanName, "...")) {
+				if (StringTools.startsWith(cleanName, "...") || StringTools.startsWith(cleanName, "__")) {
 					if (isLast) {
 						isRouteVariadic = true;
-						cleanName = cleanName.substring(3);
+						cleanName = cleanName.substring(StringTools.startsWith(cleanName, "__") ? 2 : 3);
 					} else {
 						throw Error.Custom("Invalid route: " + pathname + ", because a variadic parameter can only be at the end of the route's path.");
 					}
