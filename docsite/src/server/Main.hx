@@ -20,6 +20,7 @@ using StringTools;
 class Main {
 	static inline var PORT:Int = 3000;
 	static inline var POLL_INTERVAL_MS:Int = 500;
+	public static var IS_BUILD_MODE = false;
 
 	public static var SERVE_DIRECTORY = "";
 
@@ -90,7 +91,10 @@ class Main {
 			try {
 				final body = HTMLTransformer.transformHTML(thisURL, filePath, [
 					"hmr" => (elm, ch, turl) -> {
-						elm.replaceWith(NodeHtmlParser.parse('<script hmr>$HMR_SCRIPT</script>'));
+						if (IS_BUILD_MODE)
+							elm.remove();
+						else
+							elm.replaceWith(NodeHtmlParser.parse('<script hmr>$HMR_SCRIPT</script>'));
 					},
 					"placeholder" => (elm, ch, turl) -> {
 						if (isMarkdown) {
@@ -123,11 +127,30 @@ class Main {
 		stream.pipe(res);
 	}
 
+	private static function visitDirImpl(path:String, visit:(fullPath:String) -> Void) {
+		if (FileSystem.isDirectory(path)) {
+			final entries = FileSystem.readDirectory(path);
+			for (entry in entries) {
+				visitDirImpl(Path.join([path, entry]), visit);
+			}
+		} else {
+			visit(path);
+		}
+	}
+
+	public static function visitDirRecursive(directory:String, visit:(fullPath:String) -> Void) {
+		var absolute = FileSystem.absolutePath(Path.normalize(directory));
+		visitDirImpl(absolute, visit);
+	}
+
 	static function main() {
 		SERVE_DIRECTORY = Macros.getServeDirectory();
 		trace("Serve dir: " + SERVE_DIRECTORY);
 
-		watchTree();
+		IS_BUILD_MODE = Sys.args()[0] == "build";
+
+		if (!IS_BUILD_MODE)
+			watchTree();
 
 		var server = Http.createServer((req, res) -> {
 			final send = (status:Int, body:String, type = "text/plain") -> {
@@ -157,7 +180,52 @@ class Main {
 
 		server.listen(PORT, () -> {
 			trace('Serving ${SERVE_DIRECTORY}');
-			trace('http://localhost:${PORT}');
+			var loc = 'http://localhost:${PORT}';
+			trace(loc);
+
+			if (IS_BUILD_MODE) {
+				trace("Building website... (you launched it in build mode, server will shutdown after build..");
+
+				final exclusion = Path.join([SERVE_DIRECTORY, "res/html"]);
+				final routes = new Map<String, String>();
+
+				visitDirRecursive(SERVE_DIRECTORY, v -> {
+					if (v.startsWith(exclusion))
+						return;
+
+					var routeName = v.substring(SERVE_DIRECTORY.length);
+					var outputDir;
+					if (routeName.endsWith("index.md")) {
+						routeName = Path.directory(routeName);
+						outputDir = Path.join([
+							Path.normalize(Path.join([SERVE_DIRECTORY, "../../dist/static", routeName])),
+							"index.html"
+						]);
+					} else {
+						outputDir = Path.normalize(Path.join([SERVE_DIRECTORY, "../../dist/static", routeName]));
+					}
+					routes.set(routeName, outputDir);
+				});
+
+				var total = 0;
+				for (routeName => outputDir in routes) {
+					trace("Request ($total)" + routeName + " will output to " + outputDir);
+
+					var http = new haxe.Http(loc + routeName);
+					http.onBytes = (b) -> {
+						FileSystem.createDirectory(Path.directory(outputDir));
+						sys.io.File.saveBytes(outputDir, b);
+
+						total++;
+
+						if (total == routes.size()) {
+							trace("Build Complete!");
+							server.close();
+						}
+					};
+					http.request();
+				}
+			}
 		});
 	}
 }

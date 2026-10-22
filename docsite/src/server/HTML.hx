@@ -73,6 +73,25 @@ class HTMLTransformer {
 		return elements;
 	}
 
+	private static function collectScripts(elements:Array<HTMLElement>):Array<HTMLElement> {
+		var result = new Array<HTMLElement>();
+		for (elm in elements) {
+			if (elm.tagName != null && elm.tagName.toLowerCase() == "script")
+				result.push(elm);
+			for (s in elm.getElementsByTagName("script"))
+				result.push(s);
+		}
+		return result;
+	}
+
+	private static function showError(e:Exception, result:HTMLElement) {
+		final err = new HTMLElement("p", {});
+		err.setAttribute("style",
+			'position: fixed; left: 50%; width:80%; transform: translateX(-50%); top:4rem; z-index: 50; background-color: #0f0f0f; color:#ff0000; border:4px solid #ff0a0a; padding: 6px 6px;');
+		err.textContent = "Transformation failed for tag " + result.tagName + " because: " + e.toString();
+		result.replaceWith(err);
+	}
+
 	private static var thisHandlers:Map<String, HandlerFunc> = [
 		"import" => (html, customHandlers, thisURL) -> {
 			final applyAttributes = (target:HTMLElement, attrs:Map<String, String>) -> {
@@ -109,14 +128,17 @@ class HTMLTransformer {
 			} else if (isMarkup) {
 				var elements = parseElements(txt, src);
 				for (elm in elements) {
-					transformElement(thisURL, elm, customHandlers, attrs);
+					expandElement(thisURL, elm, customHandlers);
 					applyAttributes(elm, attrs);
 				}
 				var children = new HTMLElement("div", {});
 				for (childNode in html.childNodes.copy())
 					children.appendChild(childNode);
-				transformElement(thisURL, children, customHandlers, attrs);
-				renderElement(thisURL, html, elements, children);
+				expandElement(thisURL, children, customHandlers);
+				var ownScripts = collectScripts(elements);
+				var container = renderElement(thisURL, html, elements, children);
+				if (container != null)
+					runScripts(thisURL, ownScripts, container, attrs);
 			} else if (isScript) {
 				var script = new HTMLElement("script", {});
 				script.textContent = txt;
@@ -131,10 +153,10 @@ class HTMLTransformer {
 		}
 	];
 
-	public static function renderElement(pathname:String, target:HTMLElement, elements:Array<HTMLElement>, ?placeholder:HTMLElement) {
+	public static function renderElement(pathname:String, target:HTMLElement, elements:Array<HTMLElement>, ?placeholder:HTMLElement):Null<HTMLElement> {
 		if (elements.length == 0) {
 			target.remove();
-			return;
+			return null;
 		}
 		var divider = new HTMLElement("", {});
 		for (elm in elements)
@@ -152,6 +174,7 @@ class HTMLTransformer {
 			}
 		}
 		target.replaceWith(divider);
+		return divider;
 	}
 
 	public static function slugify(text:String) {
@@ -177,15 +200,7 @@ class HTMLTransformer {
 		return elm;
 	}
 
-	public static function transformElement(thisURL:String, root:HTMLElement, customHandlers:Map<String, HandlerFunc>, ?attribs:Map<String, String>) {
-		final showError = (e:Exception, result:HTMLElement) -> {
-			//	value.innerText = "Could not preprocess this tag " + value.toString() + " because: " + JSON.stringify(e);
-			final err = new HTMLElement("p", {});
-			err.setAttribute("style",
-				'position: fixed; left: 50%; width:80%; transform: translateX(-50%); top:4rem; z-index: 50; background-color: #0f0f0f; color:#ff0000; border:4px solid #ff0a0a; padding: 6px 6px;');
-			err.textContent = "Transformation failed for tag " + result.tagName + " because: " + e.toString();
-			result.replaceWith(err);
-		};
+	public static function expandElement(thisURL:String, root:HTMLElement, customHandlers:Map<String, HandlerFunc>):HTMLElement {
 		final runTransformer = (key:String, fn:HandlerFunc) -> {
 			var results = root.querySelectorAll('builder\\:$key');
 			for (result in results) {
@@ -202,16 +217,18 @@ class HTMLTransformer {
 			runTransformer(key, clb);
 		for (key => clb in thisHandlers)
 			runTransformer(key, clb);
+		return root;
+	}
+
+	public static function runScripts(thisURL:String, scripts:Array<HTMLElement>, root:HTMLElement, ?attribs:Map<String, String>) {
 		var interp = new hscript.Interp();
 		for (k => v in scriptGlobals)
 			interp.variables.set(k, v);
 		createDocument(interp, root, attribs);
-		var scripts = root.getElementsByTagName('script');
 		for (elm in scripts) {
 			try {
 				if (elm.attributes.exists("hmr"))
 					continue;
-
 				if (elm.attributes.get("lang") != "hx") {
 					throw Error.Custom("You have a non-hscript script tag: "
 						+ elm.toString()
@@ -238,6 +255,11 @@ class HTMLTransformer {
 				showError(e, elm);
 			}
 		}
+	}
+
+	public static function transformElement(thisURL:String, root:HTMLElement, customHandlers:Map<String, HandlerFunc>, ?attribs:Map<String, String>) {
+		expandElement(thisURL, root, customHandlers);
+		runScripts(thisURL, root.getElementsByTagName('script'), root, attribs);
 		return root;
 	}
 

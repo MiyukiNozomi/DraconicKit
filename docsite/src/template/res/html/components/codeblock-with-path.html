@@ -15,9 +15,7 @@
 
      var clean = document.createElement("");
      for (child in banana.childNodes) {
-        trace(child);
-        if (
-        StringTools.trim(child.textContent).length == 0) continue;
+        if (StringTools.trim(child.textContent).length == 0) continue;
          clean.appendChild(child);
      }
      code.appendChild(clean);

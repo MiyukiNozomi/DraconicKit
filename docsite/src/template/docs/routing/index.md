@@ -86,3 +86,5 @@ A +page.svelte defines a page of your app, here is an example:
 &lt;p&gt;I am using Svelte, and Haxe!&lt;/p&gt;
 &lt;a href="/about"&gt;About this place&lt;/a&gt;
 </builder:import>
+
+Opening the root of your project, with the above file will render it as a page!
