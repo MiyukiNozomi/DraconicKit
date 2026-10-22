@@ -3,7 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DraconicKit</title>
+
+    <script lang="hx">
+      function makeMetaTag(type, content) {
+        var t = document.createElement("meta");
+        t.setAttribute("name", "description");
+        t.setAttribute("content", content);
+        builder.render(t);
+      }
+      // we basically fetch the first h1 title and the second paragraph
+      // to build both title and description.
+      var titleElm = document.querySelector(".main h1");
+      var descElm = document.querySelector(".main p");
+
+      var t = document.createElement("title");
+      t.textContent = titleElm.textContent;
+      builder.render(t);
+
+      var description = descElm != null ? descElm.textContent : "No description found!";
+
+      makeMetaTag("description", description);
+
+      makeMetaTag("og:title", titleElm.textContent + " - DraconicKit Documentation");
+      makeMetaTag("og:description", description);
+      makeMetaTag("og:type", "website");
+      makeMetaTag("og:image", "/res/draconic-kit-logo.webp");
+      makeMetaTag("og:site_name", "DraconicKit");
+    </script>
 
     <link
       rel="shortcut icon"
@@ -18,7 +44,9 @@
   <body>
     <builder:import src="/res/html/header.html" />
     <div class="docmain">
-      <builder:import src="/res/html/table-of-contents.html"></builder:import>
+      <builder:import
+        src="/res/html/components/table-of-contents.html"
+      ></builder:import>
       <div class="main">
         <builder:placeholder />
       </div>

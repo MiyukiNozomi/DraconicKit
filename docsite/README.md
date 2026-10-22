@@ -31,3 +31,7 @@ For the development server:
 ```
 haxe build.hxml && node .
 ```
+
+### Builder Syntax
+
+TODO! but you can check the html files inside of src/ to see examples
