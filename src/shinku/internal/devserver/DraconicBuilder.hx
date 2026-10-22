@@ -1,5 +1,7 @@
 package shinku.internal.devserver;
 
+import haxe.rtti.CType.Classdef;
+import shinku.internal.jvm.MoonlitClass;
 import shinku.Console.AnsiPrinter;
 import shinku.std.io.FileWatcher;
 import shinku.std.io.SystemTools;
@@ -60,13 +62,19 @@ class DraconicBuilder {
 				return [];
 
 			try {
-				var clsInstance = cls.newInstance();
+				var clsInstance = new MoonlitClass(cls);
 
-				trace("For ", cls, " i have ", cls.getSuperclass().getMethods().toArray().map(v -> v.getName()));
+				/*
+					TODO: use this to generate TypeScript declarations?
 
-				var handlerInstance = Std.downcast(clsInstance, AbstractHandler);
-				var serverPageInstance = Std.downcast(clsInstance, AbstractServerPage);
-				var serverHooksIntance = Std.downcast(clsInstance, AbstractServerHooks);
+					var rtti = clsInstance.getMethods("DraconicKitGetRTTI");
+					if (rtti.length > 0)
+						trace(clsInstance.getName(), rtti[0].invoke());
+				 */
+
+				var handlerInstance = clsInstance.tryCast(AbstractHandler);
+				var serverPageInstance = clsInstance.tryCast(AbstractServerPage);
+				var serverHooksIntance = clsInstance.tryCast(AbstractServerHooks);
 
 				if (cls.getPackage().getName() == "routes" && serverHooksIntance != null) {
 					httpServer.requestHandler.dynamicRouter.setServerHooks(serverHooksIntance);
@@ -78,7 +86,7 @@ class DraconicBuilder {
 					return ["server:hooks"];
 				}
 
-				// route-like instancess
+				// route-like instances
 				var routename = '/' + Path.directory(name.substring("routes.".length).split('.').join('/'));
 				if (handlerInstance != null) {
 					httpServer.requestHandler.dynamicRouter.addDynamicRoute(routename, handlerInstance);

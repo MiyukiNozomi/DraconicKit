@@ -15,10 +15,10 @@ class DraconicIntrospection extends HandlerTools {
 		# INTERNAL USAGE ONLY		
 		Thou shall not touch this!
 	**/
-	@:keep public final function getRTTI() {
+	@:keep public final function DraconicKitGetRTTI() {
 		final b = Type.getClass(this);
 		if (b == null) {
-			throw Error.Custom("Type.getClass in getRTTI has returned NULL!");
+			throw Error.Custom("Type.getClass in DraconicKitGetRTTI has returned NULL!");
 		}
 		return Rtti.getRtti(b);
 	}
