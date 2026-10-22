@@ -11,7 +11,7 @@
     <script lang="hx">
       function makeMetaTag(type, content) {
         var t = document.createElement("meta");
-        t.setAttribute("name", "description");
+        t.setAttribute("name", type);
         t.setAttribute("content", content);
         builder.render(t);
       }
