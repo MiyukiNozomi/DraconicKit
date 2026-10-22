@@ -13,6 +13,7 @@ const configSchema = z.strictObject({
       .strictObject({
         debugLogs: z.boolean().default(false),
         showTimestamps: z.boolean().default(true),
+        showDevRequests: z.boolean().default(false),
         useColorsInLogs: z.boolean().default(true),
       })
       .default({

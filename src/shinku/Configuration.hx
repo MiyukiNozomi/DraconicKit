@@ -4,6 +4,7 @@ class Configuration {
 	public static var Version = "0.1.0";
 
 	public static var ShowDebugLogs = true;
+	public static var ShowDevRequests = false;
 	public static var ShowTimestampLogs = true;
 	public static var UseColorsInLogs = true;
 

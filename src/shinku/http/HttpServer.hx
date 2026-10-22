@@ -64,7 +64,8 @@ class HttpServer {
 							client.socket.close();
 							return;
 						} else {
-							Logger.info(req.status);
+							if (Configuration.ShowDevRequests)
+								Logger.info(req.status);
 						}
 
 						requestHandler.handleRequest(client, req);

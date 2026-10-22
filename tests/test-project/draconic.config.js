@@ -18,6 +18,9 @@ export default function getServerConfig() {
   return {
     builder: { typescriptSupport: false },
     server: {
+      logging: {
+        showDevRequests: false,
+      },
       host: "0.0.0.0",
       port: 8173,
       static_dir: "static/",

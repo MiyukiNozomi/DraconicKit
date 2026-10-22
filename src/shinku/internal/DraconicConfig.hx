@@ -11,7 +11,7 @@ typedef DraconicConfig = {
 	},
 	server:{
 		logging:{
-			debugLogs:Bool, showTimestamps:Bool, useColorsInLogs:Bool,
+			debugLogs:Bool, showDevRequests:Bool, showTimestamps:Bool, useColorsInLogs:Bool,
 		}, host:String, port:Int, static_dir:String,
 	}
 }
@@ -37,6 +37,7 @@ class DraconicJSConfigLoader {
 		Configuration.ShowDebugLogs = serverConfig.server.logging.debugLogs;
 		Configuration.AlwaysCleanup = serverConfig.builder.alwaysCleanup;
 		#end
+		Configuration.ShowDevRequests = serverConfig.server.logging.showDevRequests;
 		Configuration.ShowTimestampLogs = serverConfig.server.logging.showTimestamps;
 		Configuration.UseColorsInLogs = serverConfig.server.logging.useColorsInLogs;
 
