@@ -1,0 +1,32 @@
+<div class="markdown codeblock" id="codeblock">
+  <script lang="hx">
+     var banana = document.querySelector(".replace");
+
+     var dest = document.createElement("div");
+
+     var pre = document.createElement("pre");
+     var code = document.createElement("code");
+     var head = document.createElement("h1");
+     pre.appendChild(code);
+     dest.appendChild(pre);
+
+     head.id ="codehead";
+     code.appendChild(head);
+
+     var clean = document.createElement("");
+     for (child in banana.childNodes) {
+        trace(child);
+        if (
+        StringTools.trim(child.textContent).length == 0) continue;
+         clean.appendChild(child);
+     }
+     code.appendChild(clean);
+
+    head.textContent = document.getRootAttributes().get("title");
+
+     banana.replaceWith(dest);
+  </script>
+  <div class="replace">
+    <builder:children />
+  </div>
+</div>

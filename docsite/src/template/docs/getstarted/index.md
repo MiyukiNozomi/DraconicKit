@@ -1,6 +1,6 @@
 # Get Started
 
-Welcome to DraconicKit, before starting, there are a few requirements, the setup procedure, and things you should keep in mind.
+Welcome to DraconicKit, before starting, there are a few requirements, installation steps, and things you should keep in mind.
 
 ## Limitations
 
@@ -10,7 +10,7 @@ Think of this as a TODO list, highest priority first:
 
 - **No production build mode** - I am still polishing the development mode before finishing the production builder.
 
-- **No TypeScript support** - Mostly because of a lack of testing, Microsoft has recently deprecated the TypeScript compiler API with their rewrite to golang, so I am a bit indecise on how TS support should be.
+- **No TypeScript support** - Mostly because of a lack of testing, Microsoft has recently dropped the TypeScript compiler API with their rewrite to golang, so I am a bit indecise on how TS support should be.
 
 - **No support for WebSockets** - DraconicKit has its own HTTP server implementation, it only supports HTTP 1.1 and Chunked Transfer Encoding in both inbound and outbound messages.
 
@@ -20,7 +20,7 @@ Think of this as a TODO list, highest priority first:
 
 To use DraconicKit, the following is required to be installed in your system:
 
-- The [Haxe Compiler](https://haxe.org/download/). _(I recommend you to use the Haxe 5 preview, as that is the version of haxe used to built the heart of the dragon.)_
+- The [Haxe Compiler](https://haxe.org/download/). _(I recommend you to use the Haxe 5 preview, as that is the version of haxe used to build the heart of the dragon.)_
 - A Java 10+ JDK. _(This is a development-only requirement, you can use any Sys + Threading capable haxe target in production.)_
 - Node.js and a Node package manager. _(This is for front-end dependencies like FontAwesome, not backend dependencies.)_
 - A POSIX-Compliant system _(Windows is not yet supported, but might work under WSL and definitely under Docker.)_
@@ -29,7 +29,7 @@ Ideally you should also know the [Haxe Programming Language](https://haxe.org/do
 
 ## Installing DraconicKit
 
-Clone the respository first:
+Clone the repository first:
 
 ```
 git clone https://github.com/MiyukiNozomi/DraconicKit
@@ -39,14 +39,25 @@ Then simply build:
 
 ```
 cd DraconicKit
-haxe build-release.hxml
+haxe install.hxml
 ```
 
-Now, sym-link `draconickit` or add this folder to your PATH, and draconickit will be ready to be used.
+Now, sym-link `bin/draconickit` or add this folder to your PATH, and draconickit will be ready to be used.
+
+<builder:import src="/res/html/components/warning.html">
+
+<p><builder:markdown>
+**DO NOT SHARE BUILDS!** the DraconicKit.jar that bin/draconickit invokes contains absolute pathnames to the built project as it needs to access DraconicKit's own source code to build your projects.
+
+This does mean that if you build DraconicKit in your user's directory, let's say `/home/suisei/software-builds/draconickit`, the builder will keep a reference to this pathname inside DraconicKit.jar
+
+This is not a problem for your built projects, websites you build with DraconicKit will not keep a reference to any absolute pathnames.
+</builder:markdown></p>
+</builder:import>
 
 ## Creating a Project
 
-Simply run `draconickit init` and a setup will start a project relative to it's current directory. To specify a directory, you can use `draconickit init [dirname]`.
+Simply run `draconickit init` and a setup will start a project relative to its current directory. To specify a directory, you can use `draconickit init [dirname]`.
 
 ## “It doesn’t work with pnpm\!”
 
@@ -88,4 +99,4 @@ I'd strongly recommend reading the [Multithreading](/docs/standard/#multithreadi
 
 ### Okay! I am ready!
 
-Hop onto the chapter [Routing](/docs/routing/) for the fun to start.
+Hop onto the chapter [Routing](/docs/routing/) to begin the fun

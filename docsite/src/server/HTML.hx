@@ -1,14 +1,11 @@
 package server;
 
+import hscript.Interp;
 import haxe.Exception;
 import haxe.Json;
-import haxe.Rest;
 import haxe.io.Error;
 import haxe.io.Path;
-import js.html.HtmlElement;
-import js.html.NamedNodeMap;
 import node_html_parser.parse.HTMLElement;
-import node_html_parser.parse.Node;
 import shinku.std.MimeTypes;
 import sys.FileSystem;
 import sys.io.File;
@@ -18,6 +15,45 @@ using StringTools;
 typedef HandlerFunc = (e:HTMLElement, customHandlers:Map<String, HandlerFunc>, thisURL:String) -> Void;
 
 class HTMLTransformer {
+	private static final scriptGlobals:Map<String, Dynamic> = [
+		"Math" => Math,
+		"Path" => Path,
+		"Json" => Json,
+		"StringTools" => StringTools,
+		"File" => {
+			getContent: (s:String) -> return File.getContent(s),
+		},
+		"FileSystem" => {
+			readDirectory: (s:String) -> return FileSystem.readDirectory(s),
+			isDirectory: (s:String) -> return FileSystem.isDirectory(s),
+			exists: (s:String) -> return FileSystem.exists(s),
+		},
+	];
+
+	private static function createDocument(interp:Interp, root:HTMLElement, attribs:Null<Map<String, String>>) {
+		interp.variables.set("document", {
+			getRootNode: () -> {
+				return root;
+			},
+			getRootAttributes: () -> {
+				return attribs != null ? attribs : new Map();
+			},
+			createElement: (name:String, children:Null<Array<HTMLElement>>) -> {
+				var elm = new HTMLElement(name, {});
+				if (children != null) {
+					for (child in children) {
+						elm.appendChild(child);
+					}
+				}
+				return elm;
+			},
+			querySelector: (tag:String) -> return root.querySelector(tag),
+			querySelectorAll: (tag:String) -> return root.querySelectorAll(tag),
+			parse: (src:String) -> return NodeHtmlParser.parse(src),
+			parseMarkdown: (src:String) -> return parseMarkdownToHTML(src),
+		});
+	}
+
 	private static function collectSetAttributes(html:HTMLElement):Map<String, String> {
 		var result = new Map<String, String>();
 		for (attrib in html.attributes.keys()) {
@@ -73,12 +109,17 @@ class HTMLTransformer {
 			} else if (isMarkup) {
 				var elements = parseElements(txt, src);
 				for (elm in elements) {
-					transformElement(thisURL, elm, customHandlers);
+					transformElement(thisURL, elm, customHandlers, attrs);
 					applyAttributes(elm, attrs);
 				}
-				renderElement(html, elements);
+				var children = new HTMLElement("div", {});
+				for (childNode in html.childNodes.copy())
+					children.appendChild(childNode);
+				transformElement(thisURL, children, customHandlers, attrs);
+				renderElement(thisURL, html, elements, children);
 			} else if (isScript) {
-				var script = NodeHtmlParser.parse('<script>$txt</script>');
+				var script = new HTMLElement("script", {});
+				script.textContent = txt;
 				applyAttributes(script, attrs);
 				html.replaceWith(script);
 			} else {
@@ -90,15 +131,26 @@ class HTMLTransformer {
 		}
 	];
 
-	public static function renderElement(target:HTMLElement, elements:Array<HTMLElement>) {
+	public static function renderElement(pathname:String, target:HTMLElement, elements:Array<HTMLElement>, ?placeholder:HTMLElement) {
 		if (elements.length == 0) {
 			target.remove();
 			return;
 		}
-
 		var divider = new HTMLElement("", {});
 		for (elm in elements)
 			divider.appendChild(elm);
+		var placeholderTargets = divider.querySelectorAll("builder\\:children");
+		if (placeholderTargets.length > 1)
+			throw "Multiple builder\\:children tags found in " + pathname + ". Can only have one per imported component.";
+		if (placeholder != null) {
+			if (placeholderTargets.length > 0) {
+				placeholderTargets[0].replaceWith(placeholder);
+			}
+		} else {
+			for (t in placeholderTargets) {
+				t.remove();
+			}
+		}
 		target.replaceWith(divider);
 	}
 
@@ -116,20 +168,16 @@ class HTMLTransformer {
 		var newHtml = Markdown.markdownToHtml(text);
 		var elm = new HTMLElement("div", {});
 		elm.appendChild(NodeHtmlParser.parse(newHtml));
-
 		// a small transformation is needed here because haxe markdown doesnt put ids by default.
-		for (h1 in elm.querySelectorAll("h1")) {
-			h1.id = slugify(h1.textContent);
+		for (h in elm.querySelectorAll("h1, h2, h3")) {
+			if (h.id == "")
+				h.id = slugify(h.textContent);
 		}
-		for (h2 in elm.querySelectorAll("h2")) {
-			h2.id = slugify(h2.textContent);
-		}
-
 		elm.classList.add("markdown");
 		return elm;
 	}
 
-	public static function transformElement(thisURL:String, root:HTMLElement, customHandlers:Map<String, HandlerFunc>) {
+	public static function transformElement(thisURL:String, root:HTMLElement, customHandlers:Map<String, HandlerFunc>, ?attribs:Map<String, String>) {
 		final showError = (e:Exception, result:HTMLElement) -> {
 			//	value.innerText = "Could not preprocess this tag " + value.toString() + " because: " + JSON.stringify(e);
 			final err = new HTMLElement("p", {});
@@ -138,7 +186,6 @@ class HTMLTransformer {
 			err.textContent = "Transformation failed for tag " + result.tagName + " because: " + e.toString();
 			result.replaceWith(err);
 		};
-
 		final runTransformer = (key:String, fn:HandlerFunc) -> {
 			var results = root.querySelectorAll('builder\\:$key');
 			for (result in results) {
@@ -146,49 +193,20 @@ class HTMLTransformer {
 					fn(result, customHandlers, thisURL);
 				} catch (e) {
 					trace(e);
+					trace(e.stack);
 					showError(e, result);
 				}
 			}
 		};
-
 		for (key => clb in customHandlers)
 			runTransformer(key, clb);
-
 		for (key => clb in thisHandlers)
 			runTransformer(key, clb);
-
 		var interp = new hscript.Interp();
-
-		interp.variables.set("Math", Math);
-		interp.variables.set("Path", Path);
-		interp.variables.set("Json", Json);
-
-		interp.variables.set("File", {
-			getContent: (s:String) -> return File.getContent(s),
-		});
-
-		interp.variables.set("FileSystem", {
-			readDirectory: (s:String) -> return FileSystem.readDirectory(s),
-			isDirectory: (s:String) -> return FileSystem.isDirectory(s),
-			exists: (s:String) -> return FileSystem.exists(s),
-		});
-
-		interp.variables.set("document", {
-			createElement: (name:String, children:Null<Array<HTMLElement>>) -> {
-				var elm = new HTMLElement(name, {});
-				if (children != null) {
-					for (child in children) {
-						elm.appendChild(child);
-					}
-				}
-				return elm;
-			},
-			parse: (src:String) -> return NodeHtmlParser.parse(src),
-			parseMarkdown: (src:String) -> return parseMarkdownToHTML(src),
-		});
-
+		for (k => v in scriptGlobals)
+			interp.variables.set(k, v);
+		createDocument(interp, root, attribs);
 		var scripts = root.getElementsByTagName('script');
-
 		for (elm in scripts) {
 			try {
 				if (elm.attributes.exists("hmr"))
@@ -199,10 +217,8 @@ class HTMLTransformer {
 						+ elm.toString()
 						+ ". Thou shall not spread your wicked ways on our holy draconic land.");
 				}
-
 				var parser = new hscript.Parser();
 				var program = parser.parseString(elm.textContent);
-
 				var elementsToRender = new Array<HTMLElement>();
 				interp.variables.set("builder", {
 					thisURL: () -> {
@@ -215,16 +231,13 @@ class HTMLTransformer {
 						return e;
 					}
 				});
-
 				interp.execute(program);
-
-				renderElement(elm, elementsToRender);
+				renderElement(thisURL, elm, elementsToRender);
 			} catch (e) {
 				trace(e);
 				showError(e, elm);
 			}
 		}
-
 		return root;
 	}
 

@@ -545,6 +545,63 @@ body {
   border-radius: 1rem;
 }
 
+.codeblock #codehead {
+  font-family: IBMPlexMono;
+  color: #fae7ef;
+  font-size: 1.8rem;
+  margin: 0;
+  padding: 0.6rem 0.5rem;
+  padding-top: 0;
+  border-bottom: 1px solid #ff586f;
+}
+
+.codeblock code {
+  margin: 0;
+  padding: 0;
+}
+
+.warning {
+  background: #b34448;
+  border: 4px solid #ff586f;
+  background: linear-gradient(
+    180deg,
+    rgba(133, 46, 49, 0.56) 0%,
+    rgba(87, 31, 33, 0.253) 60%,
+    rgba(133, 46, 49, 0.56) 100%
+  );
+  border-radius: 0.6rem;
+  padding: 0.8rem;
+  margin: 1rem 0;
+}
+
+.warning .whead {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-direction: row;
+}
+
+.warning .whead > img {
+  height: 3rem;
+  flex-shrink: 0;
+}
+
+.warning .whead > h1 {
+  font-family: KumbhSans !important;
+  text-transform: uppercase;
+  color: white;
+  font-size: 3rem !important;
+  flex-shrink: 0;
+}
+
+.warning .wbody,
+.warning .wbody p {
+  font-family: KumbhSans;
+  color: white !important;
+  font-size: 1.02rem !important;
+  transform: scaleY(102%);
+}
+
 .footer {
   display: flex;
   flex-direction: row;
