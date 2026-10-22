@@ -2,6 +2,9 @@ name: build
 
 on:
   push:
+    paths:
+      - docsite/**
+      - .github/workflows/docsite.yaml
     branches: ["main"]
 
 permissions:

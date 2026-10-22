@@ -12,6 +12,10 @@ DraconicKit gives you the convinience of a SvelteKit project, but without JavaSc
 
 Also, be aware of a few limitations.
 
+# How to use this?
+
+Refer to [documentation](https://draconickit.ane.jp.net).
+
 # How to build this?
 
 Simply run `haxe build-dev-backend.hxml` for a debug build. there's no production mode yet.
@@ -29,4 +33,4 @@ Another import thing is conditional compilation, normally, a draconic kit projec
 [ ] HMR
 [X] Svelte
 [X] Routing
-[ ] Documentation
+[X] Documentation
