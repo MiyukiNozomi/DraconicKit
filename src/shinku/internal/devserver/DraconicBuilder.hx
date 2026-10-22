@@ -1,5 +1,6 @@
 package shinku.internal.devserver;
 
+import shinku.Console.AnsiPrinter;
 import shinku.std.io.FileWatcher;
 import shinku.std.io.SystemTools;
 import shinku.internal.jvm.HaxeExtractor;
@@ -157,18 +158,18 @@ class DraconicBuilder {
 
 		var watcher = new FileWatcher(srcDir, e -> switch e {
 			case Added(p): {
-					Sys.println('+ $p');
+					AnsiPrinter.print('§1;32m+ §0;90m$p\n');
 					handleNewFile(FileSystem.absolutePath(p));
 				}
 			case Modified(p): {
-					Sys.println('~ $p');
+					AnsiPrinter.print('§1;33m~ §0;90m$p\n');
 					final fullPath = FileSystem.absolutePath(p);
 					if (!fullPath.endsWith(".svelte"))
 						handleFileDeletion(fullPath);
 					handleNewFile(fullPath);
 				}
 			case Removed(p): {
-					Sys.println('- $p');
+					AnsiPrinter.print('§1;31m- §0;90m$p\n');
 					handleFileDeletion(FileSystem.absolutePath(p));
 				}
 		}, 300, p -> p.indexOf("node_modules") != -1 || p.indexOf(".git") != -1);

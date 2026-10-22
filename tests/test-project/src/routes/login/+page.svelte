@@ -9,4 +9,7 @@
   * {
     color: white;
   }
+  body {
+    color: #000000;
+  }
 </style>
