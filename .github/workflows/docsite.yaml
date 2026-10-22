@@ -25,7 +25,7 @@ jobs:
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
         with:
-          haxe-version: 4.3.7
+          haxe-version: latest
 
       - name: Build
         shell: bash
