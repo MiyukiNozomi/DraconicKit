@@ -9,7 +9,7 @@ class ServerHooks extends AbstractServerHooks {
 	}
 
 	public override function handle(event:RequestEvent<Dynamic>, resolve:(event:RequestEvent) -> Void) {
-		trace("Attempt four? six twelve :", event);
+		trace("Attempt four? six twelve trrrr :", event);
 		resolve(event);
 	}
 }

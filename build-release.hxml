@@ -1,0 +1,7 @@
+-D draconicbuilder
+--dce std
+--class-path src
+--macro nullSafety("shinku", Strict)
+--main DevMain
+--library haxe-concurrent
+--jvm bin/RyuuDev.jar

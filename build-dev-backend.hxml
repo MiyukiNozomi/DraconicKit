@@ -1,10 +1,4 @@
 -D dev
 -D draconicdev
 -D draconicbuilder
---debug
---dce std
---class-path src
---macro nullSafety("shinku", Strict)
---main DevMain
---library haxe-concurrent
---jvm bin/RyuuDev.jar
+build-release.hxml

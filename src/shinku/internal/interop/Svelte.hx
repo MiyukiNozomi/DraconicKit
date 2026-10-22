@@ -9,7 +9,7 @@ import shinku.std.URLSearchParams;
 import sys.FileSystem;
 import sys.io.File;
 
-#if dev
+#if draconicbuilder
 typedef SvelteCompileResult = {
 	/** The compiled JavaScript */
 	js:{

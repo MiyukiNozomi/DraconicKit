@@ -35,7 +35,7 @@ class DraconicJSConfigLoader {
 		Logger.debug("Configuration to install is: ", serverConfig);
 		#if !draconicdev
 		Configuration.ShowDebugLogs = serverConfig.server.logging.debugLogs;
-		Configuration.AlwaysCleanup = serverConfig.builder.alwaysCleanup;
+		Configuration.CleanupAlways = serverConfig.builder.alwaysCleanup;
 		#end
 		Configuration.ShowDevRequests = serverConfig.server.logging.showDevRequests;
 		Configuration.ShowTimestampLogs = serverConfig.server.logging.showTimestamps;

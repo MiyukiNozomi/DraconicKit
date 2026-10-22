@@ -8,7 +8,7 @@ import haxe.Json;
 import haxe.io.Bytes;
 import sys.io.Process;
 
-#if dev
+#if draconicbuilder
 #if windows
 #error "Windows is not supported by DraconicKit in development mode."
 #end

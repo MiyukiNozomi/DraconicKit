@@ -1,6 +1,5 @@
 package shinku.internal.devserver.routes;
 
-import shinku.internal.interop.Svelte.SvelteBuilder;
 import haxe.crypto.Sha1;
 import haxe.io.Bytes;
 import haxe.io.Path;
@@ -8,7 +7,7 @@ import shinku.Console.Logger;
 import shinku.handling.AbstractHandler;
 import shinku.handling.RequestHandler.RequestEvent;
 import shinku.http.HttpMessages.HttpResponse;
-import sys.FileSystem;
+import shinku.internal.interop.Svelte.SvelteBuilder;
 import sys.io.File;
 
 /***
@@ -16,7 +15,7 @@ import sys.io.File;
 	Don't worry, production builds will bundle stuff, and this route will only be available in dev builds.
 
 **/
-#if dev
+#if draconicbuilder
 class CachedESModule {
 	public var hash(default, null):String;
 
