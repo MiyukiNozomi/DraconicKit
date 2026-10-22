@@ -13,7 +13,7 @@ This is a weird little sub-project, to use it:
 ```
 yarn install
 # this is so it will generate bindings to the node-html-parser library
-yarn dts2hx --all --modular --esm
+yarn dts2hx --all --modular
 
 # haxe dependencies
 haxelib fixrepo

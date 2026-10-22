@@ -33,7 +33,7 @@ jobs:
           cd docsite/
 
           npm install
-          npx dts2hx --all --modular --esm
+          npx dts2hx --all --modular
           haxelib fixrepo
           haxelib install hxnodejs
           haxelib install markdown
