@@ -281,10 +281,6 @@ class JavaScriptTransformer {
 	}
 
 	public static function transform(input:String, thisPath:String):String {
-		#if !dev
-		return input;
-		#end
-
 		var tokens = tokenize(input);
 		var out = new StringBuf();
 		var prev:Null<Token> = null;
