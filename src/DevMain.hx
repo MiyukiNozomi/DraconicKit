@@ -1,3 +1,4 @@
+import shinku.std.URL;
 import shinku.internal.commands.HelpCommand;
 import shinku.Console.AnsiPrinter;
 import shinku.Console.Logger;
@@ -17,6 +18,14 @@ class DevMain {
 		Logger.info("Test");
 		Logger.warn("Test");
 		Logger.error("Test");
+
+		trace(new URL("/download/..%2f..%2fetc%2fpasswd", "http://localhost"));
+		trace(new URL("/download/..\\..\\%2fetc%2fpasswd", "http://localhost"));
+		trace(new URL("/download/a/../../secret", "http://localhost"));
+		trace(new URL("/download/a/b/..%2f..%2f..%2fsecret", "http://localhost"));
+
+		trace(new URL("/download/a/?message=hello#banana", "http://localhost"));
+		trace(new URL("file:///download/a/?message=hello#banana"));
 		#end
 
 		final args = Sys.args();

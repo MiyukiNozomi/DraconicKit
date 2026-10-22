@@ -1,0 +1,2 @@
+build-release.hxml
+--cmd "cat scripts/draconickit | sed "s|INPUT_PATHNAME_HERE|$(pwd)|" > bin/draconickit"

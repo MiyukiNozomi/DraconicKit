@@ -4,4 +4,4 @@
 --macro nullSafety("shinku", Strict)
 --main DevMain
 --library haxe-concurrent
---jvm bin/RyuuDev.jar
+--jvm bin/DraconicKit.jar

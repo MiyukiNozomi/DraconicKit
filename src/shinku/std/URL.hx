@@ -21,6 +21,8 @@ import haxe.io.Error;
 
 	- (At least in NodeJS) toJSON and toString return the same thing as this.href, but here toJSON returns a stringified JSON version of this class.
 
+	- `pathname` is decoded.
+
 	Just a side note: I hate this file and i never want to touch it ever again in my entire life
 	I never, EVER want to parse URLs again, it's such a fucking pain!
 	With regards, the dragon in the office.
@@ -98,7 +100,7 @@ class URL {
 		if (doubleSlash == -1)
 			throw Error.Custom("Not a valid http URL: " + src);
 
-		var authorityStart = doubleSlash + 3;
+		var authorityStart = doubleSlash + 2;
 
 		var slash = src.indexOf("/", authorityStart);
 		var query = src.indexOf("?", authorityStart);
@@ -269,7 +271,7 @@ class URL {
 			}
 			base += '@';
 		}
-		base += '${this.get_host()}${(StringTools.startsWith(this.pathname, "/") ? "" : "/") + this.pathname}';
+		base += '${this.get_host()}${"/" + this.pathname.split('/').filter(v -> v.length > 0).map(v -> URL.encodeURIComponent(v)).join('/')}';
 
 		if (this.search.length > 0) {
 			if (!StringTools.startsWith(this.search, '?'))
@@ -374,7 +376,10 @@ class URL {
 				if (i + 2 >= src.length)
 					throw "Incomplete percent escape";
 
-				final byte = Std.parseInt("0x" + src.charAt(i + 1) + src.charAt(i + 2));
+				final hex = src.substr(i + 1, 2);
+				if (!~/^[0-9a-fA-F]{2}$/.match(hex))
+					throw "Bad percent escape: %" + hex;
+				final byte = Std.parseInt("0x" + hex);
 
 				if (byte == null)
 					throw "Invalid percent escape";

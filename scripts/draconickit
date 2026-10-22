@@ -1,0 +1,17 @@
+#!/bin/sh
+
+SCRIPT_DIR=INPUT_PATHNAME_HERE
+JAR_PATH="$SCRIPT_DIR/bin/DraconicKit.jar"
+
+if ! command -v java >/dev/null 2>&1; then
+    printf '%s\n' "Error: Java is not installed or could not be found in PATH." >&2
+    printf '%s\n' "Please install a Java 10+ JDK and ensure it is accessible from your PATH." >&2
+    exit 1
+fi
+
+if [ ! -f "$JAR_PATH" ]; then
+    printf '%s\n' "Error: DraconicKit.jar could not be found. at \"$JAR_PATH\"." >&2
+    exit 2
+fi
+
+exec java -jar "$JAR_PATH" "$@"
