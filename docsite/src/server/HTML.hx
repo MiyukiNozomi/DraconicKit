@@ -195,7 +195,9 @@ class HTMLTransformer {
 					continue;
 
 				if (elm.attributes.get("lang") != "hx") {
-					throw Error.Custom("You have a non-hscript script tag: " + elm.toString() + ". This website should not have runtime JS.");
+					throw Error.Custom("You have a non-hscript script tag: "
+						+ elm.toString()
+						+ ". Thou shall not spread your wicked ways on our holy draconic land.");
 				}
 
 				var parser = new hscript.Parser();

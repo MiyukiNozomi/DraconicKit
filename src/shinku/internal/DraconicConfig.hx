@@ -7,7 +7,7 @@ import haxe.io.Path;
 
 typedef DraconicConfig = {
 	builder:{
-		typescriptSupport:Bool,
+		typescriptSupport:Bool, alwaysCleanup:Bool,
 	},
 	server:{
 		logging:{
@@ -33,9 +33,12 @@ class DraconicJSConfigLoader {
 
 	public static function installConfig(serverConfig:DraconicConfig) {
 		Logger.debug("Configuration to install is: ", serverConfig);
-		Configuration.SHOW_DEBUG_LOGS = serverConfig.server.logging.debugLogs;
-		Configuration.SHOW_TIMESTAMP_LOGS = serverConfig.server.logging.showTimestamps;
-		Configuration.USE_COLORS_IN_LOGS = serverConfig.server.logging.useColorsInLogs;
+		#if !draconicdev
+		Configuration.ShowDebugLogs = serverConfig.server.logging.debugLogs;
+		Configuration.AlwaysCleanup = serverConfig.builder.alwaysCleanup;
+		#end
+		Configuration.ShowTimestampLogs = serverConfig.server.logging.showTimestamps;
+		Configuration.UseColorsInLogs = serverConfig.server.logging.useColorsInLogs;
 
 		Configuration.StaticDirectory = serverConfig.server.static_dir;
 	}

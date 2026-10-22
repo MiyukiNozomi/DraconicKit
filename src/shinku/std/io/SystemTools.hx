@@ -40,6 +40,21 @@ class SystemTools {
 		});
 	}
 
+	public static function deleteRecursive(path:String) {
+		if (!FileSystem.exists(path))
+			return;
+
+		if (FileSystem.isDirectory(path)) {
+			final entries = FileSystem.readDirectory(path);
+			for (entry in entries) {
+				deleteRecursive(Path.join([path, entry]));
+			}
+			FileSystem.deleteDirectory(path);
+		} else {
+			FileSystem.deleteFile(path);
+		}
+	}
+
 	public static function getSystemUsername() {
 		var envs = Sys.environment();
 		if (envs.exists("USERNAME")) {

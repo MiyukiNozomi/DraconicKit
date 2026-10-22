@@ -12,14 +12,17 @@ DraconicKit gives you the convinience of a SvelteKit project, but without JavaSc
 
 Also, be aware of a few limitations.
 
-# How to use this?
+# How to build this?
 
-First, run `tsc` inside of draconic-builder, and run `node <path to draconic builder> init` on the folder you want to setup your project at
-and it will work!
+Simply run `haxe build-dev-backend.hxml` for a debug build. there's no production mode yet.
 
-To build, run `node <path to draconic builder> build`, and to run `java -jar .shinku/Ryuu.jar`.
+If you're going to be working on this, run `node watch.js`, which will watch for changes on src/ and rebuild the project.
 
-Somewhat simple, isnt it? be aware you do need the entirety of DraconicKit in your disk for it to work, so dont move draconic-builder ;)
+# A few notes
+
+If you build draconickit from `build-dev-backend.hxml`, it will set `Configuration.CleanupAlways = true`, which will always completely remove the `.shinku` working directory every time it starts, this is done so that the hot reloader wont load old code cache built against the stale user libraries.
+
+Another import thing is conditional compilation, normally, a draconic kit project has `dev` as it's development mode flag. However, the builder itself has it's own dev flag. being `draconicdev`. Code that is specific to the draconic builder needs to be encloused in a check against `draconicbuilder`.
 
 ## TODO list
 

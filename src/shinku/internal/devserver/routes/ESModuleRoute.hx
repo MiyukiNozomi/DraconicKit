@@ -32,6 +32,7 @@ class ESModuleRoute extends AbstractHandler {
 	private var cache:Map<String, CachedESModule>;
 
 	public function new() {
+		super();
 		this.cache = new Map();
 	}
 

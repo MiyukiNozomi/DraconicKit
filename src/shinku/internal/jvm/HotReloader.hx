@@ -1,5 +1,6 @@
-package shinku.internal.backend;
+package shinku.internal.jvm;
 
+#if draconicbuilder
 import shinku.Console.Logger;
 import java.lang.ClassLoader;
 import java.net.URL;
@@ -125,3 +126,4 @@ class HotReloader {
 		Logger.debug('reload: ${Lambda.count(changed)} changed, ${Lambda.count(dirty)} dirty, ${Math.round((Sys.time() - t0) * 1000)}ms');
 	}
 }
+#end

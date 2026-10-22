@@ -1,9 +1,13 @@
 package shinku;
 
 class Configuration {
-	public static var SHOW_DEBUG_LOGS = true;
-	public static var SHOW_TIMESTAMP_LOGS = true;
-	public static var USE_COLORS_IN_LOGS = true;
+	public static var Version = "0.1.0";
+
+	public static var ShowDebugLogs = true;
+	public static var ShowTimestampLogs = true;
+	public static var UseColorsInLogs = true;
+
+	public static var CleanupAlways = true;
 
 	public static var WorkingDirectory:String = "";
 

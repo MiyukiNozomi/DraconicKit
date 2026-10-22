@@ -14,7 +14,7 @@
 
 <p>Edit src/routes/+page.svelte to edit this file.</p>
 
-<p>I can also change it while the server is running too</p>
+<p>I can also change it while the server is running too yay</p>
 
 <p>Take this!</p>
 

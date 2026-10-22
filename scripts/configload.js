@@ -5,6 +5,7 @@ import z from "zod";
 const configSchema = z.strictObject({
   builder: z.strictObject({
     typescriptSupport: z.boolean().default(false),
+    alwaysCleanup: z.boolean().default(false),
   }),
 
   server: z.strictObject({

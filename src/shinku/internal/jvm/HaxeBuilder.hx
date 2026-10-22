@@ -1,5 +1,6 @@
-package shinku.internal.backend;
+package shinku.internal.jvm;
 
+#if draconicbuilder
 import sys.io.File;
 import shinku.std.io.SystemTools;
 import shinku.Console.Logger;
@@ -28,8 +29,10 @@ class HaxeBuilder {
 		Thread.create(loop);
 	}
 
-	public function request()
+	public function request() {
+		Logger.debug("A build request has been received.");
 		wake.release();
+	}
 
 	function loop() {
 		while (true) {
@@ -43,6 +46,7 @@ class HaxeBuilder {
 	function build() {
 		this.setupHiddenDirectoryForHaxe();
 
+		Logger.debug("Rebuilding!");
 		final jar = Path.join([genDir, 'user-${generation + 1}.jar']);
 		final t0 = Sys.time();
 		final p = new Process("haxe", ["--cwd", projectDir, hxml, "--jvm", jar]);
@@ -70,6 +74,7 @@ class HaxeBuilder {
 
 		final hxmlFilePath = Path.join([shinkuDir, "build.hxml"]);
 		if (!FileSystem.exists(hxmlFilePath)) {
+			Logger.debug("build.hxml is missing, recreating it.");
 			File.saveContent(hxmlFilePath, '
 # just sanity check
 -dce std
@@ -82,6 +87,7 @@ class HaxeBuilder {
 
 		final stubMainPath = Path.join([hacksDir, "StubsMain.hx"]);
 		if (!FileSystem.exists(stubMainPath)) {
+			Logger.debug("StubMain is missing, recreating it.");
 			final stubsMainCode = '
 @:build(IncludeAll.run("../../src"))
 class StubsMain {
@@ -94,3 +100,4 @@ class StubsMain {
 		}
 	}
 }
+#end

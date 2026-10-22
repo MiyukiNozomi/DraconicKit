@@ -1,5 +1,6 @@
-package shinku.internal.backend;
+package shinku.internal.jvm;
 
+#if draconicbuilder
 import jvm.io.NativeInput;
 import haxe.crypto.Sha1;
 import haxe.io.Bytes;
@@ -104,3 +105,4 @@ class JarScanner {
 		return out;
 	}
 }
+#end

@@ -20,6 +20,7 @@ class SvelteRoute extends AbstractHandler {
 	} = {js: "", css: ""};
 
 	public function new(serverPage:Null<AbstractServerPage>, thisPathname:String) {
+		super();
 		this.serverPage = serverPage;
 		this.thisPathname = thisPathname;
 	}

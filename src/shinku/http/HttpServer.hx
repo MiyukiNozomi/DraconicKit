@@ -1,12 +1,12 @@
 package shinku.http;
 
+import sys.net.Host;
 import shinku.Console.Logger;
 import shinku.handling.RequestHandler;
 import shinku.http.HttpMessages.HttpRequest;
 import shinku.http.HttpMessages.HttpResponse;
 import shinku.http.HttpSocket.HttpSocketTimeout;
 import shinku.scheduling.Executor;
-import sys.net.Host;
 import sys.net.Socket;
 
 class HttpServer {
@@ -16,6 +16,10 @@ class HttpServer {
 	private var executor:Executor;
 
 	public var requestHandler(default, null):RequestHandler;
+
+	public var host(get, never):{host:Host, port:Int};
+
+	public var onListen:Null<() -> Void>;
 
 	public function new(host:Host, port:Int) {
 		this.socket = new Socket();
@@ -32,7 +36,10 @@ class HttpServer {
 		this.socket.listen(40);
 		var host = this.socket.host();
 
-		Logger.info("Server is now listening on http://" + host.host + ":" + host.port);
+		if (onListen != null)
+			onListen();
+
+		Logger.debug("Server is now listening on http://" + host.host + ":" + host.port);
 		while (running) {
 			try {
 				var client = new HttpSocket(this.socket.accept());
@@ -92,5 +99,9 @@ class HttpServer {
 				Logger.error("FATAL: got a unhandled exception when handling a socket!\n" + err.toString());
 			}
 		});
+	}
+
+	function get_host():{host:Host, port:Int} {
+		return this.socket.host();
 	}
 }

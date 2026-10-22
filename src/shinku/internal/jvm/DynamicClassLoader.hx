@@ -1,5 +1,6 @@
-package shinku.internal.backend;
+package shinku.internal.jvm;
 
+#if draconicbuilder
 import haxe.io.Error;
 import java.io.File;
 import java.lang.ClassLoader;
@@ -81,3 +82,4 @@ class DynamicClassLoader extends URLClassLoader {
 		}
 	}
 }
+#end

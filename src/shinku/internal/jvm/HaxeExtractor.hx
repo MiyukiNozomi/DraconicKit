@@ -1,5 +1,6 @@
-package shinku.internal.backend;
+package shinku.internal.jvm;
 
+#if draconicbuilder
 import haxe.io.Path;
 import sys.io.File;
 
@@ -62,3 +63,4 @@ class HaxeExtractor {
 		};
 	}
 }
+#end

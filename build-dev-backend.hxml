@@ -1,4 +1,7 @@
 -D dev
+-D draconicdev
+-D draconicbuilder
+--debug
 --dce std
 --class-path src
 --macro nullSafety("shinku", Strict)

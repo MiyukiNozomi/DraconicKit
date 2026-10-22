@@ -6,11 +6,12 @@ import shinku.internal.devserver.DevServer;
 
 using StringTools;
 
+#if draconicbuilder
 // Dev Main as in "Development Mode Main"
 // Dev Server in shinku.internal.devserver.DevServer
 class DevMain {
 	static function main() {
-		#if dev
+		#if draconicdev
 		AnsiPrinter.print("§1;91mWARNING: You are running a development build. recompile with build-release.hxml on DraconicKit's project folder and reinstall if this was unintentional.\n");
 		Logger.debug("Test");
 		Logger.info("Test");
@@ -34,3 +35,4 @@ class DevMain {
 		}
 	}
 }
+#end

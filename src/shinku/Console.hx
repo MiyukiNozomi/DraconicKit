@@ -20,7 +20,7 @@ class AnsiPrinter {
 		these are ANSI, and *nix only (foreground only too)
 	**/
 	public static function print(text:String, output:Output = Sys.stdout()) {
-		if (Sys.systemName() == "Windows" || !Configuration.USE_COLORS_IN_LOGS) {
+		if (Sys.systemName() == "Windows" || !Configuration.UseColorsInLogs) {
 			output.writeString(text);
 			output.flush();
 			return;
@@ -91,7 +91,7 @@ class Logger {
 		}, p, ...args);
 
 	public static function debug(?p:PosInfos, ...args:Dynamic) {
-		if (!Configuration.SHOW_DEBUG_LOGS)
+		if (!Configuration.ShowDebugLogs)
 			return;
 		write({
 			label: "DEBUG",
@@ -105,9 +105,9 @@ class Logger {
 		var src = p != null ? '${p.className}:${p.lineNumber}' : "<unknown>";
 		var thread = Thread.current().name;
 		var msg = args.toArray().map(stringify).join(" ");
-		var time = Configuration.SHOW_TIMESTAMP_LOGS ? DateTools.format(Date.now(), "%H:%M:%S") + " " : "";
+		var time = Configuration.ShowTimestampLogs ? DateTools.format(Date.now(), "%H:%M:%S") + " " : "";
 
-		var line = (Sys.getEnv("NO_COLOR") == null && Configuration.USE_COLORS_IN_LOGS) ? '${DIM}${time}${RESET}${style.badge}${style.label} (${thread}) [${src}] > ${style.text}${msg}${RESET}' : '${time}${style.label} (${thread}) [${src}] > ${msg}';
+		var line = (Sys.getEnv("NO_COLOR") == null && Configuration.UseColorsInLogs) ? '${DIM}${time}${RESET}${style.badge}${style.label} (${thread}) [${src}] > ${style.text}${msg}${RESET}' : '${time}${style.label} (${thread}) [${src}] > ${msg}';
 
 		lock.acquire();
 		try {
