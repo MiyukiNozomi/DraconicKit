@@ -1,0 +1,54 @@
+name: build
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 26.9.0
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: 4.3.7
+
+      - name: Build
+        shell: bash
+        run: |
+          cd docsite/
+
+          npm install
+          npx dts2hx --all --modular --esm
+          haxelib fixrepo
+          haxelib install hxnodejs
+          haxelib install markdown
+          haxelib install hscript
+          haxe build.hxml && node . build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          name: page-html
+          path: docsite/dist/static
+          if-no-files-found: error
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: page-html
