@@ -186,7 +186,7 @@ class ServerPage extends AbstractServerPage {
 				{name: "Tofu Steak", price: 15400},
 				{name: "Salty Tornado", price: 7400},
 				{name: "Seaside White", price: 10400}
-			]catalog
+			]
 		};
 		return catalog;
 	}
