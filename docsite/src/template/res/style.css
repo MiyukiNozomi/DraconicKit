@@ -548,11 +548,20 @@ body {
 .codeblock #codehead {
   font-family: IBMPlexMono;
   color: #fae7ef;
-  font-size: 1.8rem;
+  font-size: 1.2rem !important;
   margin: 0;
   padding: 0.6rem 0.5rem;
   padding-top: 0;
   border-bottom: 1px solid #ff586f;
+  text-transform: none !important;
+}
+
+.codeblock > div > pre {
+  padding: 0.6rem;
+  tab-size: 2rem;
+}
+.codeblock > div > pre pre {
+  margin: 0;
 }
 
 .codeblock code {
@@ -628,6 +637,11 @@ body {
   max-width: 100%;
 
   object-fit: contain;
+}
+
+.markdown .screenshot {
+  border-radius: 0.5rem;
+  margin: 1rem 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
