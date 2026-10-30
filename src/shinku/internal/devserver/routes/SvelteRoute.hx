@@ -1,5 +1,6 @@
 package shinku.internal.devserver.routes;
 
+#if draconicbuilder
 import haxe.Json;
 import haxe.io.Path;
 import shinku.handling.AbstractHandler;
@@ -7,7 +8,6 @@ import shinku.handling.RequestHandler.RequestEvent;
 import shinku.internal.interop.Svelte.SvelteBuilder;
 import sys.io.File;
 
-#if draconicbuilder
 class SvelteRoute extends AbstractHandler {
 	private var thisPathname:String;
 

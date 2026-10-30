@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="darkreader-lock" />
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta name="theme-color" content="#ff586f" />
+
+    <script lang="hx" defer="true">
+      function makeMetaTag(type, content) {
+        var t = document.createElement("meta");
+        t.setAttribute("name", type);
+        t.setAttribute("content", content);
+        builder.render(t);
+      }
+      // we basically fetch the first h1 title and the second paragraph
+      // to build both title and description.
+      var titleElm = document.querySelector(".apiheader h1");
+      var descElm = document.querySelector(".apiheader p.summary");
+
+      if (titleElm == null || descElm == null) {
+        trace(document.querySelector(".apiheader"));
+        builder.render(document.parse("<title>This is a broken page and its missing title and/or description! </title>"));
+        return;
+      }
+
+      var t = document.createElement("title");
+      t.textContent = titleElm.textContent;
+      builder.render(t);
+
+      var description = descElm != null ? descElm.textContent : "No description found!";
+
+      makeMetaTag("description", description);
+
+      makeMetaTag("og:title", titleElm.textContent + " - DraconicKit API Reference");
+      makeMetaTag("og:description", description);
+      makeMetaTag("og:type", "website");
+      makeMetaTag("og:image", "/res/draconic-kit-favicon.webp");
+      makeMetaTag("og:site_name", "DraconicKit");
+    </script>
+
+    <link
+      rel="shortcut icon"
+      href="/res/draconic-kit-favicon.webp"
+      type="image/x-icon"
+    />
+
+    <link rel="stylesheet" href="/res/style.css" />
+
+    <builder:hmr />
+  </head>
+  <body>
+    <builder:import src="/res/html/header.html" />
+    <div class="docmain">
+      <builder:import src="/res/html/apiref/package-list.html"></builder:import>
+      <div class="main apiview">
+        <script lang="hx">
+          function getNameAndPackage(path) {
+            var dotIndex = path.lastIndexOf('.');
+            var name = path.substring(dotIndex+1);
+            var package = path.substring(0, dotIndex);
+            return {name: name, package: package};
+          }
+
+          function package2Link(package, name) {
+            if (!package.startsWith("shinku")) {
+              return '<a href="https://api.haxe.org/'+package.split('.').join('/')+'.html">'+name+'</a>';
+            }
+            return '<a href="/apiref/'+package.split('.').join('/')+'">'+name+'</a>';
+          }
+
+          var props = builder.getBuilderProps().target;
+          var type = props.type;
+          var target = props.data;
+
+          var targetInfo = getNameAndPackage(target.path);
+
+          function makeHeader() {
+            var extras = "";
+            if (type == "class" && target.superClass != null) {
+              var extraInfo = getNameAndPackage(target.superClass.path);
+              extras = "<h1>extends "+package2Link(target.superClass.path, extraInfo.name)+"</h1>";
+            }
+            var head;
+            if (type == "package") {
+              head = '<h1>package <span>'+ target.path+'</span></h1>';
+              extras += '<p class="summary">This is a package with '+target.subs.length+' entries.</p>';
+            } else {
+              head = '<h1>'+type+' <span>'+targetInfo.name+'</span></h1> <h1>package '+package2Link(targetInfo.package, targetInfo.package)+'</h1>';
+
+              var javadoc = JavaDoc.parse(target.doc);
+              extras += '<p class="summary">'+Json.stringify(javadoc)+'</p>';
+            }
+            builder.render('<div class="apiheader">'+head+extras+'</div>');
+          }
+
+          function makePackageContents() {
+            var table = document.createElement("div");
+            table.classList.add("packagelist");
+
+            function appendEntry(isPackage, label, link) {
+              table.appendChild(document.parse('<a href="'+link+'" class="entry">' + (isPackage ? '<img src="/res/scrollbar-full.webp">' : '') + ' '+label+'</a>'));
+            }
+
+            appendEntry(true, "..", "../");
+
+            for (entry in target.subs) {
+              appendEntry(entry.type == "package", getNameAndPackage(entry.data.path).name, '/apiref/'+entry.data.path.split('.').join('/'));
+            }
+
+            builder.render(table);
+          }
+
+          function makeClassContents() {
+            if (target.fields.length > 0) {
+              builder.render('<div class="apiview-section">');
+
+              builder.render('</div>');
+            }
+          }
+
+          makeHeader();
+
+          if (type == "package") {
+            makePackageContents();
+          }
+        </script>
+      </div>
+    </div>
+    <builder:import src="/res/html/footer.html" />
+  </body>
+</html>

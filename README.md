@@ -34,3 +34,5 @@ Another import thing is conditional compilation, normally, a draconic kit projec
 [X] Svelte
 [X] Routing
 [X] Documentation
+[ ] Make documentation website responsive
+[ ] Add builder for production

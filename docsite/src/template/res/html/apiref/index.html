@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="darkreader-lock" />
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta name="theme-color" content="#ff586f" />
+
+    <script lang="hx">
+      function makeMetaTag(type, content) {
+        var t = document.createElement("meta");
+        t.setAttribute("name", type);
+        t.setAttribute("content", content);
+        builder.render(t);
+      }
+      // we basically fetch the first h1 title and the second paragraph
+      // to build both title and description.
+      var titleElm = document.querySelector(".main h1");
+      var descElm = document.querySelector(".main p");
+
+      var t = document.createElement("title");
+      t.textContent = titleElm.textContent;
+      builder.render(t);
+
+      var description = descElm != null ? descElm.textContent : "No description found!";
+
+      makeMetaTag("description", description);
+
+      makeMetaTag("og:title", titleElm.textContent + " - DraconicKit API Reference");
+      makeMetaTag("og:description", description);
+      makeMetaTag("og:type", "website");
+      makeMetaTag("og:image", "/res/draconic-kit-favicon.webp");
+      makeMetaTag("og:site_name", "DraconicKit");
+    </script>
+
+    <link
+      rel="shortcut icon"
+      href="/res/draconic-kit-favicon.webp"
+      type="image/x-icon"
+    />
+
+    <link rel="stylesheet" href="/res/style.css" />
+
+    <builder:hmr />
+  </head>
+  <body>
+    <builder:import src="/res/html/header.html" />
+    <div class="docmain">
+      <builder:import src="/res/html/apiref/package-list.html"></builder:import>
+      <div class="main">
+        <builder:markdown>
+          <pre>
+# API
+## Welcome to DraconicKit's API Reference!
+
+ DraconicKit brings modern full-stack development to Haxe. Enjoy the
+conveniences of SvelteKit, the benefits of a strongly typed
+language, and the freedom to compile your backend to the target of
+your choice.
+          </pre>
+        </builder:markdown>
+      </div>
+    </div>
+    <builder:import src="/res/html/footer.html" />
+  </body>
+</html>

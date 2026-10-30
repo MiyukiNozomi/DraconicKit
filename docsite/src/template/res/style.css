@@ -315,25 +315,36 @@ body {
   height: 100%;
 }
 
-.docmain .table-of-contents {
+.docmain .table-of-contents,
+.docmain .api-reference-side {
   background: linear-gradient(0deg, #5e00004d 0%, #40061f4d 100%);
   border-radius: 8px;
   padding: 1.6rem 1rem;
   font-family: Baskervville;
+  flex-shrink: 0;
 }
 
-.docmain .table-of-contents h2 {
+.docmain .api-reference-side {
+  min-width: 0;
+  width: 20rem;
+  overflow-x: auto;
+}
+
+.docmain .table-of-contents h2,
+.docmain .api-reference-side h2 {
   font-size: 1.2rem;
   letter-spacing: 0.2rem;
   text-align: center;
 }
-.docmain .table-of-contents ul {
+.docmain .table-of-contents ul,
+.docmain .api-reference-side ul {
   list-style: none;
   margin: 0;
   padding-left: 1.2rem;
 }
 
-.docmain .table-of-contents li {
+.docmain .table-of-contents li,
+.docmain .api-reference-side li {
   position: relative;
   padding-left: 0;
   line-height: 1.8;
@@ -352,10 +363,16 @@ body {
   padding-left: 1rem;
 }
 
-.docmain .table-of-contents li a {
+.docmain .table-of-contents li a,
+.docmain .api-reference-side li a {
   text-decoration: none;
   font-family: Baskervville;
   color: #ffe3f9;
+}
+
+.docmain .api-reference-side li:hover {
+  opacity: 1;
+  cursor: pointer;
 }
 
 .docmain .table-of-contents li a.header-top {
@@ -423,6 +440,8 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
+  overflow-x: auto;
+  word-wrap: break-word;
   padding: 2rem;
   gap: 2rem;
 }
@@ -642,6 +661,110 @@ body {
 .markdown .screenshot {
   border-radius: 0.5rem;
   margin: 1rem 0;
+}
+
+.tree {
+  font-family: sans-serif;
+  font-size: 14px;
+}
+
+.tree details {
+  margin-left: 18px;
+}
+
+.tree summary {
+  cursor: pointer;
+  padding: 5px;
+  list-style: none;
+}
+
+.tree summary::-webkit-details-marker {
+  display: none;
+}
+
+.tree summary::before {
+  content: "▶";
+  display: inline-block;
+  font-size: 10px;
+  margin-right: 8px;
+  transition: transform 0.2s;
+}
+
+.tree details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.tree summary:hover,
+.tree .leaf:hover {
+  background: #f0f0f0;
+}
+
+.tree .children {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid #ccc;
+}
+
+.tree .leaf {
+  padding: 5px;
+  margin-left: 18px;
+  cursor: pointer;
+}
+
+.apiheader h1 {
+  font-family: KumbhSans;
+  font-size: 1.1rem;
+  color: #c7aeb5;
+}
+
+.apiheader h1 span {
+  font-size: 2.1rem;
+  color: #a74764;
+  margin-left: 0.25rem;
+}
+
+.apiheader h1 a {
+  color: #d6415a;
+  font-weight: lighter;
+  margin-left: 0.25rem;
+}
+
+.apiheader p.summary {
+  font-size: 1.5rem;
+  font-family: KumbhSans;
+  padding: 2rem 0rem;
+}
+
+.packagelist {
+  display: flex;
+  flex-direction: column;
+}
+
+.packagelist .entry img {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.packagelist .entry:first-of-type {
+  border-top: 2px solid #ffffff33;
+}
+
+.packagelist .entry {
+  height: 2.5rem;
+  color: #c7aeb5;
+  font-weight: lighter;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: ease-in-out 400ms;
+
+  border-bottom: 2px solid #ffffff33;
+}
+
+.packagelist .entry:hover {
+  background-color: #ffffff22;
+  color: #d6415a;
 }
 
 @media (prefers-reduced-motion: reduce) {

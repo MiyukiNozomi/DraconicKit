@@ -321,17 +321,14 @@ class URL {
 		return new URL(other, url.href);
 	}
 
-	#if !js
-	// can't use overload on the JS target.. weird.
-	public static overload function fromFileURL(url:URL) {
+	public static function fromFileURLOfURL(url:URL) {
 		return fromFileURL(url.href);
 	}
 
-	public static overload function fromFileURL(url:String) {
+	public static function fromFileURL(url:String) {
 		var parsed = new URL(url);
 		return Path.join(['/', parsed.hostname, parsed.pathname].filter(v -> v.length > 0));
 	}
-	#end
 
 	/** 
 		Please be aware this function is slightly different than JS's encodeURI.

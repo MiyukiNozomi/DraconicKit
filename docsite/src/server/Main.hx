@@ -24,11 +24,13 @@ class Main {
 
 	public static var SERVE_DIRECTORY = "";
 
-	static var HMR_SCRIPT = '(function () { var current = null; function poll() {fetch("/api/reload", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (data) {if (current === null) {current = data.version;} else if (data.version !== current) {location.reload();return;}setTimeout(poll, ${POLL_INTERVAL_MS});}).catch(function () {setTimeout(poll, 1000);});}poll();})();';
+	public static var HMR_SCRIPT = '(function () { var current = null; function poll() {fetch("/api/reload", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (data) {if (current === null) {current = data.version;} else if (data.version !== current) {location.reload();return;}setTimeout(poll, ${POLL_INTERVAL_MS});}).catch(function () {setTimeout(poll, 1000);});}poll();})();';
 
 	static var version:Float = Date.now().getTime();
 
 	public static var bumpTimer:Null<Timeout>;
+
+	public static var json2Docs:Json2Docs;
 
 	private static function watchTree() {
 		final bump = (reason) -> {
@@ -64,6 +66,10 @@ class Main {
 			});
 			res.end(body);
 		};
+
+		if (thisURL.startsWith("/apiref")) {
+			return json2Docs.handle(thisURL, filePath, req, res);
+		}
 
 		var exists = FileSystem.exists(filePath);
 		if (exists && FileSystem.isDirectory(filePath)) {
@@ -144,10 +150,14 @@ class Main {
 	}
 
 	static function main() {
+		final args = Sys.args();
+
 		SERVE_DIRECTORY = Macros.getServeDirectory();
 		trace("Serve dir: " + SERVE_DIRECTORY);
 
-		IS_BUILD_MODE = Sys.args()[0] == "build";
+		json2Docs = new Json2Docs();
+
+		IS_BUILD_MODE = args[0] == "build";
 
 		if (!IS_BUILD_MODE)
 			watchTree();
@@ -185,7 +195,6 @@ class Main {
 
 			if (IS_BUILD_MODE) {
 				trace("Building website... (you launched it in build mode, server will shutdown after build..");
-
 				final exclusion = Path.join([SERVE_DIRECTORY, "res/html"]);
 				final routes = new Map<String, String>();
 
@@ -209,7 +218,7 @@ class Main {
 
 				var total = 0;
 				for (routeName => outputDir in routes) {
-					trace("Request ($total)" + routeName + " will output to " + outputDir);
+					trace('Request ($total)' + routeName + " will output to " + outputDir);
 
 					var http = new haxe.Http(loc + routeName);
 					http.onBytes = (b) -> {

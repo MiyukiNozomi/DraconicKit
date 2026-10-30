@@ -15,10 +15,32 @@ using StringTools;
 typedef HandlerFunc = (e:HTMLElement, customHandlers:Map<String, HandlerFunc>, thisURL:String) -> Void;
 
 class HTMLTransformer {
+	private static var rootProps:Null<Dynamic> = null;
+	private static var transformDepth:Int = 0;
+
 	private static final scriptGlobals:Map<String, Dynamic> = [
 		"Math" => Math,
 		"Path" => Path,
 		"Json" => Json,
+		"Reflect" => {
+			fields: (s:String) -> return Reflect.fields(s),
+			getProperty: (d:Dynamic, s:String) -> return Reflect.getProperty(d, s),
+			setProperty: (d:Dynamic, s:String, v:Dynamic) -> return Reflect.setProperty(d, s, v),
+			iterator: (s:Dynamic) -> {
+				var arr = new Map<String, Dynamic>();
+				for (key in Reflect.fields(s)) {
+					arr.set(key, Reflect.getProperty(s, key));
+				}
+				return arr.keyValueIterator();
+			},
+			entries: (s:Dynamic) -> {
+				var arr = new Array();
+				for (key in Reflect.fields(s)) {
+					arr.push([key, Reflect.getProperty(s, key)]);
+				}
+				return arr;
+			}
+		},
 		"StringTools" => StringTools,
 		"File" => {
 			getContent: (s:String) -> return File.getContent(s),
@@ -28,6 +50,9 @@ class HTMLTransformer {
 			isDirectory: (s:String) -> return FileSystem.isDirectory(s),
 			exists: (s:String) -> return FileSystem.exists(s),
 		},
+		"JavaDoc" => {
+			parse: (s:String) -> return new JavadocHandler().parse("<idk>", s ?? "")
+		}
 	];
 
 	private static function createDocument(interp:Interp, root:HTMLElement, attribs:Null<Map<String, String>>) {
@@ -220,11 +245,13 @@ class HTMLTransformer {
 		return root;
 	}
 
-	public static function runScripts(thisURL:String, scripts:Array<HTMLElement>, root:HTMLElement, ?attribs:Map<String, String>) {
+	public static function runScripts(thisURL:String, scripts:Array<HTMLElement>, root:HTMLElement, ?attribs:Map<String, String>, ?props:Dynamic) {
 		var interp = new hscript.Interp();
 		for (k => v in scriptGlobals)
 			interp.variables.set(k, v);
 		createDocument(interp, root, attribs);
+		scripts.sort((a, b) -> (a.attributes.get("defer") == "true" ? 1 : 0) - (b.attributes.get("defer") == "true" ? 1 : 0));
+
 		for (elm in scripts) {
 			try {
 				if (elm.attributes.exists("hmr"))
@@ -241,10 +268,24 @@ class HTMLTransformer {
 					thisURL: () -> {
 						return thisURL;
 					},
+					getBuilderProps: () -> {
+						if (rootProps != null)
+							return rootProps;
+						return props != null ? props : {};
+					},
 					slugify: (str:String) -> return slugify(str),
 					getWorkdir: () -> return Main.SERVE_DIRECTORY,
-					render: (e:Null<HTMLElement>) -> {
-						e != null ? elementsToRender.push(e) : {};
+					render: (e:Null<Dynamic>) -> {
+						e != null ? elementsToRender.push((() -> {
+							if (Std.downcast(e, HTMLElement) != null) {
+								return e;
+							} else {
+								if (Type.enumEq(Type.typeof(e), TClass(String)))
+									return NodeHtmlParser.parse(e);
+
+								throw Error.Custom("Cannot pass a type of " + Std.string(Type.typeof(e)) + " into builder.render");
+							}
+						})()) : {};
 						return e;
 					}
 				});
@@ -257,9 +298,10 @@ class HTMLTransformer {
 		}
 	}
 
-	public static function transformElement(thisURL:String, root:HTMLElement, customHandlers:Map<String, HandlerFunc>, ?attribs:Map<String, String>) {
+	public static function transformElement(thisURL:String, root:HTMLElement, customHandlers:Map<String, HandlerFunc>, ?attribs:Map<String, String>,
+			?props:Map<String, Dynamic>) {
 		expandElement(thisURL, root, customHandlers);
-		runScripts(thisURL, root.getElementsByTagName('script'), root, attribs);
+		runScripts(thisURL, root.getElementsByTagName('script'), root, attribs, props);
 		return root;
 	}
 
@@ -270,8 +312,23 @@ class HTMLTransformer {
 		html.replaceWith(elm);
 	}
 
-	public static function transformHTML(thisURL:String, filePath:String, customHandlers:Map<String, HandlerFunc>, ?customSrc:Null<String>) {
-		final root = NodeHtmlParser.parse(customSrc == null ? File.getContent(filePath) : customSrc);
-		return transformElement(thisURL, root, customHandlers);
+	public static function transformHTML(thisURL:String, filePath:String, customHandlers:Map<String, HandlerFunc>, ?customSrc:Null<String>, ?props:Dynamic) {
+		final isRoot = transformDepth == 0;
+		if (isRoot)
+			rootProps = props;
+		transformDepth++;
+		try {
+			final root = NodeHtmlParser.parse(customSrc == null ? File.getContent(filePath) : customSrc);
+			final result = transformElement(thisURL, root, customHandlers, null, props);
+			transformDepth--;
+			if (isRoot)
+				rootProps = null;
+			return result;
+		} catch (e:Dynamic) {
+			transformDepth--;
+			if (isRoot)
+				rootProps = null;
+			throw e;
+		}
 	}
 }

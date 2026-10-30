@@ -1,5 +1,6 @@
 package shinku.internal;
 
+#if draconicbuilder
 import shinku.internal.esm.NodeRunner;
 import shinku.Console.Logger;
 import sys.FileSystem;
@@ -44,3 +45,4 @@ class DraconicJSConfigLoader {
 		Configuration.StaticDirectory = serverConfig.server.static_dir;
 	}
 }
+#end

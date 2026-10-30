@@ -1,5 +1,6 @@
 package shinku.internal.devserver;
 
+#if draconicbuilder
 import haxe.rtti.CType.Classdef;
 import shinku.internal.jvm.MoonlitClass;
 import shinku.Console.AnsiPrinter;
@@ -184,3 +185,4 @@ class DraconicBuilder {
 		watcher.run();
 	}
 }
+#end

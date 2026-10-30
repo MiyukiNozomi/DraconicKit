@@ -1,0 +1,77 @@
+<div class="api-reference-side">
+  <h2>API REFERENCE</h2>
+  <div class="tocline">
+    <img class="left" src="/res/scrollbar-up.webp" />
+    <img class="center" src="/res/draconic-kit-favicon.webp" />
+    <img class="right" src="/res/scrollbar-down.webp" />
+
+    <div class="middleline"></div>
+  </div>
+  <script lang="hx">
+    var classList = builder.getBuilderProps().classList;
+    var tree = {};
+
+
+    for (key => value in Reflect.iterator(classList)) {
+        var path = key.split('.');
+        var root = tree;
+
+        for (segment in path) {
+            if (Reflect.getProperty(root, segment) == null)
+                Reflect.setProperty(root, segment, {});
+
+            root = Reflect.getProperty(root, segment);
+        }
+
+        for (elm in value) {
+            Reflect.setProperty(root, elm, {});
+        }
+    }
+
+    function renderTree(node, path, isRoot) {
+        var html = document.createElement("ul");
+
+        var entries = Reflect.entries(node);
+
+        trace(Reflect.fields(entries[0][1]));
+
+        for (entry in entries.filter(function (v) { return Reflect.fields(v[1]).length > 0; })) {
+            var dirNode = entry[1];
+
+            var root = document.createElement("li");
+            var child = document.createElement("details");
+            var summary = document.createElement("summary");
+
+            if (isRoot) {
+                child.setAttribute("open", "");
+            }
+
+            summary.textContent = dirNode.name;
+
+            child.appendChild(summary);
+            child.appendChild(
+                renderTree(dirNode.value, path == "" ? dirNode.name : path + "." + dirNode.name, false)
+            );
+
+            root.appendChild(child);
+            html.appendChild(root);
+        }
+
+        for (entry in entries.filter(function (v) { return Reflect.fields(v[1]).length == 0; })) {
+            var leafNode = entry[1];
+            var root = document.createElement("li");
+            var link = document.createElement("a");
+
+            link.setAttribute("href", "/apiref/" + path.split(".").join("/") + "/" + leafNode.name+".html");
+            link.textContent = leafNode.name;
+
+            root.appendChild(link);
+            html.appendChild(root);
+        }
+
+        return html;
+    }
+
+    builder.render(renderTree(tree, "", true));
+  </script>
+</div>
