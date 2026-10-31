@@ -712,18 +712,20 @@ body {
 }
 
 .apiheader h1 {
-  font-family: KumbhSans;
+  font-family: Baskervville;
   font-size: 1.1rem;
   color: #c7aeb5;
 }
 
 .apiheader h1 span {
+  font-family: KumbhSans;
   font-size: 2.1rem;
   color: #a74764;
   margin-left: 0.25rem;
 }
 
 .apiheader h1 a {
+  font-family: KumbhSans;
   color: #d6415a;
   font-weight: lighter;
   margin-left: 0.25rem;

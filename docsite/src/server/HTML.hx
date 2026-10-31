@@ -33,6 +33,13 @@ class HTMLTransformer {
 				}
 				return arr.keyValueIterator();
 			},
+			values: (s:Dynamic) -> {
+				var arr = new Array();
+				for (key in Reflect.fields(s)) {
+					arr.push(Reflect.getProperty(s, key));
+				}
+				return arr;
+			},
 			entries: (s:Dynamic) -> {
 				var arr = new Array();
 				for (key in Reflect.fields(s)) {
@@ -178,6 +185,44 @@ class HTMLTransformer {
 		}
 	];
 
+	private static function object2Element(obj:Dynamic):HTMLElement {
+		var name = Reflect.getProperty(obj, "name");
+		var elm = new HTMLElement(name != null ? name : "div", {});
+
+		var id = Reflect.getProperty(obj, "id");
+		if (id != null)
+			elm.id = id;
+
+		var attrbs = Reflect.getProperty(obj, "attributes");
+		if (attrbs != null) {
+			for (key in Reflect.fields(attrbs)) {
+				var v = Reflect.getProperty(attrbs, key);
+				if (v != null)
+					elm.setAttribute(key, Std.string(v));
+			}
+		}
+
+		var classes = Reflect.getProperty(obj, "class");
+		if (classes != null) {
+			for (v in (cast classes : Array<Dynamic>)) {
+				if (v != null)
+					elm.classList.add(Std.string(v));
+			}
+		}
+
+		var children = Reflect.getProperty(obj, "childNodes");
+		if (children != null) {
+			for (v in (cast children : Array<Dynamic>)) {
+				if (Std.isOfType(v, String)) {
+					elm.appendChild(v);
+				} else if (v != null) {
+					elm.appendChild(object2Element(v));
+				}
+			}
+		}
+		return elm;
+	}
+
 	public static function renderElement(pathname:String, target:HTMLElement, elements:Array<HTMLElement>, ?placeholder:HTMLElement):Null<HTMLElement> {
 		if (elements.length == 0) {
 			target.remove();
@@ -275,6 +320,11 @@ class HTMLTransformer {
 					},
 					slugify: (str:String) -> return slugify(str),
 					getWorkdir: () -> return Main.SERVE_DIRECTORY,
+					elementOf: (d:Dynamic) -> return object2Element(d),
+					renderObject: (e:Null<Dynamic>) -> {
+						e != null ? elementsToRender.push(object2Element(e)) : null;
+						return e;
+					},
 					render: (e:Null<Dynamic>) -> {
 						e != null ? elementsToRender.push((() -> {
 							if (Std.downcast(e, HTMLElement) != null) {
