@@ -1,5 +1,9 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html
+  lang="en"
+  xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:builder="urn:draconic-docs:builder"
+>
   <head>
     <meta name="darkreader-lock" />
 
@@ -35,11 +39,18 @@
 
     <link rel="stylesheet" href="/res/style.css" />
 
-    <builder:hmr />
+    <script>
+      <![CDATA[
+        function foo() {
+        }
+
+        console.log("hello");
+      ]]>
+    </script>
   </head>
   <body>
     <div class="top-section">
-      <builder:import src="/res/html/header.html" />
+      <builder:import src="/res/html/header.xhtml" />
 
       <div class="welcome">
         <div class="overhead">
@@ -50,7 +61,7 @@
             language, and the freedom to compile your backend to the target of
             your choice.
           </p>
-          <a href="/docs/getstarted/"> GET STARTED &RightArrow;</a>
+          <a href="/docs/getstarted/"> GET STARTED</a>
         </div>
       </div>
       <img src="/res/death2js.webp" alt="" class="death2js" />
@@ -58,12 +69,13 @@
     <div class="section">
       <builder:markdown>
         <pre>
-# Markdown test
-ooohh, shiny!
-        </pre>
+<![CDATA[# Markdown test
+ooohh, shiny! ]]>
+</pre
+        >
       </builder:markdown>
     </div>
 
-    <builder:import src="/res/html/footer.html" />
+    <builder:import src="/res/html/footer.xhtml" />
   </body>
 </html>

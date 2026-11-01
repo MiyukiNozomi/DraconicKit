@@ -1,0 +1,82 @@
+<div class="table-of-contents">
+  <h2>TABLE OF CONTENTS</h2>
+  <div class="tocline">
+    <img class="left" src="/res/scrollbar-up.webp" />
+    <img class="center" src="/res/draconic-kit-favicon.webp" />
+    <img class="right" src="/res/scrollbar-down.webp" />
+
+    <div class="middleline"></div>
+  </div>
+    <script lang="hx">
+      <![CDATA[
+      if (!renderer.isDirectNavigation) {
+        trace("Non-direct navigation at " + document.location +", not running.");
+        return;
+      }
+
+      function createAnchor(thisDir, innerText, isTopLevel) {
+        if (isTopLevel) {
+          var anchor = document.createElement("a");
+          anchor.set("class", "header-top");
+          anchor.set("href", thisDir);
+          anchor.addChild(document.createCData(innerText));
+          return anchor;
+        } else {
+          var li = document.createElement("li");
+          var anchor = document.createElement("a");
+          anchor.set("href", thisDir + "#" + document.slugify(innerText));
+          anchor.addChild(document.createCData(innerText));
+          li.addChild(anchor);
+
+          var span = document.createElement("span");
+          span.set("class", "toc-icon");
+          span.set("aria-hidden", "true");
+          li.addChild(span);
+
+          return li;
+        }
+      }
+
+      final basePath = Path.join([document.workdir(), "docs/"]);
+      var directories = FileSystem.readDirectory(basePath);
+
+      var mainList = renderer.append(document.createElement("ul"));
+      for (dir in directories) {
+        var target = Path.join([basePath, dir, "index.xhtml"]);
+        if (!FileSystem.exists(target) || FileSystem.isDirectory(target)) {
+          trace("Pathname " + target + " IS NOT SERVABLE, WHAT ARE YOU DOING???");
+          continue;
+        }
+        var markdown = Server.getPageXML(Path.join(["/docs/", dir, "index.xhtml"]));
+
+        var title = document.querySelectorWithin(markdown, ".markdown h1");
+
+
+        if (title != null) {
+          final thisDir = "/docs/"+dir;
+          var list = document.createElement("li");
+          mainList.addChild(list);
+
+          final classList = [];
+          if (document.location.pathname == thisDir) {
+            classList.push("active");
+          }
+          classList.push("header-toplist");
+          list.set("class", classList.join(" "));
+
+          list.addChild(createAnchor(thisDir, document.getTextContents(title), true));
+
+          var subtitles = document.querySelectorAllWithin(markdown, ".markdown h2");
+
+          if (subtitles.length > 0) {
+            var sublist = document.createElement("ul");
+            list.addChild(sublist);
+            for (subtitle in subtitles) {
+              sublist.addChild(createAnchor(thisDir, document.getTextContents(subtitle), false));
+            }
+          }
+        }
+      }
+      ]]>
+    </script>
+  </div>

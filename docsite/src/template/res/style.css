@@ -39,6 +39,43 @@ p {
   margin: 0;
 }
 
+.floating-error {
+  position: fixed;
+  z-index: 200;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+
+  background: #ffffff44 !important;
+  backdrop-filter: blur(64px);
+  border-radius: 32px;
+
+  width: 80vw;
+  height: 80vh;
+  overflow: auto;
+  padding: 2rem;
+
+  font-family: IBMPlexMono;
+  color: #000000 !important;
+  font-size: 0.7rem;
+
+  border-top: #ffffff22 1px solid;
+  border-left: #ffffff22 1px solid;
+  border-bottom: #ffffff44 1px solid;
+  border-right: #ffffff44 1px solid;
+}
+
+.floating-error h1 {
+  font-family: KumbhSans !important;
+  font-size: 1.6rem !important;
+  color: #ff5555 !important;
+}
+
+.floating-error::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
 ::-webkit-scrollbar {
   width: 18px;
   height: 18px;
@@ -480,6 +517,21 @@ body {
 }
 .markdown h6 {
   font-size: 1.75rem;
+}
+
+.markdown blockquote {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 0, 76, 0.05) 0%,
+    rgba(255, 0, 76, 0.13) 50%,
+    rgba(255, 0, 76, 0.05) 100%
+  );
+  border-left: #bb162c 4px solid;
+  border-radius: 16px;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  margin: 1rem 0rem;
+  padding: 0.8rem 2rem;
 }
 
 .markdown a {

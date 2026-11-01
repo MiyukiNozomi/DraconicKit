@@ -1,0 +1,29 @@
+<div class="markdown codeblock" id="codeblock">
+  <script lang="hx">
+    <![CDATA[
+      var elementToReplace = document.querySelector(".replace");
+      if (elementToReplace == null) return;
+
+      var dest = document.createElement("div");
+
+      var pre = document.createElement("pre");
+      var code = document.createElement("code");
+      var head = document.createElement("h1");
+      pre.addChild(code);
+      dest.addChild(pre);
+      
+      head.set("id", "codehead");
+      code.addChild(head);
+      
+      for (c in document.getChildNodes(elementToReplace)) {
+        code.addChild(c);
+      }
+
+      head.addChild(document.createCData(renderer.props.title + ""));
+      document.replaceElement(elementToReplace, dest);
+    ]]>
+  </script>
+  <div class="replace">
+    <children />
+  </div>
+</div>

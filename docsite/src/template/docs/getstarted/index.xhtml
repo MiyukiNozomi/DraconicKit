@@ -1,3 +1,6 @@
+<builder:import src="/res/html/markdown.xhtml">
+<builder:markdown>
+<![CDATA[
 # Get Started
 
 Welcome to DraconicKit, before starting, there are a few requirements, installation steps, and things you should keep in mind.
@@ -43,18 +46,23 @@ haxe install.hxml
 ```
 
 Now, sym-link `bin/draconickit` or add this folder to your PATH, and draconickit will be ready to be used.
+]]>
+</builder:markdown>
 
-<builder:import src="/res/html/components/warning.html">
-
-<p><builder:markdown>
+<builder:import src="/res/html/components/warning.xhtml">
+<builder:markdown>
+<![CDATA[
 **DO NOT SHARE BUILDS!** the DraconicKit.jar that bin/draconickit invokes contains absolute pathnames to the built project as it needs to access DraconicKit's own source code to build your projects.
 
 This does mean that if you build DraconicKit in your user's directory, let's say `/home/suisei/software-builds/draconickit`, the builder will keep a reference to this pathname inside DraconicKit.jar
 
 This is not a problem for your built projects, websites you build with DraconicKit will not keep a reference to any absolute pathnames.
-</builder:markdown></p>
+]]>
+</builder:markdown>
 </builder:import>
 
+<builder:markdown>
+<![CDATA[
 ## Creating a Project
 
 Simply run `draconickit init` and a setup will start a project relative to its current directory. To specify a directory, you can use `draconickit init [dirname]`.
@@ -100,3 +108,6 @@ I'd strongly recommend reading the [Multithreading](/docs/standard/#multithreadi
 ### Okay! I am ready!
 
 Hop onto the chapter [Routing](/docs/routing/) to begin the fun
+]]>
+</builder:markdown>
+</builder:import>

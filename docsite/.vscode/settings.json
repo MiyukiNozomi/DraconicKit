@@ -1,0 +1,6 @@
+{
+  "[xml]": {
+    "editor.defaultFormatter": "redhat.vscode-xml"
+  },
+  "xml.format.joinCDATALines": false
+}

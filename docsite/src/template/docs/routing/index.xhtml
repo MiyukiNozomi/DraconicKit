@@ -1,3 +1,6 @@
+<builder:import src="/res/html/markdown.xhtml">
+<builder:markdown>
+<![CDATA[
 # Routing
 
 DraconicKit is heavily based on SvelteKit. This means DraconicKit has a filesystem-based router. The resolved `target` of incoming HTTP requests is defined by directories containing a route file in your project.
@@ -32,14 +35,18 @@ But not `/users/halflife3/whereabouts`.
 ```
 
 But not `/users/shinku/posts/95/banana`.
+]]>
+</builder:markdown>
+<builder:import src="/res/html/components/warning.xhtml">
+<builder:markdown>
+<![CDATA[Parameterized routes **do not perform validation** of route parameters. A route like `/users/dr.doofenshmirtz/posts/hackinator` will, in fact, match this route.
 
-<builder:import src="/res/html/components/warning.html">
-
-<p><builder:markdown>Parameterized routes **do not perform validation** of route parameters. A route like `/users/dr.doofenshmirtz/posts/hackinator` will, in fact, match this route.
-
-Be a good dragon and always validate user input! Never trust anything that comes from a client. **The less exposed, the merrier!** </builder:markdown></p>
+Be a good dragon and always validate user input! Never trust anything that comes from a client. **The less exposed, the merrier!**
+]]>
+</builder:markdown>
 </builder:import>
-
+<builder:markdown>
+<![CDATA[
 ## Variadic Routes
 
 The parameterized routes above only affect the directory slots they occupy, making their depth static. Variadic routes do not have this limitation. Prefixing a normal parameter name with `__` (so `_pathname_` becomes `___pathname_`) makes the route variadic.
@@ -82,22 +89,30 @@ In the first paragraph, I had mentioned that a route is a directory containing a
 ## +page.svelte
 
 This is simply a svelte component that defines a page in your app. Here's an example:
-
-<builder:import src="/res/html/components/codeblock-with-path.html" set-title="src/routes/+page.svelte">
-
+]]>
+</builder:markdown>
+<builder:import src="/res/html/components/codeblock-with-path.xhtml" set-title="src/routes/+page.svelte">
+  <builder:markdown>
+  <![CDATA[
 ```
 <h1>Hello and welcome to my personal website!</h1>
 <p>I am using Svelte and Haxe!</p>
 <a href="/about">About this place</a>
 ```
-
+]]>
+  </builder:markdown>
 </builder:import>
-
+<builder:markdown>
+<![CDATA[
 Placing the above file in your project's root route will render it as a page!
 
 **Here's how it should look like when you navigate to that route:**
-
-<img class="screenshot" src="/res/screenshots/sveltePageExample.webp" title="Screenshot of a basic svelte page.">
+]]>
+</builder:markdown>
+<img class="screenshot" src="/res/screenshots/sveltePageExample.webp" title="Screenshot of a basic svelte page."/>
+  
+<builder:markdown>
+<![CDATA[
 
 ## Server.hx
 
@@ -106,9 +121,11 @@ Like pages, routes can also be defined using a file named `Server.hx`, which fun
 In a similar fashion to SvelteKit, all public functions with the name of a HTTP method will become a route for that specific method. The example bellow showcases a `GET`-only route:
 
 **Be aware you cannot have both a `+page.svelte` file and a `Server.hx` in the same route directory.**
-
-<builder:import src="/res/html/components/codeblock-with-path.html" set-title="src/routes/api/hello/Server.hx">
-
+]]>
+</builder:markdown>
+<builder:import src="/res/html/components/codeblock-with-path.xhtml" set-title="src/routes/api/hello/Server.hx">
+<builder:markdown>
+<![CDATA[
 ```
 package routes.api.hello;
 
@@ -121,9 +138,12 @@ class ServerHandler extends AbstractHandler {
 	}
 }
 ```
-
+]]>
+</builder:markdown>
 </builder:import>
 
+<builder:markdown>
+<![CDATA[
 ## Http Responses
 
 In SvelteKit, route handlers return a `Response` object. In DraconicKit, you quite literally throw responses instead. If you wrap your route handler in a `try-catch` block, make sure to cast (you can use Std.downcast, which returns null if the cast is not possible) the caught exception to DraconicKit's `HttpResponse` type and rethrow it.
@@ -141,10 +161,13 @@ You can also manually throw a new instance of HttpResponse for things like strea
 ### Reading route's parameters
 
 Route parameters are always available through the `RequestEvent` parameter, here's an example:
+]]>
+</builder:markdown>
 
-<builder:import src="/res/html/components/codeblock-with-path.html" set-title="src/routes/users/_username_/posts/_id_">
 
-```
+<builder:import src="/res/html/components/codeblock-with-path.xhtml" set-title="src/routes/users/_username_/posts/_id_">
+<builder:markdown>
+<![CDATA[```
 package routes.users._username_.posts._id_;
 
 import shinku.handling.RequestHandler.RequestEvent;
@@ -157,9 +180,12 @@ class ServerHandler extends AbstractHandler {
 }
 
 ```
-
+]]>
+</builder:markdown>
 </builder:import>
 
+<builder:markdown>
+<![CDATA[
 ## ServerPage.hx
 
 This type of route file can only be used alongside a `+page.svelte` file in the same directory.
@@ -169,9 +195,12 @@ It allows you to intercept the request pipeline immediately before the page is s
 Here's what your `/catalog` route could look like:
 
 **Notice how we return the data to be sent as props rather than throwing it as an exception.**
+]]>
+</builder:markdown>
 
-<builder:import src="/res/html/components/codeblock-with-path.html" set-title="src/routes/catalog/ServerPage.hx">
-
+<builder:import src="/res/html/components/codeblock-with-path.xhtml" set-title="src/routes/catalog/ServerPage.hx">
+<builder:markdown>
+<![CDATA[
 ```
 package routes.catalog;
 
@@ -192,10 +221,13 @@ class ServerPage extends AbstractServerPage {
 	}
 }
 ```
-
+]]>
+</builder:markdown>
 </builder:import>
-<builder:import src="/res/html/components/codeblock-with-path.html" set-title="src/routes/catalog/+page.svelte">
 
+<builder:import src="/res/html/components/codeblock-with-path.xhtml" set-title="src/routes/catalog/+page.svelte">
+<builder:markdown>
+<![CDATA[
 ```
 <script>
   let props = $props();
@@ -268,19 +300,28 @@ class ServerPage extends AbstractServerPage {
 </style>
 
 ```
-
+]]>
+</builder:markdown>
 </builder:import>
 
+<builder:markdown>
+<![CDATA[
 Now, if you open `/catalog`, you'll find a rather nostalgic page rendered using server-provided props!
+]]>
+</builder:markdown>
+<img class="screenshot" src="/res/screenshots/serverPageExample.webp" title="Screenshot of the rendered page with ServerPage.hx"/>
 
-<img class="screenshot" src="/res/screenshots/serverPageExample.webp" title="Screenshot of the rendered page with ServerPage.hx">
-
+<builder:markdown>
+<![CDATA[
 #### "What if I want to cancel the page load and return an error?"
 
 You can throw an `HttpResponse` inside `ServerPage.hx` to immediately cancel the loading of it's page file. Like this:
+]]>
+</builder:markdown>
 
-<builder:import src="/res/html/components/codeblock-with-path.html" set-title="src/routes/catalog/ServerPage.hx">
-
+<builder:import src="/res/html/components/codeblock-with-path.xhtml" set-title="src/routes/catalog/ServerPage.hx">
+<builder:markdown>
+<![CDATA[
 ```
 package routes.catalog;
 
@@ -301,8 +342,8 @@ class ServerPage extends AbstractServerPage {
 		return catalog;
 	}
 }
-
-
 ```
-
+]]>
+</builder:markdown>
+</builder:import>
 </builder:import>

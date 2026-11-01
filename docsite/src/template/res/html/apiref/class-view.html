@@ -54,7 +54,7 @@
   <body>
     <builder:import src="/res/html/header.html" />
     <div class="docmain">
-      <builder:import src="/res/html/apiref/package-list.html"></builder:import>
+      <builder:import src="/res/html/apiref/package-list.html" />
       <div class="main apiview">
         <script lang="hx">
           function getNameAndPackage(path) {
@@ -101,7 +101,7 @@
             table.classList.add("packagelist");
 
             function appendEntry(isPackage, label, link) {
-              table.appendChild(document.parse('<a href="'+link+'" class="entry">' + (isPackage ? '<img src="/res/scrollbar-full.webp">' : '') + ' '+label+'</a>'));
+              table.addChild(document.parse('<a href="'+link+'" class="entry">' + (isPackage ? '<img src="/res/scrollbar-full.webp">' : '') + ' '+label+'</a>'));
             }
 
             appendEntry(true, "..", "../");

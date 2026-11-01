@@ -1,9 +1,8 @@
 --class-path src
 --class-path ../src
+-D hscriptPos
 --macro nullSafety("server", Strict)
---library hxnodejs
---library markdown
---library node-html-parser
---library hscript
---js dist/main.js
+-lib markdown
+-lib hscript
+--jvm bin/DocBuilder.jar
 --main server.Main

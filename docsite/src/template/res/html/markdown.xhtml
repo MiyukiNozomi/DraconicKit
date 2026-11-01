@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html
+  lang="en"
+  xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:builder="urn:draconic-docs:builder"
+>
+  <head>
+    <meta name="darkreader-lock" />
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta name="theme-color" content="#ff586f" />
+
+    <script lang="hx" priority="-500">
+      <![CDATA[
+        function makeMetaTag(type, content) {
+          var t = document.createElement("meta");
+          t.set("name", type);
+          t.set("content", content);
+          renderer.append(t);
+        }
+
+
+        // we basically fetch the first h1 title and the second paragraph
+        // to build both title and description.
+        var titleElm = document.querySelector("h1");
+        var descElm = document.querySelector("p");
+
+        if (titleElm != null && descElm != null) {
+          var t = document.createElement("title");
+          t.addChild(document.createCData(document.getTextContents(titleElm)));
+          renderer.append(t);
+
+          var description = descElm != null ?
+                document.getTextContents(descElm) : "No description found!";
+
+          makeMetaTag("description", description);
+
+          makeMetaTag("og:title", document.getTextContents(titleElm) + " - DraconicKit Documentation");
+          makeMetaTag("og:description", description);
+          makeMetaTag("og:type", "website");
+          makeMetaTag("og:image", "/res/draconic-kit-favicon.webp");
+          makeMetaTag("og:site_name", "DraconicKit");
+        }
+      ]]>
+    </script>
+
+    <link
+      rel="shortcut icon"
+      href="/res/draconic-kit-favicon.webp"
+      type="image/x-icon"
+    />
+
+    <link rel="stylesheet" href="/res/style.css" />
+
+
+    <script lang="hx" priority="5000">
+      <!-- We need this script to run first so we have proper sections -->
+      <![CDATA[
+          final targets = ["h1", "h2", "h3", "h4", "h5", "h6"];
+          for (target in targets) {
+            for (heading in document.querySelectorAll(".docmain .main " + target)) {
+              heading.set("id", document.slugify(document.getTextContents(heading)));
+            }
+          }
+      ]]>
+    </script>
+  </head>
+  <body>
+    <builder:import src="/res/html/header.xhtml" />
+    <div class="docmain">
+    <builder:import src="/res/html/components/table-of-contents.xhtml" />
+      <div class="main">
+        <children></children>
+      </div>
+    </div>
+    <builder:import src="/res/html/footer.xhtml" />
+  </body>
+</html>
