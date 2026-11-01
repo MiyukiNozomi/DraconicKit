@@ -89,6 +89,10 @@ p {
     rgba(28, 3, 10, 1) 100%
   );
 }
+::selection {
+  color: #ffffff;
+  background: #d1003f99;
+}
 
 ::-webkit-scrollbar-thumb {
   background-image:
@@ -616,28 +620,42 @@ body {
   border-radius: 1rem;
 }
 
+.codeblock {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 40, 100, 0.09),
+      rgba(20, 5, 15, 0.3) 45%,
+      rgba(255, 40, 100, 0.04)
+    ),
+    #100a10;
+  padding: 0.2rem;
+  color: #ffdbe5;
+  border-radius: 1rem;
+}
+
 .codeblock #codehead {
   font-family: IBMPlexMono;
   color: #fae7ef;
-  font-size: 1.2rem !important;
+  font-size: 1rem !important;
   margin: 0;
   padding: 0.6rem 0.5rem;
-  padding-top: 0;
   border-bottom: 1px solid #ff586f;
   text-transform: none !important;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+  background: linear-gradient(90deg, #491020, #25101a 60%, #1b0c13);
 }
 
-.codeblock > div > pre {
-  padding: 0.6rem;
-  tab-size: 2rem;
-}
-.codeblock > div > pre pre {
+.codeblock pre {
   margin: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
-
 .codeblock code {
   margin: 0;
   padding: 0;
+  tab-size: 3rem;
 }
 
 .warning {
@@ -710,8 +728,8 @@ body {
   object-fit: contain;
 }
 
-.markdown .screenshot {
-  border-radius: 0.5rem;
+.screenshot {
+  border-radius: 0.6rem;
   margin: 1rem 0;
 }
 
@@ -788,36 +806,38 @@ body {
   font-family: KumbhSans;
   padding: 2rem 0rem;
 }
-
 .packagelist {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
-.packagelist .entry img {
-  width: 1.6rem;
-  height: 1.6rem;
+.packagelist .entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.5rem;
+  color: #c7aeb5;
+  font-weight: lighter;
+  border-bottom: 2px solid #ffffff33;
+  transition:
+    background-color 300ms,
+    color 300ms;
 }
 
 .packagelist .entry:first-of-type {
   border-top: 2px solid #ffffff33;
 }
 
-.packagelist .entry {
-  height: 2.5rem;
-  color: #c7aeb5;
-  font-weight: lighter;
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: ease-in-out 400ms;
-
-  border-bottom: 2px solid #ffffff33;
+.packagelist .entry img {
+  width: 1.6rem;
+  height: 1.6rem;
+  flex-shrink: 0;
 }
 
 .packagelist .entry:hover {
-  background-color: #ffffff22;
+  background: #ffffff22;
   color: #d6415a;
 }
 
@@ -827,7 +847,75 @@ body {
   }
 }
 
+@media (max-width: 1024px) {
+  .docmain {
+    padding: 2rem 1.5rem;
+    gap: 1rem;
+  }
+
+  .docmain .table-of-contents {
+    width: 13rem;
+    max-width: 27%;
+    padding: 1.2rem 0.75rem;
+  }
+
+  .docmain .api-reference-side {
+    width: 16rem;
+    max-width: 30%;
+    padding: 1.2rem 0.75rem;
+  }
+
+  .docmain .main {
+    padding: 1.5rem;
+  }
+}
+
 @media (max-width: 768px) {
+  .docmain {
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+    gap: 1rem;
+  }
+
+  .docmain .table-of-contents,
+  .docmain .api-reference-side {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    max-height: 16rem;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .docmain .table-of-contents h2,
+  .docmain .api-reference-side h2 {
+    font-size: 1rem;
+    letter-spacing: 0.15rem;
+  }
+
+  .docmain .table-of-contents ul,
+  .docmain .api-reference-side ul {
+    padding-left: 0.75rem;
+  }
+
+  .docmain .table-of-contents li a.header-top {
+    font-size: 1.3rem;
+  }
+
+  .docmain .main {
+    width: 100%;
+    padding: 1rem 0;
+    gap: 1.5rem;
+  }
+
+  .apiheader h1 {
+    line-height: 1.6;
+  }
+
+  .apiheader p.summary {
+    padding: 1rem 0;
+  }
+
   .top-section {
     min-height: 100svh;
   }
@@ -881,6 +969,40 @@ body {
 }
 
 @media (max-width: 480px) {
+  .docmain {
+    padding: 1rem 0.75rem;
+  }
+
+  .docmain .table-of-contents,
+  .docmain .api-reference-side {
+    padding: 0.85rem;
+    max-height: 13rem;
+  }
+
+  .docmain .main {
+    padding: 0.75rem 0;
+  }
+
+  .apiheader h1 {
+    font-size: 0.95rem;
+  }
+
+  .apiheader h1 span {
+    font-size: 1.5rem;
+  }
+
+  .apiheader p.summary {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .packagelist .entry {
+    min-height: 2.75rem;
+    height: auto;
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
+  }
+
   .logo-banner {
     height: 3rem;
   }

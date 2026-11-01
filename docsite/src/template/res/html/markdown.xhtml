@@ -61,6 +61,7 @@
           final targets = ["h1", "h2", "h3", "h4", "h5", "h6"];
           for (target in targets) {
             for (heading in document.querySelectorAll(".docmain .main " + target)) {
+              if (heading.get("id") != null) continue;
               heading.set("id", document.slugify(document.getTextContents(heading)));
             }
           }

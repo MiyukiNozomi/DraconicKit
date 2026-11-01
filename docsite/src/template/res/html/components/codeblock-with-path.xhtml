@@ -5,18 +5,14 @@
       if (elementToReplace == null) return;
 
       var dest = document.createElement("div");
-
-      var pre = document.createElement("pre");
-      var code = document.createElement("code");
+      dest.set("id", "codeblock");
       var head = document.createElement("h1");
-      pre.addChild(code);
-      dest.addChild(pre);
       
       head.set("id", "codehead");
-      code.addChild(head);
+      dest.addChild(head);
       
       for (c in document.getChildNodes(elementToReplace)) {
-        code.addChild(c);
+        dest.addChild(c);
       }
 
       head.addChild(document.createCData(renderer.props.title + ""));
