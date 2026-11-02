@@ -1,0 +1,380 @@
+<builder:import src="/res/html/components/apiref/page.xhtml">
+  <script lang="hx">
+  <![CDATA[
+
+var props = renderer.props.targetInfo;
+var type = props.type;
+var target = props.data;
+
+function appendText(parent, text) {
+    parent.addChild(document.createCData(Std.string(text)));
+}
+
+function createTextElement(tag, text, className) {
+    var element = document.createElementWithAttribs(tag, {class: className});
+    appendText(element, text);
+    return element;
+}
+
+function createLink(href, label) {
+    var anchor = document.createElement("a");
+    anchor.set("href", href);
+    appendText(anchor, label);
+    return anchor;
+}
+  
+function getNameAndPackage(path) {
+    var dotIndex = path.lastIndexOf(".");
+
+    if (dotIndex == -1) {
+        return {
+            name: path,
+            package: ""
+        };
+    }
+
+    return {
+        name: path.substring(dotIndex + 1),
+        package: path.substring(0, dotIndex)
+    };
+}
+
+function getPackageLink(package) {
+    if (package == "") {
+        return "/";
+    }
+
+    if (!package.startsWith("shinku")) {
+        return "https://api.haxe.org/"
+            + package.split(".").join("/")
+            + ".html";
+    }
+
+    return "/docs/api/" + package.split(".").join("/") + ".xhtml";
+}
+
+var thisTypeParams = target.params != null ? target.params.map(v -> target.path + "." + v) : [];
+
+
+function getTypeLink(path) {
+    var info = getNameAndPackage(path);
+
+    if (info.package.startsWith("shinku")) {
+        return "/docs/api/" + path.split(".").join("/") + ".xhtml";
+    }
+
+    return "https://api.haxe.org/"
+        + path.split(".").join("/")
+        + ".html";
+}
+
+function javadocOf(doc) {
+    var javadoc = JavaDoc.parse(doc == null ? "" : doc);
+    var summary = document.createElementWithAttribs("div", {class: "summary"});
+    summary.addChild(javadoc.doc);
+    return summary;
+}
+
+function makeHeader() {
+    var header = document.createElementWithAttribs("div", {class: "apiheader"});
+
+    if (type == "package") {
+        var heading = document.createElement("h1");
+
+        appendText(heading, "package ");
+
+        var name = document.createElement("span");
+        appendText(name, target.path);
+
+        heading.addChild(name);
+        header.addChild(heading);
+
+        var summary = createTextElement(
+            "p",
+            "This is a package with "
+                + target.subs.length
+                + " entries.",
+            "summary"
+        );
+
+        header.addChild(summary);
+    }  else {
+        var info = getNameAndPackage(target.path);
+
+        var heading = document.createElement("h1");
+
+        appendText(heading, type + " ");
+
+        var name = document.createElement("span");
+        appendText(name, info.name);
+
+        heading.addChild(name);
+        if (target.params != null && target.params.length > 0) {
+            var span = document.createElement("span");
+            appendText(span, "<");
+            for (i in 0 ... target.params.length) {
+                if (i != 0) appendText(span, ", ");
+                appendText(span, target.params[i]);
+            }
+            appendText(span, ">");
+            heading.addChild(span);
+        }
+
+        header.addChild(heading);
+
+        var packageHeading = document.createElement("h1");
+
+        appendText(packageHeading, "package ");
+
+        packageHeading.addChild(
+            createLink(
+                getPackageLink(info.package),
+                info.package
+            )
+        );
+
+        header.addChild(packageHeading);
+
+        if (type == "class" && target.superClass != null) {
+            var superclass = getNameAndPackage(
+                target.superClass.path
+            );
+
+            var extendsHeading = document.createElement("h1");
+            appendText(extendsHeading, "extends ");
+            extendsHeading.addChild(
+                createLink(
+                    getTypeLink(target.superClass.path),
+                    superclass.name
+                )
+            );
+            header.addChild(extendsHeading);
+        }
+
+        header.addChild(javadocOf(target.doc));
+    }
+
+  renderer.append(header);
+}
+
+function withApiView(title, condition, clb) {
+    if (!condition) return;
+    var container = document.createElementWithAttribs(
+        "div",
+        {class: "apiview"}
+    );    
+    container.addChild(createTextElement("h1", title, "apiview-section-title"));
+    clb(container);
+    renderer.append(container);
+}
+
+function writeType(entry, type) {
+    var params = type.params;
+
+    if (type.type == "function") {
+        entry.addChild(createTextElement("span", '(', ""));
+        for (i in 0 ... type.args.length) {
+            if (i != 0)
+                entry.addChild(createTextElement("span", ", ", ""));
+            if (type.args[i].isOptional)
+                entry.addChild(createTextElement("span", "?", ""));
+            entry.addChild(createTextElement("span", type.args[i].name + ":", ""));
+            writeType(entry, type.args[i].type);
+        }
+        entry.addChild(createTextElement("span", "):", ""));
+        writeType(entry, type.ret);
+        return;
+    } else if (type.type == "dynamic" || type.type == "abstract" /*abstracts are TODOs!*/) {
+        entry.addChild(createLink("https://api.haxe.org/Dynamic.html", "Dynamic"));
+        params = type.possibility != null ? [type.possibility] : [];
+    } else if (type.type == "anonymous") {
+        entry.addChild(createTextElement("span", '{', ""));
+        for (i in 0 ... type.fields.length) {
+            if (i != 0)
+                entry.addChild(createTextElement("span", ", ", ""));
+            entry.addChild(createTextElement("span", type.fields[i].name, ""));
+            writeType(entry, type.fields[i].type);
+        }
+        entry.addChild(createTextElement("span", '}', ""));
+    } else {
+        var link;
+        if (thisTypeParams.contains(type.name)) {
+            link = "#nowhere-that-is-a-type-param";
+        } else {
+            link = getPackageLink(type.name);
+        }
+        entry.addChild(createLink(link, getNameAndPackage(type.name).name));
+    }
+
+    if (params != null && params.length > 0) {
+        entry.addChild(createTextElement("span", '<', ""));
+        for (i in 0 ... params.length) {
+            if (i != 0)
+                entry.addChild(createTextElement("span", ", ", ""));
+            writeType(entry, params[i]);
+        }
+        entry.addChild(createTextElement("span", '>', ""));
+    }
+}
+
+function makeTags(entry, d) {
+    function makeTag(name) {
+        entry.addChild(createTextElement("span", name, "entrytag"));
+    }
+    
+    if (d.isStatic) makeTag("static");
+    if (d.isOptional) makeTag("optional");
+    if (d.isFinal) makeTag(d.type != null && d.type.type == "function" ? "final" : "read only");
+}
+
+function makePackageContents() {
+    var container = document.createElementWithAttribs("div", {class: "packagelist"});
+    function appendEntry(isPackage, label, link) {
+        var anchor = document.createElementWithAttribs("a", {class: "entry"});
+
+        anchor.set("href", link);
+
+        if (isPackage) {
+            var icon = document.createElement("img");
+            icon.set("src", "/res/scrollbar-full.webp");
+
+            anchor.addChild(icon);
+        }
+
+        appendText(anchor, " " + label);
+
+        container.addChild(anchor);
+    }
+   
+    {
+      var components = target.path.split(".");
+      components.pop();
+      var path = components.join("/");
+      appendEntry(true, "..", "/docs/api/" + (path.length == 0 ? "" : path + ".xhtml"));
+    }
+
+    for (entry in target.subs.filter(v -> v.type == "package")) {
+        var info = getNameAndPackage(entry.data.path);
+        if (info.name.startsWith("_")) continue;
+        appendEntry(
+            true,
+            info.name,
+            "/docs/api/" + entry.data.path.split(".").join("/") + ".xhtml"
+        );
+    }
+
+    for (entry in target.subs.filter(v -> v.type != "package")) {
+        var info = getNameAndPackage(entry.data.path);
+        if (info.name.startsWith("_")) continue;
+        appendEntry(
+            false,
+            info.name,
+            "/docs/api/" + entry.data.path.split(".").join("/") + ".xhtml"
+        );
+    }
+
+    renderer.append(container);
+}
+
+function renderField(container, field) {
+    var container2 = document.createElementWithAttribs(
+        "div",
+        {class: "apiview-section"}
+    );
+
+    var entry = document.createElementWithAttribs("p", {class: "entry"});
+    container2.addChild(entry);
+    makeTags(entry, field);
+    entry.addChild(createTextElement("span", field.name + (field.type != "function" ? ":" : ""), "apiname"));
+    writeType(entry, field.type);
+
+    container2.addChild(javadocOf(field.doc));
+    container.addChild(container2);
+}
+
+function makeClassContents() {
+// TODO abstract class
+    var fields = type == "abstract class" ? target.impl.fields : target.fields;
+    var publicInterface = fields.filter(v -> v.isPublic);
+
+    var staticFields = publicInterface.filter(v -> v.isStatic && v.type.type != "function");
+    var staticMethods = publicInterface.filter(v -> v.isStatic && v.type.type == "function");
+
+    var fields = publicInterface.filter(v -> !v.isStatic && v.type.type != "function");
+    var methods = publicInterface.filter(v -> !v.isStatic && v.type.type == "function");
+
+    withApiView("Variables", fields.length > 0, (container) -> {
+        for (field in fields) renderField(container, field);
+    });
+    withApiView("Methods", methods.length > 0, (container) -> {
+        for (method in methods) renderField(container, method);
+    });
+
+    withApiView("Static variables", staticFields.length > 0, (container) -> {
+        for (field in staticFields) renderField(container, field);
+    });
+
+    withApiView("Static methods", staticMethods.length > 0, (container) -> {
+        for (method in staticMethods) renderField(container, method);
+    });
+}
+
+
+function makeTypedefContents() {
+    withApiView("Fields", true, (container) -> {
+        var fields = target.type.fields;
+        for (field in fields)
+            renderField(container, field);
+    });
+}
+
+function makeEnumContents() {
+    withApiView("Values", true, (container) -> {
+        for (constructor in target.constructors) {
+            var container2 = document.createElementWithAttribs(
+                "div",
+                {class: "apiview-section"}
+            );
+
+            var entry = document.createElementWithAttribs("p", {class: "entry"});
+            makeTags(entry, constructor);
+            entry.addChild(createTextElement("span", constructor.name, "apiname"));
+            
+            if (constructor.args.length > 0) {
+                entry.addChild(createTextElement("span", "(", ""));
+
+                var i = 0;
+                for (arg in constructor.args) {
+                    entry.addChild(createTextElement("span", (i++ != 0 ? ", " : "") + arg.name+":", ""));
+                    writeType(entry, arg.type);
+                }
+
+                entry.addChild(createTextElement("span", ")", ""));
+            }
+            
+            container2.addChild(entry);
+            container.addChild(container2);
+        }
+            
+        if (target.constructors.length == 0) {
+            container.append(createTextElement("This enumerator has no constructors."));
+        }
+    });
+}
+
+makeHeader();
+
+if (type == "package") {
+    makePackageContents();
+} else if (type == "class" || type == "abstract class"){
+    makeClassContents();
+} else if (type == "enum") {
+    makeEnumContents();
+} else if (type == "typedef") {
+    makeTypedefContents();
+} else {
+    renderer.append(document.createCData("This was not implemented in the builder! sorry!"));
+}
+]]>
+  </script>
+</builder:import>

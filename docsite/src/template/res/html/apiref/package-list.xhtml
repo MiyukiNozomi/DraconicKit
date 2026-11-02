@@ -1,0 +1,76 @@
+<div class="api-reference-side">
+    <h2><a href="/docs/api" style="color: inherit; text-decoration: none;">API REFERENCE</a></h2>
+  <div class="tocline">
+    <img class="left" src="/res/scrollbar-up.webp" />
+    <img class="center" src="/res/draconic-kit-favicon.webp" />
+    <img class="right" src="/res/scrollbar-down.webp" />
+
+    <div class="middleline"></div>
+  </div>
+  <ul>
+  <script lang="hx">
+    <![CDATA[
+    function renderNode(node, path, isRoot) {
+        var li = document.createElement("li");
+
+        var currentPath = path == ""
+            ? node.label
+            : path + "." + node.label;
+
+        if (node.children.length != 0) {
+            node.children.sort(function(a, b) {
+                var aIsLeaf = a.children.length == 0;
+                var bIsLeaf = b.children.length == 0;
+
+                if (aIsLeaf == bIsLeaf) return 0;
+
+                return aIsLeaf ? 1 : -1;
+            });
+
+            var details = document.createElement("details");
+
+            if (isRoot) {
+                details.set("open", "true");
+            }
+
+            var summary = document.createElement("summary");
+            summary.addChild(document.createCData(node.label));
+
+            details.addChild(summary);
+            details.addChild(renderChildren(node, currentPath));
+
+            li.addChild(details);
+        } else {
+            var anchor = document.createElement("a");
+
+            anchor.set(
+                "href",
+                "/docs/api/" + currentPath.split(".").join("/") + ".xhtml"
+            );
+
+            anchor.addChild(document.createCData(node.label));
+
+            li.addChild(anchor);
+        }
+
+        return li;
+    }
+
+    function renderChildren(node, path) {
+        var ul = document.createElement("ul");
+
+        for (nd in node.children) {
+            if (nd.label == null) continue;
+            ul.addChild(renderNode(nd, path, false));
+        }
+
+        return ul;
+    }
+
+    renderer.append(
+        renderNode(renderer.props.tableOfContentsTree, "", true)
+    );
+]]>
+  </script>
+</ul>
+</div>

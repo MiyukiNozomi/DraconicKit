@@ -1,5 +1,6 @@
 package server;
 
+import server.routes.apiref.APIReferenceRoute.APIReference;
 import server.routes.XHTMLRoute;
 import haxe.io.Path;
 import shinku.std.io.SystemTools;
@@ -29,6 +30,8 @@ class Main {
 
 		sv.requestHandler.dynamicRouter.addDynamicRoute("/api/reload", new ApiReloadHandler());
 
+		APIReference.init(sv);
+
 		final bump = (reason:String) -> {
 			VERSION = Date.now().getTime();
 			Logger.warn('[watch] change detected ($reason) -> version $VERSION');
@@ -40,6 +43,11 @@ class Main {
 			var routename = Path.directory(fp.substring(SERVE_DIRECTORY.length));
 			if (!routename.startsWith('/'))
 				routename = '/' + routename;
+
+			if (routename.startsWith("/res/html")) {
+				Logger.error("Skipped route ", routename, " (cannot host components directly).");
+				return;
+			}
 
 			sv.requestHandler.dynamicRouter.addDynamicRoute(routename, new XHTMLRoute(fp));
 			Logger.warn("New route: ", routename, " added.");
@@ -71,6 +79,11 @@ class Main {
 			Logger.info("Watcher is now running!");
 			watcher.run();
 		});
+
+		Logger.info("Server starting with the following routes: ");
+		for (route in sv.requestHandler.dynamicRouter.routes) {
+			Logger.info(" -", route.rawRoutePath);
+		}
 		sv.start();
 	}
 }

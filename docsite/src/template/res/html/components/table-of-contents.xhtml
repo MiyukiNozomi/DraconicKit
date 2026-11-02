@@ -39,6 +39,7 @@
 
       final basePath = Path.join([document.workdir(), "docs/"]);
       var directories = FileSystem.readDirectory(basePath);
+      directories.sort(Reflect.compare);
 
       var mainList = renderer.append(document.createElement("ul"));
       for (dir in directories) {

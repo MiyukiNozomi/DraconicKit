@@ -22,16 +22,18 @@ typedef PreprocessorFunc = (node:Xml, custom:Map<String, PreprocessorFunc>) -> V
 
 class XHTMLRoute extends AbstractHandler {
 	private var fullPath:String;
+	private var customProps:Dynamic;
 
-	public function new(fp) {
+	public function new(fp, props = {}) {
 		super();
 		this.fullPath = fp;
+		this.customProps = props;
 	}
 
 	public function GET(event:RequestEvent) {
 		try {
 			final contentType = "application/xhtml+xml";
-			var xml = XmlProcessor.process(Xml.parse(File.getContent(this.fullPath)), event.url, [], true);
+			var xml = XmlProcessor.process(Xml.parse(File.getContent(this.fullPath)), event.url, customProps, true);
 			throw new HttpResponse(200, ["content-type" => contentType], Bytes.ofString(xml.toString()));
 		} catch (e) {
 			if (Std.downcast(e, HttpResponse) != null)

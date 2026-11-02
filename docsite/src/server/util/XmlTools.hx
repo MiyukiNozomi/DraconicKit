@@ -7,7 +7,6 @@ import haxe.io.Error;
 class XmlTools {
 	public static function markdown2Xml(markdown:String) {
 		var document = new Document();
-
 		try {
 			// replace windows line endings with unix, and split
 			var lines = ~/(\r\n|\r)/g.replace(markdown, '\n').split("\n");

@@ -1,5 +1,7 @@
 package server.util;
 
+import server.routes.apiref.JavadocHandler;
+import haxe.crypto.Base64;
 import haxe.Json;
 import shinku.std.URL;
 import sys.io.File;
@@ -90,11 +92,19 @@ class HxScriptEngine {
 		var renderElements = new Array<Xml>();
 		var props = {};
 		for (attrib in scr.xml.attributes()) {
-			Reflect.setProperty(props, attrib, scr.xml.get(attrib));
+			var v = scr.xml.get(attrib) + "";
+
+			if (StringTools.startsWith(v, "object:")) {
+				Reflect.setProperty(props, attrib, Json.parse(Base64.urlDecode(v.substring("object:".length)).toString()));
+			} else {
+				Reflect.setProperty(props, attrib, v);
+			}
 		}
 
 		var scriptThis = {
 			"append": (s:Xml) -> {
+				if (s == null)
+					throw Error.Custom("Cannot append a *null* element!");
 				renderElements.push(s);
 				return s;
 			},
@@ -111,8 +121,13 @@ class HxScriptEngine {
 
 	private function registerBuiltIns(interp:Interp, thisURL:URL) {
 		interp.variables.set("Path", Path);
+		interp.variables.set("Std", Std);
 		interp.variables.set("FileSystem", FileSystem);
-		interp.variables.set("Json", Json);
+		interp.variables.set("Json", {
+			"parse": (s:String) -> return Json.parse(s),
+			"stringify": (s:Dynamic) -> return Json.stringify(s)
+		});
+		interp.variables.set("Reflect", Reflect);
 		interp.variables.set("File", File);
 		interp.variables.set("Server", {
 			"getPageXML": (url:String) -> {
@@ -120,6 +135,10 @@ class HxScriptEngine {
 				return nd;
 			}
 		});
+		interp.variables.set("JavaDoc", {
+			parse: (s:String) -> return new JavadocHandler().parse("<idk>", s ?? "")
+		});
+
 		interp.variables.set("document", {
 			"location": thisURL,
 			"markdownAsXML": (mk:String) -> return XmlTools.markdown2Xml(mk),
@@ -143,7 +162,14 @@ class HxScriptEngine {
 			},
 
 			"createElement": (s:String) -> return Xml.createElement(s),
-			"createCData": (s:String) -> return Xml.createCData(s),
+			"createElementWithAttribs": (s:String, d:Dynamic) -> {
+				var nd = Xml.createElement(s);
+				for (key in Reflect.fields(d)) {
+					nd.set(key, Reflect.getProperty(d, key) + "");
+				}
+				return nd;
+			},
+			"createCData": (s:String) -> return Xml.createCData(s + ""),
 			"getTextContents": (xml:Xml) -> return XmlTools.getTextContent(xml),
 
 			"replaceElement": (dst:Xml, replacement:Xml) -> {

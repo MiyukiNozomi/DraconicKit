@@ -1,5 +1,8 @@
 package server.util;
 
+import haxe.Json;
+import haxe.io.Bytes;
+import haxe.crypto.Base64;
 import shinku.std.URL;
 import haxe.io.Path;
 import sys.io.File;
@@ -22,7 +25,12 @@ class XmlProcessor {
 
 	private static function applyProps(xml:Xml, props:Dynamic) {
 		for (key in Reflect.fields(props)) {
-			xml.set(key, Reflect.getProperty(props, key) + "");
+			var v = Reflect.getProperty(props, key);
+			if (v == null || Std.isOfType(v, String)) {
+				xml.set(key, v + "");
+			} else {
+				xml.set(key, "object:" + Base64.urlEncode(Bytes.ofString(Json.stringify(v))));
+			}
 		}
 	}
 
@@ -42,6 +50,23 @@ class XmlProcessor {
 			for (child in node) {
 				processElements(scriptEngine, child, pageProps, isDirectNavigation);
 			}
+	}
+
+	private static function mergeProps(priority:Dynamic, other:Dynamic) {
+		var copy = {};
+
+		var allFields = Reflect.fields(priority).concat(Reflect.fields(other));
+
+		for (key in allFields) {
+			var priorityProperty = Reflect.getProperty(priority, key);
+			var otherProperty = Reflect.getProperty(other, key);
+
+			if (Reflect.hasField(copy, key))
+				continue;
+			Reflect.setField(copy, key, priorityProperty ?? otherProperty ?? "");
+		}
+
+		return copy;
 	}
 
 	private static function processBuilderElement(scriptEngine:HxScriptEngine, node:Xml, pageProps:Dynamic, isDirectNavigation:Bool):Void {
@@ -91,7 +116,8 @@ class XmlProcessor {
 								XmlTools.replaceWithAll(childrenHandler, children);
 							}
 
-							target = XmlProcessor.process(target, new URL(src, "http://0.0.0.0"), currentProps, isDirectNavigation && true);
+							target = XmlProcessor.process(target, new URL(src, "http://0.0.0.0"),
+								mergeProps(currentProps, pageProps), isDirectNavigation && true);
 						} catch (e) {
 							throw Error.Custom("Could not parse file " + src + " because: " + e.message + "\n" + e.stack.toString());
 						}

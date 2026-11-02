@@ -199,6 +199,38 @@ body {
   z-index: 11;
 }
 
+.header-middle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-family: Baskervville;
+  transform: translate(50%, -0.1rem);
+}
+
+.header-middle a {
+  font-size: 1.2rem;
+  text-decoration: none;
+  font-weight: lighter;
+
+  -webkit-text-stroke: 1px #ffffff52;
+  background: linear-gradient(180deg, #490000 0%, rgb(85, 0, 0), #ff1d1d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  transition:
+    color 200ms ease-in-out,
+    transform 200ms ease-in-out;
+}
+
+.header-middle a:hover {
+  transform: scale(1.1);
+}
+.header-middle a:active {
+  transform: scale(1.5);
+}
+
 .header-right {
   display: flex;
   flex-direction: row;
@@ -371,6 +403,10 @@ body {
   overflow-x: auto;
 }
 
+.docmain .api-reference-side > ul {
+  padding: 0 !important;
+}
+
 .docmain .table-of-contents h2,
 .docmain .api-reference-side h2 {
   font-size: 1.2rem;
@@ -538,17 +574,24 @@ body {
   padding: 0.8rem 2rem;
 }
 
-.markdown a {
+.apiview-section a {
+  text-decoration: none;
+}
+
+.markdown a,
+.apiview-section a {
   display: inline-block;
   color: #ff2542;
   transition: ease-in-out 200ms;
   transform: translateY(0);
 }
-.markdown a:hover {
+.markdown a:hover,
+.apiview-section a:hover {
   text-decoration: underline;
   transform: translateY(-0.1rem) scale(105%);
 }
-.markdown a:active {
+.markdown a:active,
+.apiview-section a:active {
   text-decoration: underline;
   color: #bb162c;
   transform: translateY(-0.1rem) scale(115%);
@@ -575,10 +618,12 @@ body {
     rgba(243, 209, 219, 0.13) 50%,
     rgba(243, 209, 219, 0.05) 100%
   );
+  word-wrap: break-word;
   padding: 0rem 0.2rem;
   color: #ffdbe5;
   font-family: IBMPlexMono;
   border-radius: 0.2rem;
+  overflow: auto;
 }
 
 .markdown ul {
@@ -618,6 +663,15 @@ body {
   color: #ffdbe5;
   font-family: IBMPlexMono;
   border-radius: 1rem;
+
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.markdown pre code {
+  white-space: inherit;
+  overflow-wrap: inherit;
 }
 
 .codeblock {
@@ -806,6 +860,62 @@ body {
   font-family: KumbhSans;
   padding: 2rem 0rem;
 }
+
+.apiview-section {
+  padding: 1.8rem 0;
+  padding-left: 1.5rem;
+}
+
+.apiview-section-title {
+  font-family: Baskervville;
+  font-size: 1.6rem;
+}
+
+.apiview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.apiview-section .entry {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 40, 100, 0.09),
+      rgba(20, 5, 15, 0.3) 45%,
+      rgba(255, 40, 100, 0.04)
+    ),
+    #100a10;
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #ffffff22;
+  border-top: 1px solid #ffffff10;
+  border-left: 1px solid #ffffff10;
+
+  width: fit-content;
+}
+
+.apiview-section .entry {
+  font-family: IBMPlexMono;
+  font-size: 0.82rem;
+}
+
+.apiview-section .entry .apiname {
+  font-weight: bold;
+}
+
+.apiview-section .entry .entrytag {
+  padding: 0.2rem 0.5rem;
+  margin-right: 0.8rem;
+  color: #fde6e6;
+  background-color: #4d004088;
+  border-radius: 6px;
+}
+
 .packagelist {
   display: flex;
   flex-direction: column;
@@ -859,6 +969,13 @@ body {
     padding: 1.2rem 0.75rem;
   }
 
+  .header-middle {
+    transform: translateX(80%);
+  }
+  .header-middle a {
+    font-size: 0.9rem;
+  }
+
   .docmain .api-reference-side {
     width: 16rem;
     max-width: 30%;
@@ -885,6 +1002,14 @@ body {
     max-height: 16rem;
     overflow-y: auto;
     padding: 1rem;
+  }
+
+  .header-middle {
+    margin-left: 0;
+    transform: translateX(0%);
+  }
+  .header-middle a {
+    font-size: 0.8rem;
   }
 
   .docmain .table-of-contents h2,
@@ -989,6 +1114,10 @@ body {
 
   .apiheader h1 span {
     font-size: 1.5rem;
+  }
+
+  .header-middle {
+    display: none;
   }
 
   .apiheader p.summary {
