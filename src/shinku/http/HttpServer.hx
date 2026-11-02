@@ -52,6 +52,10 @@ class HttpServer {
 		}
 	}
 
+	public function stop() {
+		this.running = false;
+	}
+
 	private function handleClient(client:HttpSocket) {
 		this.executor.schedule(() -> {
 			try {

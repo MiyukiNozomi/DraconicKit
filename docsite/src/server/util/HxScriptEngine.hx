@@ -69,20 +69,26 @@ class HxScriptEngine {
 				interp.execute(program);
 				XmlTools.replaceWithAll(scr.xml, scriptThis.renderElements);
 			} catch (e) {
-				var err = Xml.createElement("pre");
-				err.set("class", "floating-error");
-
-				var header = Xml.createElement("h1");
-				header.addChild(Xml.createCData("SERVER SIDE RENDERING HAS FAILED!"));
-				err.addChild(header);
-				err.addChild(Xml.createCData("in URL: "
+				final message = "in URL: "
 					+ thisURL.toString()
 					+ "\nScript source: "
 					+ (scr.xml.parent != null && scr.xml.nodeType == Element ? scr.xml.parent.nodeName : scr.xml.toString())
 					+ "\nException reason: "
 					+ e.message
 					+ "\n\nStack trace:\n"
-					+ e.stack.toString()));
+					+ e.stack.toString();
+
+				if (Main.IS_BUILD_MODE) {
+					trace("A script has failed: ", message);
+					Sys.exit(-5);
+				}
+				var err = Xml.createElement("pre");
+				err.set("class", "floating-error");
+
+				var header = Xml.createElement("h1");
+				header.addChild(Xml.createCData("SERVER SIDE RENDERING HAS FAILED!"));
+				err.addChild(header);
+				err.addChild(Xml.createCData(message));
 				XmlTools.replaceWith(scr.xml, err);
 			}
 		}

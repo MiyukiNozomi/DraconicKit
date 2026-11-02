@@ -1,5 +1,6 @@
 package server.util;
 
+import shinku.Console.Logger;
 import haxe.Json;
 import haxe.io.Bytes;
 import haxe.crypto.Base64;
@@ -79,6 +80,12 @@ class XmlProcessor {
 				}
 			case "builder:import":
 				{
+					if (node.exists("devmode") && Main.IS_BUILD_MODE) {
+						Logger.warn("builder:import has been dropped (devmode only): ", node);
+						if (node.parent != null)
+							node.parent.removeChild(node);
+						return;
+					}
 					final src = node.get("src");
 
 					if (src == null)

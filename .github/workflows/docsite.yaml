@@ -20,10 +20,12 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          node-version: 26.9.0
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
@@ -35,19 +37,15 @@ jobs:
         run: |
           cd docsite/
 
-          npm install
-          npx dts2hx --all --modular
-          haxelib fixrepo
-          haxelib install hxnodejs
           haxelib install markdown
           haxelib install hscript
-          haxe build.hxml && node . build
+          haxe build.hxml && java -jar bin/DocBuilder.jar build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           name: page-html
-          path: docsite/dist/static
+          path: docsite/bin/static
           if-no-files-found: error
 
       - name: Deploy to GitHub Pages
