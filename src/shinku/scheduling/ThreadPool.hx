@@ -22,6 +22,9 @@
 
 /**
 	This technically was on Haxe 4.3.7, but was.. apperantely nuked in the Haxe 5 preview. So I bought it back!
+
+
+	*edit:* apperantely it was moved? but meh, shouldnt be that big of a deal to have a local copy.
 **/
 package shinku.scheduling;
 

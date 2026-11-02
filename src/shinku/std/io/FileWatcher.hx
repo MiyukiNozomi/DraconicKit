@@ -3,6 +3,10 @@ package shinku.std.io;
 import haxe.io.Path;
 import sys.FileSystem;
 
+/**
+	An event to be fired when a directory changes.
+	All pathnames here are absolute directories.
+**/
 enum FileEvent {
 	Added(path:String);
 	Modified(path:String);
@@ -11,6 +15,12 @@ enum FileEvent {
 
 private typedef Stamp = {mtime:Float, size:Int};
 
+/**
+	This is a *polling* file watcher, meaning every `intervalMs` (assigned in constructor) it will re-check the directory structure of `root`
+	and invoke the required events.
+
+	Consequentially, it's also platform independant by nature.
+**/
 class FileWatcher {
 	public var intervalMs(default, null):Int;
 
@@ -61,6 +71,10 @@ class FileWatcher {
 		snapshot = next;
 	}
 
+	/**
+		Starts watching the directory specificied by `root` in the constructor.
+		This loop is executed in the same thread as the calleer (blocking)
+	**/
 	public function run():Void {
 		running = true;
 		while (running) {

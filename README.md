@@ -1,3 +1,5 @@
+![Draconic Kit's Logo](src/draconic-kit-wordmark.webp)
+
 # DraconicKit - A SvelteKit inspired.. SvelteKit replacement!
 
 This is NOT a drop-in replacement, DraconicKit is a SvelteKit inspired framework for backends. The problem it's trying to solve is the
@@ -34,5 +36,5 @@ Another import thing is conditional compilation, normally, a draconic kit projec
 [X] Svelte
 [X] Routing
 [X] Documentation
-[ ] Make documentation website responsive
+[X] Make documentation website responsive
 [ ] Add builder for production

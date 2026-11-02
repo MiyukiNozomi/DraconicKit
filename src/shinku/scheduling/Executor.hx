@@ -5,6 +5,12 @@ import haxe.io.Error;
 import shinku.scheduling.ThreadPool;
 
 // TODO: implement setTimeout?
+
+/**
+	This class is a work in progress and should not be called.
+
+	(it also makes nCPU threads.. so...)
+**/
 class Executor {
 	private var workers:ThreadPool;
 

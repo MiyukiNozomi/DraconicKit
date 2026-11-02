@@ -60,6 +60,9 @@ private typedef LevelStyle = {
 	stderr:Bool
 }
 
+/***
+	This class provides logging functions with the callee's location, and that's all.
+**/
 class Logger {
 	static inline var RESET = "\x1B[0m";
 	static inline var DIM = "\x1B[2m";

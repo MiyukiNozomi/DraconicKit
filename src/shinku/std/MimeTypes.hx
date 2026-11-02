@@ -7,6 +7,7 @@ import haxe.io.Path;
 
 class MimeTypes {
 	/**
+		Returns a mime type based off filename's extension.
 		Just a heads up, this function will return application/octet-stream for unknown extensions.
 	 */
 	public static function forFilename(filename:String) {
@@ -15,6 +16,7 @@ class MimeTypes {
 	}
 
 	/**
+		Returns a mime type based off `ext`.
 		Just a heads up, this function will return application/octet-stream for unknown extensions.
 	 */
 	public static function fromExtension(ext:String):String {
