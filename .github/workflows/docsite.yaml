@@ -36,6 +36,7 @@ jobs:
         run: |
           cd docsite/
 
+          haxelib install hxjava
           haxelib install markdown
           haxelib install hscript
           haxe build.hxml && java -jar bin/DocBuilder.jar build
