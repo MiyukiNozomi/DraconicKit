@@ -34,6 +34,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
+          haxe build-docs.hxml
           cd docsite/
 
           haxelib install hxjava
