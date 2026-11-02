@@ -1,20 +1,11 @@
 package server.routes;
 
-import server.util.XmlProcessor;
-import server.util.XmlTools;
-import server.util.HxScriptEngine;
-import haxe.Exception;
-import Markdown.Document;
-import haxe.Json;
-import haxe.io.Path;
-import haxe.io.Error;
 import haxe.io.Bytes;
-import sys.io.File;
-import shinku.std.MimeTypes;
-import shinku.http.HttpMessages.HttpResponse;
-import shinku.handling.RequestHandler.RequestEvent;
+import server.util.XmlProcessor;
 import shinku.handling.AbstractHandler;
-import server.util.XmlMarkdownRenderer;
+import shinku.handling.RequestHandler.RequestEvent;
+import shinku.http.HttpMessages.HttpResponse;
+import sys.io.File;
 
 using StringTools;
 

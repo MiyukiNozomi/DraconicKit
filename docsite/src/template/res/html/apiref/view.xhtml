@@ -186,7 +186,7 @@ function writeType(entry, type) {
         return;
     } else if (type.type == "dynamic" || type.type == "abstract" /*abstracts are TODOs!*/) {
         entry.addChild(createLink("https://api.haxe.org/Dynamic.html", "Dynamic"));
-        params = type.possibility != null ? [type.possibility] : [];
+        params = type.possibly != null ? [type.possibly] : [];
     } else if (type.type == "anonymous") {
         entry.addChild(createTextElement("span", '{', ""));
         for (i in 0 ... type.fields.length) {

@@ -67,7 +67,7 @@ class Main {
 			Logger.warn("New route: ", routename, " added.");
 		};
 		final handleDeletedFile = (fp:String) -> {
-			if (!fp.endsWith(".xhtml") || !fp.endsWith(".md"))
+			if (!fp.endsWith(".xhtml") && !fp.endsWith(".md"))
 				return;
 			var routename = Path.directory(fp.substring(SERVE_DIRECTORY.length));
 			if (!routename.startsWith('/'))
