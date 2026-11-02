@@ -171,7 +171,9 @@ function withApiView(title, condition, clb) {
 function writeType(entry, type) {
     var params = type.params;
 
-    if (type.type == "function") {
+    if (type.type == "null") {
+        entry.addChild(createLink("https://api.haxe.org/Null.html", "Null"));
+    } else if (type.type == "function") {
         entry.addChild(createTextElement("span", '(', ""));
         for (i in 0 ... type.args.length) {
             if (i != 0)
