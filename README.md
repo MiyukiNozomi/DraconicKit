@@ -32,9 +32,6 @@ Another import thing is conditional compilation, normally, a draconic kit projec
 
 ## TODO list
 
-[ ] HMR
-[X] Svelte
-[X] Routing
-[X] Documentation
-[X] Make documentation website responsive
-[ ] Add builder for production
+- [ ] HMR
+- [ ] WebSockets
+- [ ] Add builder for production
