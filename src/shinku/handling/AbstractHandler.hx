@@ -24,12 +24,22 @@ class DraconicIntrospection extends HandlerTools {
 	}
 }
 
+/**
+	A foundation for passing data from the server and into svelte pages on the frontend.
+	Please be aware that your class instance is re-used cross threads.
+	Please synchronize or localize any mutable data inside of your hooks.
+**/
 abstract class AbstractServerPage extends DraconicIntrospection {
 	public function new() {}
 
 	public abstract function pageServerLoad(event:RequestEvent):Dynamic;
 }
 
+/**
+	A foundation for custom route handlers.
+	Please be aware that your class instance is re-used cross threads.
+	Please synchronize or localize any mutable data inside of your hooks.
+**/
 abstract class AbstractHandler extends DraconicIntrospection {
 	public function new() {}
 }

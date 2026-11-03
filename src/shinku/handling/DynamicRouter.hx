@@ -1,5 +1,7 @@
 package shinku.handling;
 
+import hx.concurrent.collection.CopyOnWriteArray;
+import java.util.concurrent.CopyOnWriteArraySet;
 import sys.thread.Mutex;
 import shinku.handling.AbstractHooks.AbstractServerHooks;
 import haxe.io.Error;
@@ -29,15 +31,13 @@ typedef RouteSegment = {
 }
 
 class DynamicRouter {
-	public var routes:Array<RouteEntry>;
+	public var routes:CopyOnWriteArray<RouteEntry>;
 
 	private var hooks:Null<AbstractServerHooks>;
 
-	private final writeLock = new Mutex();
-
 	public function new() {
 		this.hooks = null;
-		this.routes = new Array();
+		this.routes = new CopyOnWriteArray();
 	}
 
 	public function setServerHooks(hooks:Null<AbstractServerHooks>) {
@@ -45,25 +45,18 @@ class DynamicRouter {
 	}
 
 	public function removeAllRoutes() {
-		this.routes = new Array();
+		this.routes.clear();
 	}
 
 	public function removeRouteByName(name:String) {
-		writeLock.acquire();
-		try {
-			final next = routes.filter(r -> r.rawRoutePath != name);
-			final removed = next.length != routes.length;
-			routes = next;
-			writeLock.release();
-			return removed;
-		} catch (e:Dynamic) {
-			writeLock.release();
-			throw e;
-		}
+		final next = routes.filter(r -> r.rawRoutePath != name);
+		final removed = next.length != routes.length;
+		routes = next;
+		return removed;
 	}
 
 	public function getRouteByName(name:String):Null<RouteEntry> {
-		for (i => rt in this.routes) {
+		for (rt in this.routes.iterator()) {
 			if (rt.rawRoutePath == name) {
 				return rt;
 			}
@@ -116,18 +109,20 @@ class DynamicRouter {
 			handler: handlerEntry
 		};
 
-		writeLock.acquire();
-		final next = routes.filter(r -> r.rawRoutePath != path);
+		final next = routes.filter(r -> r.rawRoutePath != path).toArray();
 		next.push(entry);
 		next.sort(compareRoutes);
-		routes = next;
-		writeLock.release();
 
-		var list = new Array();
-		for (key => _ in handlerEntry.methodToCallbackMap) {
-			list.push(key);
+		routes.clear();
+		routes.addAll(next);
+
+		if (Configuration.ShowDebugLogs) {
+			var list = new Array();
+			for (key => _ in handlerEntry.methodToCallbackMap) {
+				list.push(key);
+			}
+			Logger.debug("Supported methods in dynamic route " + path + " are: " + list.join(', '));
 		}
-		Logger.debug("Supported methods in dynamic route " + path + " are: " + list.join(', '));
 	}
 
 	public function tryHandleRequest(socket:HttpSocket, url:URL, req:HttpRequest) {
@@ -156,9 +151,9 @@ class DynamicRouter {
 				}
 			}
 		}
-
-		if (this.hooks != null) {
-			this.hooks.handle(e, resolve);
+		final h = this.hooks;
+		if (h != null) {
+			h.handle(e, resolve);
 		} else {
 			resolve(e);
 		}

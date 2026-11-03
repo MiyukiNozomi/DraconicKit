@@ -1,3 +1,4 @@
+#if draconicbuilder
 import shinku.std.URL;
 import shinku.internal.commands.HelpCommand;
 import shinku.Console.AnsiPrinter;
@@ -7,7 +8,6 @@ import shinku.internal.devserver.DevServer;
 
 using StringTools;
 
-#if draconicbuilder
 // Dev Main as in "Development Mode Main"
 // Dev Server in shinku.internal.devserver.DevServer
 class DevMain {

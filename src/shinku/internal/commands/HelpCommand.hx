@@ -43,6 +43,7 @@ class HelpCommand {
 		}
 		totalLines.push(consume());
 		totalLines.push(consume() + " §0;93m -=* §0;36mhttps://github.com/MiyukiNozomi/DraconicKit §0;93m*=-");
+		totalLines.push(consume() + " §0;93m       -=* §0;36mhttps://draconickit.ane.jp.net §0;93m*=-");
 		totalLines.push(consume());
 		for (line in HELP_LINES) {
 			totalLines.push(consume() + " §0;93m*=- §0;94m" + line.name);

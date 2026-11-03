@@ -76,8 +76,11 @@ class HaxeBuilder {
 		if (!FileSystem.exists(hxmlFilePath)) {
 			Logger.debug("build.hxml is missing, recreating it.");
 			File.saveContent(hxmlFilePath, '
+# DraconicKit ${Configuration.Version}
 # just sanity check
 -dce std
+# this library is included by default (so your project wont explode)
+--library haxe-concurrent
 --class-path src
 --class-path .shinku/hacks
 --class-path ${FileSystem.absolutePath(Path.join([SystemTools.thisHomeDir(), "src/"]))}
