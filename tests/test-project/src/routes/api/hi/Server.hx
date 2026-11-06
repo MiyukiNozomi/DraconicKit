@@ -5,7 +5,7 @@ import shinku.handling.AbstractHandler;
 
 @:customRoute("banana")
 class ServerHandler extends AbstractHandler {
-	@:keep public function GET(event:RequestEvent) {
+	@:keep public function GET(event:RequestEvent<Dynamic>) {
 		text("Hello, Moonlit Crimson Dragon!");
 	}
 }

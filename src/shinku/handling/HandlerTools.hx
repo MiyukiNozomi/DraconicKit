@@ -6,9 +6,9 @@ import shinku.http.HttpMessages.HttpResponse;
 import shinku.handling.AbstractHandler;
 
 class HandlerTools {
-	private function error(status:Int, message:String = "Error " + status) {
+	private function error(status:Int, ?message:String = null) {
 		// TODO support for custom error pages?
-		throw new HttpResponse(status, ["content-type" => "text/plain"], Bytes.ofString(message, haxe.io.Encoding.UTF8));
+		throw new HttpResponse(status, ["content-type" => "text/plain"], Bytes.ofString(message ?? "Error " + status, haxe.io.Encoding.UTF8));
 	}
 
 	private function json(object:Dynamic, options:Null<ResponseOptions> = null) {

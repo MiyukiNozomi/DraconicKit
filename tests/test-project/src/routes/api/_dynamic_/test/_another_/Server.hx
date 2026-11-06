@@ -4,7 +4,7 @@ import shinku.handling.RequestHandler.RequestEvent;
 import shinku.handling.AbstractHandler;
 
 class Server extends AbstractHandler {
-	@:keep public function GET(event:RequestEvent) {
+	@:keep public function GET(event:RequestEvent<Dynamic>) {
 		json({
 			message: "HI from the two placeholder one!",
 			params: event.params

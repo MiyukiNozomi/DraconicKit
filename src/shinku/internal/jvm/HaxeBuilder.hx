@@ -1,5 +1,6 @@
 package shinku.internal.jvm;
 
+import shinku.internal.devserver.externs.HaxeExternGenerator;
 #if draconicbuilder
 import sys.io.File;
 import shinku.std.io.SystemTools;
@@ -72,6 +73,15 @@ class HaxeBuilder {
 		final hacksDir = Path.join([shinkuDir, "hacks"]);
 		FileSystem.createDirectory(hacksDir);
 
+		final externsDir = Path.join([shinkuDir, "externs"]);
+		if (!FileSystem.exists(externsDir)) {
+			HaxeExternGenerator.generate(externsDir);
+
+			// yup, a hack.
+			// the extern generator gives 0 fucks about macro classes.
+			File.copy(Path.join([SystemTools.thisHomeDir(), "src/IncludeAll.hx"]), Path.join([hacksDir, "IncludeAll.hx"]));
+		}
+
 		final hxmlFilePath = Path.join([shinkuDir, "build.hxml"]);
 		if (!FileSystem.exists(hxmlFilePath)) {
 			Logger.debug("build.hxml is missing, recreating it.");
@@ -83,7 +93,7 @@ class HaxeBuilder {
 --library haxe-concurrent
 --class-path src
 --class-path .shinku/hacks
---class-path ${FileSystem.absolutePath(Path.join([SystemTools.thisHomeDir(), "src/"]))}
+--class-path .shinku/externs/src
 --main StubsMain
 ');
 		}
