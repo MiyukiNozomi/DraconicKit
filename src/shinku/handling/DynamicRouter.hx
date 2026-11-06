@@ -1,12 +1,10 @@
 package shinku.handling;
 
-import hx.concurrent.collection.CopyOnWriteArray;
-import java.util.concurrent.CopyOnWriteArraySet;
-import sys.thread.Mutex;
-import shinku.handling.AbstractHooks.AbstractServerHooks;
 import haxe.io.Error;
+import hx.concurrent.collection.CopyOnWriteArray;
 import shinku.Console.Logger;
 import shinku.handling.AbstractHandler;
+import shinku.handling.AbstractHooks.AbstractServerHooks;
 import shinku.handling.RequestHandler.RequestEvent;
 import shinku.http.HttpMessages.HttpRequest;
 import shinku.http.HttpMessages.HttpResponse;

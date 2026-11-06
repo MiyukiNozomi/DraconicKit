@@ -1,15 +1,19 @@
 package routes;
 
+import shinku.http.HttpMessages.HttpResponse;
 import shinku.handling.RequestHandler.RequestEvent;
 import shinku.handling.AbstractHooks.AbstractServerHooks;
 
 class ServerHooks extends AbstractServerHooks {
-	public override function onServerInit() {
-		trace("Hey! i do actually work too!");
-	}
-
 	public override function handle(event:RequestEvent<Dynamic>, resolve:(event:RequestEvent<Dynamic>) -> Void) {
-		trace("Attempt four? six twelve trrrr :", event);
-		resolve(event);
+		try {
+			resolve(event);
+		} catch (e:HttpResponse) {
+			trace("hey?");
+			text("Excuse me? I am a teapot! I will not reply (but will execute)", {
+				status: 418,
+				headers: []
+			});
+		}
 	}
 }

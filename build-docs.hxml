@@ -2,6 +2,7 @@
 --dce std
 --class-path src
 --main DocumentationMain
+-lib haxe-concurrent
 --hl bin/_non_existant_
 --xml bin/shinku.xml
 --no-output

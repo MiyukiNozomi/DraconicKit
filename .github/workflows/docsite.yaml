@@ -40,6 +40,7 @@ jobs:
           haxelib install hxjava
           haxelib install markdown
           haxelib install hscript
+          haxelib install haxe-concurrent
           haxe build.hxml && java -jar bin/DocBuilder.jar build
 
       - name: Upload Pages artifact

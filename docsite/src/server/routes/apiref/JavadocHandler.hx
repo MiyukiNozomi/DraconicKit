@@ -26,13 +26,13 @@ class JavadocHandler {
 			doc = trimDoc(doc);
 			tags.push({
 				name: name,
-				doc: XmlTools.markdown2Xml(doc),
+				doc: XmlTools.markdown2Xml(doc.split('\n').map(v -> StringTools.ltrim(v)).join('\n')),
 				value: value
 			});
 			return '';
 		});
 		var infos:DocInfos = {
-			doc: XmlTools.markdown2Xml(doc),
+			doc: XmlTools.markdown2Xml(doc.split('\n').map(v -> StringTools.ltrim(v)).join('\n')),
 			throws: [],
 			params: [],
 			sees: [],

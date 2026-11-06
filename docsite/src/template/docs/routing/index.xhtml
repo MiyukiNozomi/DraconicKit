@@ -133,7 +133,7 @@ import shinku.handling.RequestHandler.RequestEvent;
 import shinku.handling.AbstractHandler;
 
 class ServerHandler extends AbstractHandler {
-	public function GET(event:RequestEvent) {
+	public function GET(event:RequestEvent<Dynamic>) {
 		text("Hello, Moonlit Crimson Dragon!");
 	}
 }
@@ -174,7 +174,7 @@ import shinku.handling.RequestHandler.RequestEvent;
 import shinku.handling.AbstractHandler;
 
 class ServerHandler extends AbstractHandler {
-	public function GET(event:RequestEvent) {
+	public function GET(event:RequestEvent<Dynamic>) {
 		text("These are your route parameters: " + event.params.toString());
 	}
 }

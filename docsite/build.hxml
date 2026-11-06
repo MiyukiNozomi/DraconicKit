@@ -3,6 +3,7 @@
 -D hscriptPos
 --macro nullSafety("server", Strict)
 -lib markdown
+-lib haxe-concurrent
 -lib hscript
 --jvm bin/DocBuilder.jar
 --main server.Main

@@ -1,0 +1,141 @@
+<builder:import src="/res/html/markdown.xhtml"> <builder:markdown>
+
+<![CDATA[
+# Server Hooks
+
+DraconicKit allows you to hook into the server's pipeline before a route is handled (specifically, before a route is located).
+This is particularly useful if you want to implement authentication.
+
+## Hooking into the server
+
+Any class in the root `routes` package that extends [AbstractServerHooks](/docs/api/shinku/handling/AbstractServerHooks.xhtml)
+will be treated as the hooks class that will receive events. I personally recommend that you name the module and the class `ServerHooks`. 
+
+## Upon server initialization
+
+The following example will print a hello message when the server initializes in both production and development modes.
+
+**Note: This hook is fired every time this class is hot-reloaded as well.** 
+]]>
+
+</builder:markdown>
+<builder:import src="/res/html/components/codeblock-with-path.xhtml" set-title="src/routes/ServerHooks.hx">
+<builder:markdown>
+<![CDATA[```
+package routes;
+
+import shinku.handling.AbstractHooks.AbstractServerHooks;
+
+class ServerHooks extends AbstractServerHooks {
+    public override function onServerInit() {
+        trace("Hello, DraconicKit! The server is up!");
+    }
+}
+```
+]]>
+
+</builder:markdown>
+</builder:import>
+<builder:markdown>
+
+<![CDATA[
+## On an incoming request
+
+The following example will print whether a payload is present in an incoming request and then let DraconicKit's router handle it.
+]]>
+
+</builder:markdown>
+<builder:import src="/res/html/components/codeblock-with-path.xhtml" set-title="src/routes/ServerHooks.hx">
+<builder:markdown>
+
+<![CDATA[```
+package routes;
+
+import shinku.handling.RequestHandler.RequestEvent;
+import shinku.handling.AbstractHooks.AbstractServerHooks;
+
+class ServerHooks extends AbstractServerHooks {
+    public override function handle(event:RequestEvent<Dynamic>, resolve:(event:RequestEvent<Dynamic>) -> Void) {
+        trace(event.req.payload == null ? "We have no payload!" : "We got a payload!");
+        resolve(event);
+    }
+}
+```
+]]>
+
+</builder:markdown>
+</builder:import>
+
+<builder:markdown>
+
+<![CDATA[
+## Early response
+
+You can also either throw an HttpResponse or call `json`, `text`, et cetera, inside the `handle` function
+(refer to [Routing](/docs/routing#http-responses)).
+]]>
+
+</builder:markdown>
+<builder:import src="/res/html/components/codeblock-with-path.xhtml" set-title="src/routes/ServerHooks.hx">
+<builder:markdown>
+
+<![CDATA[```
+package routes;
+
+import shinku.handling.RequestHandler.RequestEvent;
+import shinku.handling.AbstractHooks.AbstractServerHooks;
+
+class ServerHooks extends AbstractServerHooks {
+    public override function handle(event:RequestEvent<Dynamic>, resolve:(event:RequestEvent<Dynamic>) -> Void) {
+        // We will only allow those with 'Kanata' in their user agent into our site!
+        // The only problem with this is that it doesn't guarantee that the user is actually using our desired browser...
+        // Ideally you would do this with sessions.
+        final agent = event.req.getHeader("user-agent");
+        
+        if (agent == null || agent.indexOf("Kanata") == -1) {
+            error(400, "You're not using the Kanata browser! Your user agent is " + agent);
+        }
+            
+        resolve(event);
+    }
+}
+```]]>
+</builder:markdown>
+</builder:import>
+
+<builder:markdown>
+
+<![CDATA[
+## Hijacking responses
+
+This is another option available to you: catching an HttpResponse from `resolve` and altering it,
+although I'm not sure why you would want to do this (hence my lack of creativity in the example below).
+]]>
+
+</builder:markdown>
+
+<builder:import src="/res/html/components/codeblock-with-path.xhtml" set-title="src/routes/ServerHooks.hx">
+<builder:markdown>
+
+<![CDATA[```
+package routes;
+
+import shinku.http.HttpMessages.HttpResponse;
+import shinku.handling.RequestHandler.RequestEvent;
+import shinku.handling.AbstractHooks.AbstractServerHooks;
+
+class ServerHooks extends AbstractServerHooks {
+    public override function handle(event:RequestEvent<Dynamic>, resolve:(event:RequestEvent<Dynamic>) -> Void) {
+        try {
+            resolve(event);
+        } catch (e:HttpResponse) {
+            text("Excuse me? I am a teapot! I will not reply (but will execute)", { status: 418, headers: [] });
+        }
+    }
+}
+```
+]]>
+
+</builder:markdown>
+</builder:import>
+</builder:import>
