@@ -25,7 +25,10 @@ class XHTMLRoute extends AbstractHandler {
 		try {
 			final contentType = "application/xhtml+xml";
 			var xml = XmlProcessor.process(Xml.parse(File.getContent(this.fullPath)), event.url, customProps, true);
-			throw new HttpResponse(200, ["content-type" => contentType], Bytes.ofString(xml.toString()));
+			text(xml.toString(), {
+				status: 200,
+				headers: ["content-type" => contentType]
+			});
 		} catch (e) {
 			if (Std.downcast(e, HttpResponse) != null)
 				throw e;
