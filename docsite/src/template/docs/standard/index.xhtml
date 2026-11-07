@@ -4,10 +4,28 @@
 <![CDATA[
 # Standard Libraries
 
-This chapter acts as notes on the package `shinku.std` provided by DraconicKit.
+This chapter acts as notes on the package `shinku.std` and mini tutorials on APIs provided by DraconicKit.
 
 ## API Reference
 You can access DraconicKit's code documentation as XHTML [by clicking here](/docs/api).
+
+## Cookies!
+
+All [RequestEvent](/docs/api/shinku/handling/RequestEvent.xhtml) objects received through [AbstractServerHooks](/docs/api/shinku/handling/AbstractServerHooks.xhtml),
+[AbstractHandler](/docs/api/shinku/handling/AbstractHandler.xhtml) or [AbstractServerPage](/docs/api/shinku/handling/AbstractServerPage.xhtml) will contain a property named `cookies`. 
+
+It provides functions such as:
+
+ - `get(name)` - Will return a request cookie by name
+ - `set(name, value, opts)` - Will set a cookie with custom options, by default Path is /, and the cookie will be httpOnly.
+ - `exists(name)` - Whatever or not a cookie by name exists and has not been deleted.
+ - `delete(name, ?opts)` - Will delete a cookie, and will send a Set-Cookie with a date in the past and a max age of 0. 
+ - `getAll()` - Returns all active (not-deleted and present) cookies in the jar.
+ - `serialize(name, value, opts)` - Will serialize a cookie from name, value and opts into a value Set-Cookie can hold.
+
+ **Tiny note: if you assign (or delete) a cookie on ServerHooks, it will in fact, affect the downstream (they will be able to see the cookies you have set in the server hooks).**
+
+I would heavily recommend that you read the API reference for the [Cookie Jar itself](/docs/api/shinku/handling/tools/Cookies.xhtml).
 ]]>
 
 </builder:markdown>
