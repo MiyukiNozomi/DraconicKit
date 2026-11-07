@@ -2,5 +2,6 @@
   "[xml]": {
     "editor.defaultFormatter": "redhat.vscode-xml"
   },
+  "search.useIgnoreFiles": true,
   "xml.format.joinCDATALines": false
 }
