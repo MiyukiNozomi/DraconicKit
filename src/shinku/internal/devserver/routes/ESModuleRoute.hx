@@ -87,12 +87,12 @@ class ESModuleRoute extends AbstractHandler {
 			}
 
 			if (ifNoneMatch == null || ifNoneMatch.indexOf(cached.hash) > -1) {
-				var r = new HttpResponse(304);
-				var h = getHeaders(cached.hash);
-				for (k => v in h) {
-					r.setHeader(k, [v]);
-				}
-				throw r;
+				/*var r = new HttpResponse(304);
+					var h = getHeaders(cached.hash);
+					for (k => v in h) {
+						r.setHeader(k, [v]);
+					}
+					throw r; */
 			}
 			bytes(cached.content, {
 				status: 200,

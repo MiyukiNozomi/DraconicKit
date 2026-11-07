@@ -1,5 +1,6 @@
 package shinku.handling;
 
+import shinku.handling.tools.Cookies;
 import haxe.io.Error;
 import hx.concurrent.collection.CopyOnWriteArray;
 import shinku.Console.Logger;
@@ -127,26 +128,32 @@ class DynamicRouter {
 		var e:RequestEvent = {
 			socket: socket,
 			req: req,
+			cookies: new Cookies(req),
 			url: url,
 			locals: {},
 			params: []
 		};
 
 		final resolve = (event:RequestEvent) -> {
-			for (dynamicRoute in this.routes) {
-				var params = this.matchRoute(dynamicRoute, url.pathname);
+			try {
+				for (dynamicRoute in this.routes) {
+					var params = this.matchRoute(dynamicRoute, url.pathname);
 
-				if (params != null) {
-					var handler = dynamicRoute.handler.methodToCallbackMap.get(req.status.method);
+					if (params != null) {
+						var handler = dynamicRoute.handler.methodToCallbackMap.get(req.status.method);
 
-					if (handler != null) {
-						event.params = params;
-						Reflect.callMethod(dynamicRoute.handler.instance, handler, [event]);
-					} else {
-						throw new HttpResponse(405);
+						if (handler != null) {
+							event.params = params;
+							Reflect.callMethod(dynamicRoute.handler.instance, handler, [event]);
+						} else {
+							throw new HttpResponse(405);
+						}
+						break;
 					}
-					break;
 				}
+			} catch (res:HttpResponse) {
+				e.cookies.installTo(res);
+				throw res;
 			}
 		}
 		final h = this.hooks;

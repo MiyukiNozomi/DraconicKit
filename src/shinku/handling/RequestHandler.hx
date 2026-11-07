@@ -1,5 +1,6 @@
 package shinku.handling;
 
+import shinku.handling.tools.Cookies;
 import haxe.io.Error;
 import haxe.io.Path;
 import shinku.Console.Logger;
@@ -16,6 +17,7 @@ typedef RequestEvent<T = Dynamic> = {
 	url:URL,
 	socket:HttpSocket,
 	req:HttpRequest,
+	cookies:Cookies,
 	locals:T,
 	params:Map<String, String>
 }

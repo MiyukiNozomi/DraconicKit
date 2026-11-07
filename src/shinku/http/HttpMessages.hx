@@ -68,6 +68,22 @@ class HttpRequest {
 	}
 
 	/**
+		Gets all values of a header.
+
+		The lookup is case-insensitive with respect to `key`.
+
+		@param key The header name to look up.
+		@param df The default value returned when the header is absent.
+		@return List of header values or empty if missing.
+	**/
+	public function getHeaderValues(key:String) {
+		var val = this.headers.get(key.toLowerCase());
+		if (val == null)
+			return [];
+		return val;
+	}
+
+	/**
 		Returns this request's payload as a haxe Bytes object;
 		I do not recommend that you use this for anything other than small payloads (that are limited through the project config)
 		since this means the entire payload will be loaded into ram.
@@ -236,31 +252,7 @@ class HttpResponse extends Exception {
 		Thou shall not call this!
 	**/
 	public function prepareBeforeCommit() {
-		var weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-		var months = [
-			"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-			"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-		];
-
-		function pad2(n:Int):String {
-			return n < 10 ? "0" + n : Std.string(n);
-		}
-
-		var date = Date.now();
-		headers.set("date", [weekdays[date.getUTCDay()]
-			+ ", "
-			+ pad2(date.getUTCDate())
-			+ " "
-			+ months[date.getUTCMonth()]
-			+ " "
-			+ date.getUTCFullYear()
-			+ " "
-			+ pad2(date.getUTCHours())
-			+ ":"
-			+ pad2(date.getUTCMinutes())
-			+ ":"
-			+ pad2(date.getUTCSeconds())
-			+ " GMT"]);
+		headers.set("date", [rfc6265Date(Date.now())]);
 
 		headers.set("server", ["Moonlit Crimson Dragon"]);
 
@@ -285,6 +277,24 @@ class HttpResponse extends Exception {
 
 	public function headersIterator() {
 		return this.headers.keyValueIterator();
+	}
+
+	/**
+		Returns `date` as a string in the date format of RFC 6265/1123.
+	**/
+	public static function rfc6265Date(date:Date) {
+		var weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+		var months = [
+			"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+			"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+		];
+
+		function pad2(n:Int):String {
+			return n < 10 ? "0" + n : Std.string(n);
+		}
+
+		return weekdays[date.getUTCDay()] + ", " + pad2(date.getUTCDate()) + " " + months[date.getUTCMonth()] + " " + date.getUTCFullYear() + " "
+			+ pad2(date.getUTCHours()) + ":" + pad2(date.getUTCMinutes()) + ":" + pad2(date.getUTCSeconds()) + " GMT";
 	}
 
 	/**
