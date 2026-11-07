@@ -101,7 +101,12 @@ class HttpServer {
 					}
 				}
 			} catch (err) {
-				Logger.error("FATAL: got a unhandled exception when handling a socket!\n" + err.toString());
+				try {
+					client.socket.close();
+				} catch (e) {
+					Logger.debug(e.toString() + "\n" + e.stack.toString());
+				}
+				Logger.error("FATAL: got a unhandled exception when handling a socket!\n" + err.toString() + "\n" + err.stack.toString());
 			}
 		});
 	}

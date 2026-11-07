@@ -71,8 +71,10 @@ class HttpSocket {
 
 		// prepare yourselves, this is going to be annoying as hell!
 		var requestHead = ['HTTP/1.1 ${response.status} ${response.statusText()}'];
-		for (key => value in response.headers) {
-			requestHead.push('${key}: ${value}');
+		for (key => value in response.headersIterator()) {
+			for (v in value) {
+				requestHead.push('${key}: ${v}');
+			}
 		}
 		requestHead.push("");
 		requestHead.push("");
@@ -194,12 +196,12 @@ class HttpSocket {
 			throw Error.Custom("readBodyFromContentLength called without a content-length header.");
 
 		if (!(~/^[0-9]+$/).match(contentLengthHeader))
-			throw new HttpResponse(400, ["content-type" => "text/plain"], Bytes.ofString("Bad Content-Length"));
+			throw new HttpResponse(400, ["content-type" => ["text/plain"]], Bytes.ofString("Bad Content-Length"));
 
 		var amount = Std.parseInt(contentLengthHeader);
 
 		if (amount == null || amount < 0)
-			throw new HttpResponse(400, ["content-type" => "text/plain"], Bytes.ofString("Bad Content-Length"));
+			throw new HttpResponse(400, ["content-type" => ["text/plain"]], Bytes.ofString("Bad Content-Length"));
 
 		if (amount > MAXIMUM_PAYLOAD_LENGTH)
 			throw new HttpResponse(413);
@@ -234,7 +236,7 @@ class HttpSocket {
 
 				if (bytes.length >= MAX_CRLF_LINE_LENGTH) {
 					Logger.debug("Warning: Hit CRLF-terminated line maximum limit of " + MAX_CRLF_LINE_LENGTH);
-					throw new HttpResponse(400, ["content-type" => "text/plain"],
+					throw new HttpResponse(400, ["content-type" => ["text/plain"]],
 						Bytes.ofString("CRLF Line too long (limit " + MAX_CRLF_LINE_LENGTH + " yours: " + bytes.length + ")"));
 				}
 

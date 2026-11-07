@@ -72,7 +72,11 @@ class ESModuleRoute extends AbstractHandler {
 					var srcCode = File.getContent(pathStr);
 					cached = new CachedESModule(JavaScriptTransformer.transform(srcCode, pathStr));
 					this.cache.set(pathStr, cached);
-					throw new HttpResponse(200, getHeaders(cached.hash), cached.content);
+
+					bytes(cached.content, {
+						status: 200,
+						headers: getHeaders(cached.hash)
+					});
 				} catch (err) {
 					if (Std.downcast(err, HttpResponse) != null)
 						throw err;
@@ -83,9 +87,17 @@ class ESModuleRoute extends AbstractHandler {
 			}
 
 			if (ifNoneMatch == null || ifNoneMatch.indexOf(cached.hash) > -1) {
-				//	throw new HttpResponse(304, getHeaders(cached.hash));
+				var r = new HttpResponse(304);
+				var h = getHeaders(cached.hash);
+				for (k => v in h) {
+					r.setHeader(k, [v]);
+				}
+				throw r;
 			}
-			throw new HttpResponse(200, getHeaders(cached.hash), cached.content);
+			bytes(cached.content, {
+				status: 200,
+				headers: getHeaders(cached.hash)
+			});
 		}
 	}
 }

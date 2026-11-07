@@ -1,5 +1,6 @@
 package shinku.http;
 
+import shinku.Console.Logger;
 import haxe.io.Error;
 import haxe.extern.EitherType;
 import haxe.io.Bytes;
@@ -67,6 +68,54 @@ class HttpRequest {
 	}
 
 	/**
+		Returns this request's payload as a haxe Bytes object;
+		I do not recommend that you use this for anything other than small payloads (that are limited through the project config)
+		since this means the entire payload will be loaded into ram.
+
+		**WARNING: This method will consume the payload.**
+
+		@return This request's payload as a haxe Bytes object, `null` if this request has no payload.
+	**/
+	public function bytes() {
+		if (this.payload == null)
+			return null;
+		return this.payload.readAll();
+	}
+
+	/**
+		Returns this request's payload as a String (interpreted as UTF-8)
+		Like `buffer()`, I do not recommend that you use this for anything other than small payloads (that are limited through the project config)
+		since this means the entire payload will be loaded into ram.
+
+		**WARNING: This method will consume the payload.**
+
+		@return This request's payload as a String, `null` if this request has no payload.
+	**/
+	public function text() {
+		if (this.payload == null)
+			return null;
+		return this.payload.readAll().toString();
+	}
+
+	/**
+		This method loads the payload as a text into memory, parses it as JSON, and returns as a haxe Dynamic type.
+
+		**WARNING: This method will consume the payload.**
+
+		@return This request's payload in JSON notation and returns it untyped, or `null` if this request has no payload or if it's not valid JSON.
+	**/
+	public function json():Dynamic {
+		try {
+			var buff = this.text();
+			if (buff != null)
+				return Json.parse(buff);
+		} catch (err) {
+			Logger.debug("Could not parse: ", err);
+		}
+		return null;
+	}
+
+	/**
 		Returns a debug representation of the request: the request line as JSON,
 		followed by a newline and the headers map. (payload not included)
 	**/
@@ -94,7 +143,8 @@ class HttpResponse extends Exception {
 	public var sourceRequest:Null<HttpRequest> = null;
 
 	public var status(default, null):Int;
-	public var headers(default, null):Map<String, String>;
+
+	private var headers(default, null):Map<String, Array<String>>;
 
 	/**
 		The response body, either as an in-memory `Bytes` buffer (sent with a
@@ -114,20 +164,53 @@ class HttpResponse extends Exception {
 		@param payload The response body, or `null` for no body.
 		@throws haxe.io.Error.Custom If a disallowed header is supplied.
 	**/
-	public function new(status:Int, headers:Map<String, String> = [], payload:Null<EitherType<Input, Bytes>> = null) {
+	public function new(status:Int, headers:Map<String, Array<String>> = [], payload:Null<EitherType<Input, Bytes>> = null) {
 		super("HttpResponse");
 		this.status = status;
-		this.headers = new Map<String, String>();
+		this.headers = new Map<String, Array<String>>();
 
-		final DisallowedInputHeaders = ["server", "content-length", "transfer-encoding"];
 		for (key => value in headers) {
-			if (DisallowedInputHeaders.contains(key.toLowerCase())) {
-				throw Error.Custom("Hey buddy, this header: " + key + " is not allowed to be manually set.");
-			}
-			this.headers.set(key.toLowerCase(), headers[key] + "");
+			setHeader(key, value);
 		}
 
 		this.payload = payload;
+	}
+
+	static final RESERVED = ["server", "content-length", "transfer-encoding"];
+
+	public function setHeader(key:String, values:Array<String>) {
+		final k = key.toLowerCase();
+		if (RESERVED.contains(k))
+			throw Error.Custom("Hey buddy, this header: " + key + " is not allowed to be manually set.");
+		headers.set(k, values);
+	}
+
+	/**
+		Checks whether the response contains the given header.
+
+		The lookup is case-insensitive with respect to `key`.
+
+		@param key The header name to look for (will be lowercased).
+		@return `true` if the header is present, otherwise `false`.
+	**/
+	public function hasHeader(key:String) {
+		return this.headers.exists(key.toLowerCase());
+	}
+
+	/**
+		Gets the value of a header.
+
+		The lookup is case-insensitive with respect to `key`.
+
+		@param key The header name to look up.
+		@param df The default value returned when the header is absent.
+		@return The joined header value, or `df` if the header does not exist.
+	**/
+	public function getHeader(key:String, df:String = null) {
+		var val = this.headers.get(key.toLowerCase());
+		if (val == null)
+			return df;
+		return val.join(", ");
 	}
 
 	/**
@@ -139,9 +222,12 @@ class HttpResponse extends Exception {
 		@return `true` if no body may be sent, otherwise `false`.
 	**/
 	public function isBodyDisallowed() {
-		if ((this.status >= 100 && this.status < 200) || status == 204 || status == 304)
-			return true;
-		return (this.sourceRequest != null && this.sourceRequest.status.method == "HEAD");
+		var isHead = sourceRequest != null && sourceRequest.status.method == "HEAD";
+		return !statusAllowsBody() || isHead;
+	}
+
+	private function statusAllowsBody():Bool {
+		return !((status >= 100 && status < 200) || status == 204 || status == 304);
 	}
 
 	/**
@@ -161,8 +247,7 @@ class HttpResponse extends Exception {
 		}
 
 		var date = Date.now();
-		headers.set("date",
-			weekdays[date.getUTCDay()]
+		headers.set("date", [weekdays[date.getUTCDay()]
 			+ ", "
 			+ pad2(date.getUTCDate())
 			+ " "
@@ -175,9 +260,9 @@ class HttpResponse extends Exception {
 			+ pad2(date.getUTCMinutes())
 			+ ":"
 			+ pad2(date.getUTCSeconds())
-			+ " GMT");
+			+ " GMT"]);
 
-		headers.set("server", "Moonlit Crimson Dragon");
+		headers.set("server", ["Moonlit Crimson Dragon"]);
 
 		var isHead = (this.sourceRequest != null && this.sourceRequest.status.method == "HEAD");
 
@@ -189,13 +274,17 @@ class HttpResponse extends Exception {
 			var stream = Std.downcast(this.payload, Input);
 
 			if (buffer != null) {
-				headers.set("content-length", buffer.length + "");
+				headers.set("content-length", [buffer.length + ""]);
 			} else if (stream != null) {
-				headers.set("transfer-encoding", "chunked");
+				headers.set("transfer-encoding", ["chunked"]);
 			}
 		} else if (!this.isBodyDisallowed()) {
-			headers.set("content-length", "0");
+			headers.set("content-length", ["0"]);
 		}
+	}
+
+	public function headersIterator() {
+		return this.headers.keyValueIterator();
 	}
 
 	/**
@@ -207,7 +296,7 @@ class HttpResponse extends Exception {
 		(there are more hidden easter eggs)
 	**/
 	public function statusText():String {
-		return switch (this.status) {
+		var normalResponses = switch (this.status) {
 			case 100: "Continue";
 			case 101: "Switching Protocols";
 			case 102: "Processing";
@@ -275,10 +364,22 @@ class HttpResponse extends Exception {
 			case 510: "Not Extended";
 			case 511: "Network Authentication Required";
 
+			default: null;
+		}
+
+		if (normalResponses != null)
+			return normalResponses;
+
+		#if dev
+		Logger.warn("You are sending a non-existant/unknown status code: ", this.status, ". Don't do it in production.");
+		return switch (this.status) {
 			case 6838: "Damn.. you really knew my old discord ID.";
 			case 117: "Were it so easy.";
 
 			default: "I'm a dragon";
 		}
+		#else
+		return "Unknown";
+		#end
 	}
 }

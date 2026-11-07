@@ -68,7 +68,7 @@ final class RequestHandler {
 				throw new HttpResponse(405);
 
 			var fileStream = File.read(Path.join([this.staticRouteBasedir, url.pathname]));
-			throw new HttpResponse(200, ["content-type" => MimeTypes.forFilename(url.pathname)], fileStream);
+			throw new HttpResponse(200, ["content-type" => [MimeTypes.forFilename(url.pathname)]], fileStream);
 		}
 
 		this.dynamicRouter.tryHandleRequest(socket, url, req);
