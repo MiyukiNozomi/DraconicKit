@@ -1,5 +1,6 @@
 package shinku.handling;
 
+import shinku.http.HttpServer;
 import shinku.handling.tools.Cookies;
 import haxe.io.Error;
 import hx.concurrent.collection.CopyOnWriteArray;
@@ -124,10 +125,11 @@ class DynamicRouter {
 		}
 	}
 
-	public function tryHandleRequest(socket:HttpSocket, url:URL, req:HttpRequest) {
+	public function tryHandleRequest(server:HttpServer, socket:HttpSocket, url:URL, req:HttpRequest) {
 		var e:RequestEvent = {
 			socket: socket,
 			req: req,
+			server: server,
 			cookies: new Cookies(req),
 			url: url,
 			locals: {},

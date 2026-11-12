@@ -170,6 +170,11 @@ class HttpResponse extends Exception {
 	public var payload(default, null):Null<EitherType<Input, Bytes>>;
 
 	/**
+		An optional callback called by the HTTP Server when this response is written to the client.
+	**/
+	public var onResponseWritten:Null<() -> Void>;
+
+	/**
 		Creates a new response.
 
 		Header names are lowercased and values are converted to strings.

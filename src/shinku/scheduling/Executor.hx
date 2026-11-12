@@ -1,5 +1,6 @@
 package shinku.scheduling;
 
+import shinku.std.io.SystemTools;
 import shinku.Console.Logger;
 import haxe.io.Error;
 import shinku.scheduling.ThreadPool;
@@ -7,67 +8,25 @@ import shinku.scheduling.ThreadPool;
 // TODO: implement setTimeout?
 
 /**
-	This class is a work in progress and should not be called.
+	A Class that manage server-wide threads.
 
-	(it also makes nCPU threads.. so...)
+	Mostly used to delegate the job of http connections and websockets.
 **/
 class Executor {
-	private var workers:ThreadPool;
+	private static var pool:Null<ThreadPool>;
 
-	public function new() {
-		var n = Executor.getProcessorCores();
+	public static function prepare() {
+		var n = SystemTools.getProcessorCount();
 		// TODO: replace this with an ElasticThreadPool instead.
-		this.workers = new ThreadPool(n);
-		Logger.debug("Working with " + this.workers.threadsCount + " worker threads.");
+		pool = new ThreadPool(n);
+		Logger.debug("Working with " + pool.threadsCount + " worker threads.");
 	}
 
-	public function schedule(task:() -> Void) {
-		workers.run(() -> {
+	public static function schedule(task:() -> Void) {
+		if (pool == null)
+			throw Error.Blocked;
+		pool.run(() -> {
 			task();
 		});
-	}
-
-	private static function runCommand(command:String) {
-		final process = new sys.io.Process(command);
-		if (process.exitCode() != 0) {
-			throw Error.Custom("Couldnt not run command: " + command);
-		}
-		return process.stdout.readAll().toString();
-	}
-
-	public static function getProcessorCores():Int {
-		var result = "";
-
-		var osName = Sys.systemName();
-		Logger.debug("getProcessorCores: OS name: " + osName);
-
-		if (osName == "Windows") {
-			var env = Sys.getEnv("NUMBER_OF_PROCESSORS");
-
-			if (env != null) {
-				result = env;
-			}
-		} else if (osName == "Linux" || osName.indexOf("BSD") != -1) {
-			result = runCommand("nproc");
-
-			if (result == null && osName == "Linux") {
-				var cpuinfo = runCommand("cat /proc/cpuinfo");
-
-				if (cpuinfo != null) {
-					var split = cpuinfo.split("processor");
-					result = Std.string(split.length - 1);
-				}
-			}
-		} else if (osName == "Mac") {
-			var cores = ~/Total Number of Cores: (\d+)/;
-			var output = runCommand("/usr/sbin/system_profiler -detailLevel full SPHardwareDataType");
-
-			if (cores.match(output)) {
-				result = cores.matched(1);
-			}
-		}
-
-		var cores = Std.parseInt(result);
-		return Std.int(Math.max(cores != null ? cores : 1, 1));
 	}
 }

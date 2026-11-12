@@ -1,5 +1,6 @@
 package shinku.handling;
 
+import shinku.http.HttpServer;
 import shinku.handling.tools.Cookies;
 import haxe.io.Error;
 import haxe.io.Path;
@@ -17,6 +18,7 @@ typedef RequestEvent<T = Dynamic> = {
 	url:URL,
 	socket:HttpSocket,
 	req:HttpRequest,
+	server:HttpServer,
 	cookies:Cookies,
 	locals:T,
 	params:Map<String, String>
@@ -61,7 +63,7 @@ final class RequestHandler {
 		Logger.debug("Static routes:", "\n" + (this.staticRoutes.map(v -> ' - ${v}').join("\n")));
 	}
 
-	public function handleRequest(socket:HttpSocket, req:HttpRequest) {
+	public function handleRequest(server:HttpServer, socket:HttpSocket, req:HttpRequest) {
 		var url = new URL(req.status.target, "http://0.0.0.0");
 		Logger.debug(req.status.method, url.href, req.status.version);
 
@@ -73,7 +75,7 @@ final class RequestHandler {
 			throw new HttpResponse(200, ["content-type" => [MimeTypes.forFilename(url.pathname)]], fileStream);
 		}
 
-		this.dynamicRouter.tryHandleRequest(socket, url, req);
+		this.dynamicRouter.tryHandleRequest(server, socket, url, req);
 		throw new HttpResponse(404);
 	}
 }

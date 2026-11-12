@@ -1,5 +1,7 @@
 package shinku.http;
 
+import haxe.io.Bytes;
+import shinku.ws.WebSocketController;
 import sys.net.Host;
 import shinku.Console.Logger;
 import shinku.handling.RequestHandler;
@@ -13,23 +15,28 @@ class HttpServer {
 	private var socket:Socket;
 	private var running:Bool;
 
-	private var executor:Executor;
-
 	public var requestHandler(default, null):RequestHandler;
 
 	public var host(get, never):{host:Host, port:Int};
 
 	public var onListen:Null<() -> Void>;
 
+	public var websocketController:WebSocketController;
+
 	public function new(host:Host, port:Int) {
+		Executor.prepare();
+
 		this.socket = new Socket();
 		this.socket.bind(host, port);
 		this.running = true;
 
-		this.executor = new Executor();
 		this.requestHandler = new RequestHandler();
 
 		this.requestHandler.loadStaticRoutes();
+
+		this.websocketController = new WebSocketController();
+		// Cant pass to the constructor since null safety will complain that "cannot pass this if not all fields are initialized.."
+		this.websocketController.httpServer = this;
 	}
 
 	public function start() {
@@ -57,7 +64,7 @@ class HttpServer {
 	}
 
 	private function handleClient(client:HttpSocket) {
-		this.executor.schedule(() -> {
+		Executor.schedule(() -> {
 			try {
 				while (true) {
 					var req:Null<HttpRequest> = null;
@@ -72,7 +79,11 @@ class HttpServer {
 								Logger.info(req.status);
 						}
 
-						requestHandler.handleRequest(client, req);
+						requestHandler.handleRequest(this, client, req);
+
+						// oh. no response given.. that's bad, really bad. lets report a 503.
+						throw new HttpResponse(500, ["content-type" => ["text/plain; charset=utf-8"]],
+							Bytes.ofString("Request handler did not throw a response."));
 					} catch (err) {
 						var res = Std.downcast(err, HttpResponse);
 						var timeout = Std.downcast(err, HttpSocketTimeout);
@@ -87,6 +98,18 @@ class HttpServer {
 							if (connectionHeader.indexOf("close") != -1) {
 								client.socket.close();
 								return;
+							}
+
+							try {
+								if (res.onResponseWritten != null)
+									res.onResponseWritten();
+							} catch (e) {
+								Logger.error("An exception was thrown inside of the onResponseWritten!\n" + e.toString() + "\n" + e.stack.toString());
+							}
+
+							// So, it's switching protocols, that means this thread cannot continue handling it.
+							if (res.status == 101) {
+								break; // Stop handling this socket, keep it open so the underlying transfer protocol can manage it.
 							}
 						} else {
 							if (timeout == null) {
