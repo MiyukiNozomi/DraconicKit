@@ -27,7 +27,11 @@ class HandlerTools {
 		throw new HttpResponse(data.status, data.headers, Bytes.ofString(text, haxe.io.Encoding.UTF8));
 	}
 
-	private function bytes(bytes : Bytes, options:Null<ResponseOptions> = null) {
+	private function redirect(status:Int, url:String) {
+		throw new HttpResponse(status, ["location" => [url]]);
+	}
+
+	private function bytes(bytes:Bytes, options:Null<ResponseOptions> = null) {
 		var data = prepareResponse(options);
 		throw new HttpResponse(data.status, data.headers, bytes);
 	}

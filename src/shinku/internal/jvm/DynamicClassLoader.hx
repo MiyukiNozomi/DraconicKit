@@ -12,9 +12,19 @@ import sys.thread.Mutex;
 
 using StringTools;
 
+// Starting to feel like i should make the entire builder + app hot-reloadable to avoid these problems.. i dont know.
 class DynamicClassLoader extends URLClassLoader {
 	static var serverPackages:Array<String> = [];
-	static final alwaysParent = ["java.", "javax.", "jdk.", "sun.", "com.sun."];
+	static final alwaysParent = [
+		"java.",
+		"javax.",
+		"jdk.",
+		"sun.",
+		"com.sun.",
+		"shinku",
+		"hx.concurrent",
+		"haxe.root"
+	];
 	static final serverClasses:Map<String, Bool> = scanServerClasses(Sys.programPath());
 
 	final owners:Map<String, DynamicClassLoader>;

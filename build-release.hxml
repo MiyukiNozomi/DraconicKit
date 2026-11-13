@@ -1,5 +1,5 @@
 -D draconicbuilder
---dce std
+--dce no
 --class-path src
 --macro nullSafety("shinku", Strict)
 --main DevMain

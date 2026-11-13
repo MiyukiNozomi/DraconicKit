@@ -1,5 +1,7 @@
 package shinku.internal.devserver;
 
+import sys.FileSystem;
+import shinku.std.io.FileWatcher;
 #if draconicbuilder
 import haxe.io.Path;
 import shinku.Configuration;
@@ -19,6 +21,7 @@ using StringTools;
 
 class DevServer {
 	public static var builderThread:Null<Thread>;
+	public static var staticDirWatcherThread:Null<Thread>;
 
 	private static function printWelcome(httpServer:HttpServer) {
 		final separator = '\u2501\u2501\u2501\u2501\u2501\u2501---------';
@@ -68,6 +71,15 @@ class DevServer {
 
 			builderThread = Thread.create("DraconicBuilder", () -> {
 				DraconicBuilder.runBuilderProcess(httpServer);
+			});
+
+			staticDirWatcherThread = Thread.create("StaticFileWatcher", () -> {
+				final staticDir = FileSystem.absolutePath(Path.join([Configuration.WorkingDirectory, Configuration.StaticDirectory]));
+				final watcher = new FileWatcher(staticDir, (event) -> {
+					Logger.debug("Static directory at", staticDir, "has changed! reloading static route...");
+					httpServer.requestHandler.loadStaticRoutes();
+				});
+				watcher.run();
 			});
 		}
 

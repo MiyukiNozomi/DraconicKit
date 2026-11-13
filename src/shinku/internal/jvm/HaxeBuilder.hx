@@ -24,7 +24,7 @@ class HaxeBuilder {
 		this.projectDir = projectDir;
 		this.onBuilt = onBuilt;
 		this.onFailed = onFailed;
-		hxml = Path.join([projectDir, ".shinku", "build.hxml"]);
+		hxml = Path.join([projectDir, "project.hxml"]);
 		genDir = Path.join([projectDir, ".shinku", "gen"]);
 		FileSystem.createDirectory(genDir);
 		Thread.create(loop);
@@ -50,7 +50,7 @@ class HaxeBuilder {
 		Logger.debug("Rebuilding!");
 		final jar = Path.join([genDir, 'user-${generation + 1}.jar']);
 		final t0 = Sys.time();
-		final p = new Process("haxe", ["--cwd", projectDir, hxml, "--jvm", jar]);
+		final p = new Process("haxe", ["--cwd", projectDir, hxml, "--jvm", jar, "--define", "dev"]);
 
 		final err = p.stderr.readAll().toString();
 		final out = p.stdout.readAll().toString();
