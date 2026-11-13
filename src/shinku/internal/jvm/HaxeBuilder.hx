@@ -78,7 +78,7 @@ class HaxeBuilder {
 			HaxeExternGenerator.generate(externsDir);
 
 			// yup, a hack.
-			// the extern generator gives 0 fucks about macro classes.
+			// the extern generator gives 0 shits about macro classes.
 			File.copy(Path.join([SystemTools.thisHomeDir(), "src/IncludeAll.hx"]), Path.join([hacksDir, "IncludeAll.hx"]));
 		}
 

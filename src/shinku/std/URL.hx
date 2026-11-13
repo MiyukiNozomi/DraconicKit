@@ -24,7 +24,7 @@ import haxe.io.Error;
 	- `pathname` is decoded.
 
 	Just a side note: I hate this file and i never want to touch it ever again in my entire life
-	I never, EVER want to parse URLs again, it's such a fucking pain!
+	I never, EVER want to parse URLs again, it's such a god damn pain!
 	With regards, the dragon in the office.
 
  */

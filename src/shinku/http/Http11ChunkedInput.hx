@@ -1,5 +1,6 @@
 package shinku.http;
 
+import shinku.Console.Logger;
 import shinku.http.HttpMessages.HttpResponse;
 import haxe.io.Bytes;
 import haxe.io.Eof;
@@ -14,6 +15,11 @@ class Http11ChunkedInput extends Input {
 	private var currentChunkLength:Int;
 
 	private var totalReadAmount:Int;
+
+	public var isFinished(get, never):Bool;
+
+	function get_isFinished()
+		return hasReachedEOF;
 
 	public function new(socket:HttpSocket) {
 		this.cursor = 0;
@@ -96,7 +102,7 @@ class Http11ChunkedInput extends Input {
 		if (this.cursor < this.currentChunkLength || hasReachedEOF)
 			return;
 
-		var lengthBuff = this.socket.readUntilCRLF(HttpSocket.MAX_CHUNKED_TRANSFER_BLOCK_SIZE);
+		var lengthBuff = this.socket.readUntilCRLF();
 		if (lengthBuff == null) {
 			throw new haxe.io.Eof();
 		}
@@ -116,8 +122,9 @@ class Http11ChunkedInput extends Input {
 
 		var length = Std.parseInt("0x" + lengthStr);
 
-		if (length == null) {
-			throw Error.Custom("Length is non numeric: " + lengthStr);
+		if (length == null || length < 0) {
+			Logger.debug("Length of chunk is non numeric: " + lengthStr);
+			throw new HttpResponse(400);
 		}
 
 		if (length == 0) {
@@ -127,7 +134,8 @@ class Http11ChunkedInput extends Input {
 		}
 
 		if (length > this.localBuffer.length) {
-			throw Error.Overflow;
+			Logger.debug("Length is larger than our localBuffer!", length, "vs", this.localBuffer.length);
+			throw new HttpResponse(413);
 		}
 
 		totalReadAmount += length;

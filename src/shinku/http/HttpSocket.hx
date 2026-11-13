@@ -1,5 +1,7 @@
 package shinku.http;
 
+import haxe.io.Eof;
+import haxe.Timer;
 import shinku.Console.Logger;
 import haxe.Exception;
 import haxe.io.Input;
@@ -48,7 +50,7 @@ class HttpSocket {
 		if (request == null)
 			return null;
 
-		// HTTP 1.1 mandates the existance of Host.
+		// HTTP 1.1 mandates the existence of Host.
 		var host = request.getHeader("host");
 		if (host == null || StringTools.trim(host).length == 0)
 			throw new HttpResponse(400);
@@ -119,14 +121,20 @@ class HttpSocket {
 		}
 	}
 
+	public function close() {
+		try {
+			this.socket.close();
+		} catch (e) {
+			Logger.debug(e.toString() + "\n" + e.stack.toString());
+		}
+	}
+
 	private function buildRequestHead() {
 		// bad request!
 		// just initially..
 
 		socket.setTimeout(KEEP_ALIVE_TIMEOUT_SECONDS);
 		var requestBuffer = this.readUntilCRLF(KEEP_ALIVE_TIMEOUT_SECONDS);
-		if (requestBuffer == null)
-			return null;
 
 		// Parse status line..
 		// Yes, we are accepting multiple spaces here, but that's just in case.
@@ -183,7 +191,7 @@ class HttpSocket {
 			.filter(v -> v.length > 0);
 
 		// TODO: compression
-		if (!(header.length == 1 && header[0] == "chunked")) {
+		if (!(header.length == 1 && header[0].toLowerCase() == "chunked")) {
 			throw new HttpResponse(400);
 		}
 		request.payload = new Http11ChunkedInput(this);
@@ -207,28 +215,26 @@ class HttpSocket {
 			throw new HttpResponse(413);
 
 		var contentBytes = Bytes.alloc(amount);
-		var offset = 0;
-
-		socket.input.readFullBytes(contentBytes, offset, amount - offset);
+		socket.input.readFullBytes(contentBytes, 0, amount);
 
 		request.payload = new BytesInput(contentBytes);
 		return request;
 	}
 
-	public function readUntilCRLF(customTimeoutSeconds = READ_UNTIL_CRLF_TIMEOUT) {
+	public function readUntilCRLF(customTimeoutSeconds = READ_UNTIL_CRLF_TIMEOUT):Bytes {
 		try {
 			var bytes = new BytesBuffer();
 			var prev = 0;
 
-			var start = Sys.time();
+			var start = Timer.stamp();
 
 			while (true) {
-				// what the fuck? another timeout??
+				// what the heck? another timeout??
 				/*
 					Here's why: the socket timeout is used BETWEEN bytes, not for the entire operation.
 					this timeout only applies to the entire CRLF operation, otherwise an attacker can hang until we reach the limit for 10 seconds between each byte
 				 */
-				if (Sys.time() - start > customTimeoutSeconds) {
+				if (Timer.stamp() - start > customTimeoutSeconds) {
 					throw Error.Custom("Took longer than " + customTimeoutSeconds + " seconds to fully read a CRLF-terminated line.");
 				}
 				var next = socket.input.readByte();
@@ -249,14 +255,28 @@ class HttpSocket {
 
 				prev = next;
 			}
-		} catch (err) {
-			if (err.message.toLowerCase().indexOf("time") != -1) {
+		} catch (err:HttpResponse) {
+			throw err;
+		} catch (err:haxe.io.Error) {
+			switch (err) {
+				case Blocked:
+					throw new HttpSocketTimeout("");
+				case Custom(e):
+					#if jvm
+					if (Std.string(e).indexOf("java.net.SocketTimeoutException") != -1)
+						throw new HttpSocketTimeout("");
+					#end
+					throw err;
+				default:
+					throw err;
+			}
+		} catch (err:Dynamic) {
+			#if jvm
+			if (Std.isOfType(err, java.net.SocketTimeoutException)) {
 				throw new HttpSocketTimeout("");
 			}
-			if (Std.isOfType(err, HttpResponse))
-				throw err;
-			Logger.debug("readUntilCRLF failed: ", err.toString());
-			throw Error.Blocked;
+			#end
+			throw err;
 		}
 	}
 }
