@@ -1,5 +1,6 @@
 package shinku.internal.commands;
 
+#if draconicbuilder
 import shinku.Console.Logger;
 import shinku.Console.AnsiPrinter;
 
@@ -89,3 +90,4 @@ class HelpCommand {
 			fullSizeHelp();
 	}
 }
+#end

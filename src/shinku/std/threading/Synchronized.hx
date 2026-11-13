@@ -32,7 +32,7 @@ class Synchronized<T> {
 		});
 	}
 
-	private inline function locked<R>(fn:() -> R):R {
+	@:internal inline function locked<R>(fn:() -> R):R {
 		mutex.acquire();
 		try {
 			var r = fn();

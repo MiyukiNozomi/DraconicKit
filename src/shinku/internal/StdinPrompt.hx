@@ -1,5 +1,6 @@
 package shinku.internal;
 
+#if draconicbuilder
 import shinku.Console.AnsiPrinter;
 
 class StdinPrompt {
@@ -70,3 +71,4 @@ class StdinPrompt {
 		}
 	}
 }
+#end

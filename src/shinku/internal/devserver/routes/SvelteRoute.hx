@@ -14,10 +14,6 @@ class SvelteRoute extends AbstractHandler {
 	public var serverPage:Null<AbstractServerPage>;
 
 	private var eTag:String = "";
-	private var cachedPageSrc:{
-		js:String,
-		css:String
-	} = {js: "", css: ""};
 
 	public function new(serverPage:Null<AbstractServerPage>, thisPathname:String) {
 		super();

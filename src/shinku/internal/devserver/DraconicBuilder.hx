@@ -1,5 +1,6 @@
 package shinku.internal.devserver;
 
+import shinku.internal.devserver.routes.HMRChannelRoute;
 #if draconicbuilder
 import haxe.rtti.CType.Classdef;
 import shinku.internal.jvm.MoonlitClass;
@@ -27,6 +28,8 @@ class DraconicBuilder {
 	private static final serverPages = new Map<String, AbstractServerPage>();
 	// build thread and watcher thread both touch this
 	private static final pagesLock = new Mutex();
+
+	private static final hmrChannel = new HMRChannelRoute();
 
 	private static function getRoutename(fp:String) {
 		final normalizedPath = fp.substring(srcDir.length);
@@ -57,6 +60,8 @@ class DraconicBuilder {
 	public static function runBuilderProcess(httpServer:HttpServer) {
 		srcDir = FileSystem.absolutePath(Path.join([Configuration.WorkingDirectory, "src"]));
 		Logger.debug("src directory is: ", srcDir);
+
+		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@draconickit/ws", hmrChannel);
 
 		final hotReloader = new HotReloader((cls, name) -> {
 			if (!name.startsWith("routes."))

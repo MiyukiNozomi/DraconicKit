@@ -1,118 +1,167 @@
 package shinku.ws;
 
-import shinku.scheduling.Executor;
-import haxe.atomic.AtomicBool;
-import hx.concurrent.collection.SynchronizedArray;
-import haxe.io.Error;
 import haxe.io.Bytes;
 import haxe.crypto.Sha1;
 import haxe.crypto.Base64;
-import shinku.Console.Logger;
-import shinku.handling.RequestHandler.RequestEvent;
 import shinku.http.HttpMessages.HttpResponse;
-import shinku.http.HttpServer;
+import shinku.handling.RequestHandler.RequestEvent;
+import haxe.atomic.AtomicBool;
+import hx.concurrent.collection.SynchronizedArray;
+import shinku.Console.Logger;
+import shinku.scheduling.Executor;
+import sys.net.Socket;
+import sys.thread.Mutex;
 import sys.thread.Thread;
 
+using StringTools;
+
 class WebSocketController {
-	// TODO: make this configurable?
-	public static final WS_SOCKET_SLEEP_TIME = 0.1;
+	/** Longest time the poller waits in select() when nothing is readable. **/
+	public static final POLL_TIMEOUT = 0.1;
 
-	public var httpServer:Null<HttpServer>;
+	final sockets = new SynchronizedArray<WebSocket>();
+	final startLock = new Mutex();
+	final running = new AtomicBool(true);
+	var pollerStarted = false;
 
-	// Initially null because this server might not be using web sockets.
-	private var worker:Null<Thread>;
-
-	private var running = true;
-	private var hasWorker:AtomicBool;
-	private var packetPollThread:Null<Thread>;
-
-	private var sockets:SynchronizedArray<WebSocket>;
-
-	public function new() {
-		this.httpServer = null;
-		this.worker = null;
-		this.hasWorker = new AtomicBool(false);
-		this.sockets = new SynchronizedArray();
-	}
+	public function new() {}
 
 	public function handleNewSocket(ws:WebSocket) {
-		this.ensureWorkersExist();
-		this.sockets.add(ws);
+		startLock.acquire();
+		if (!pollerStarted) {
+			pollerStarted = true;
+			Thread.create("WebSocket Frame Poller", pollLoop);
+		}
+		startLock.release();
+		sockets.add(ws);
 	}
 
-	function ensureWorkersExist() {
-		if (hasWorker.load())
-			return;
-		hasWorker.store(true);
-		this.packetPollThread = Thread.create("WebSocket Frame Poller", () -> {
-			var hadNoPackets = true;
+	public function shutdown() {
+		running.store(false);
+		for (ws in sockets.copy())
+			ws.close(1001, "server shutting down");
+	}
 
-			while (running) {
-				for (worker in this.sockets.copy()) {
-					try {
-						if (worker.hasReadyPackets()) {
-							hadNoPackets = false;
-							// and now.. we fire!
-							Executor.schedule(() -> worker.fireEvents());
-						}
-					} catch (e) {
-						Logger.debug("Dropping a websocket because: ", Std.string(e));
-						if (!this.sockets.remove(worker)) {
-							Logger.error("Could not remove a websocket from the controller after it has disconnected!");
-						}
-					}
-				}
+	function pollLoop() {
+		while (running.load()) {
+			for (ws in sockets.copy())
+				if (ws.isClosed())
+					sockets.remove(ws);
 
-				if (hadNoPackets)
-					Sys.sleep(WS_SOCKET_SLEEP_TIME);
+			final live = sockets.copy();
+			if (live.length == 0) {
+				Sys.sleep(POLL_TIMEOUT);
+				continue;
 			}
-		});
+
+			final handles = [for (ws in live) ws.pollHandle()];
+			var readable:Array<Socket>;
+			try {
+				readable = Socket.select(handles, [], [], POLL_TIMEOUT).read;
+			} catch (e:Dynamic) {
+				Logger.error("WebSocket select failed: " + Std.string(e));
+				Sys.sleep(POLL_TIMEOUT);
+				continue;
+			}
+
+			for (i in 0...live.length) {
+				final ws = live[i];
+				if (ws == null)
+					continue;
+				try {
+					if (readable.indexOf(handles[i]) >= 0) {
+						if (ws.hasReadyPackets())
+							scheduleDispatch(ws);
+					} else if (ws.isClosing()) {
+						if (ws.checkCloseTimeout())
+							scheduleDispatch(ws);
+					}
+				} catch (e:Dynamic) {
+					Logger.debug("Dropping a websocket because: " + Std.string(e));
+					scheduleDispatch(ws);
+				}
+			}
+		}
+	}
+
+	function scheduleDispatch(ws:WebSocket) {
+		if (!ws.tryClaimDispatch())
+			return;
+		Executor.schedule(() -> dispatch(ws));
+	}
+
+	function dispatch(ws:WebSocket) {
+		while (true) {
+			ws.fireEvents();
+			ws.releaseDispatch();
+			if (!ws.hasPendingEvents() || !ws.tryClaimDispatch())
+				break;
+		}
 	}
 }
 
 class WebSocketAction {
 	public static function upgrade(event:RequestEvent<Dynamic>, ?appProtocolName:String, onSocket:(sock:WebSocket) -> Void) {
-		if (event.req.status.method != "GET") {
-			throw Error.Custom("You're not supposed to upgrade connections with a non-GET method.");
-		}
+		final req = event.req;
+		if (req.status.method != "GET")
+			throw new HttpResponse(405, ["allow" => ["GET"]]);
 
-		var connection = event.req.getHeader("connection");
-		var upgrade = event.req.getHeader("upgrade");
-		var websocketKey = event.req.getHeader("sec-websocket-key");
-		var websocketProtocol = event.req.getHeader("sec-websocket-protocol");
-		var websocketVersion = event.req.getHeader("sec-websocket-version");
-		if (connection == null || upgrade == null || websocketKey == null || websocketProtocol == null || websocketVersion == null) {
-			#if dev
-			Logger.warn("Request", event.req.status.method, event.req.status.target,
-				"is missing mandatory headers for a websocket upgrade handshake. (this warning will not appear in production)");
-			#end
+		final connection = req.getHeader("connection");
+		final upgrade = req.getHeader("upgrade");
+		final key = req.getHeader("sec-websocket-key");
+		final version = req.getHeader("sec-websocket-version");
+		final clientProtocols = req.getHeader("sec-websocket-protocol"); // optional
+
+		if (connection == null || upgrade == null || key == null || version == null)
 			throw new HttpResponse(400, []);
-		}
+		if (!hasToken(connection, "upgrade") || upgrade.trim().toLowerCase() != "websocket")
+			throw new HttpResponse(400, []);
+		if (!isValidKey(key))
+			throw new HttpResponse(400, []);
+		if (version.trim() != "13")
+			throw new HttpResponse(426, ["sec-websocket-version" => ["13"]]);
 
-		if (websocketVersion != "13") {
-			#if dev
-			Logger.warn("Request", event.req.status.method, event.req.status.target, "has sent an incorrect version string",
-				websocketVersion + ". (this warning will not appear in production)");
-			#end
-			throw new HttpResponse(400, [], Bytes.ofString("Bad Sec-WebSocket-Version. Expected 13 got " + websocketVersion));
-		}
-
-		var responseHeaders = [
+		final responseHeaders = [
+			"upgrade" => ["websocket"],
+			"connection" => ["Upgrade"],
 			"sec-websocket-accept" => [
-				Base64.encode(Sha1.make(Bytes.ofString(websocketKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")))
+				Base64.encode(Sha1.make(Bytes.ofString(key.trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")))
 			]
 		];
 
-		if (appProtocolName != null)
+		var negotiated:Null<String> = null;
+		if (appProtocolName != null && clientProtocols != null && clientProtocols.indexOf(appProtocolName) >= 0) {
+			negotiated = appProtocolName;
 			responseHeaders.set("sec-websocket-protocol", [appProtocolName]);
+		}
 
 		final res = new HttpResponse(101, responseHeaders);
-
 		res.onResponseWritten = () -> {
-			var sock = new WebSocket(event.url, event.socket.socket, appProtocolName);
+			final sock = new WebSocket(event.url, event.socket.socket, negotiated);
+			try {
+				onSocket(sock);
+			} catch (e:Dynamic) {
+				Logger.error("WebSocket handler failed: " + Std.string(e));
+				sock.close(1011, "handler failed");
+				return;
+			}
 			event.server.websocketController.handleNewSocket(sock);
-			onSocket(sock);
 		};
 		throw res;
+	}
+
+	static function hasToken(value:String, token:String):Bool {
+		for (t in value.split(",").map(v -> v.trim()).filter(t -> t.length > 0))
+			if (t == token)
+				return true;
+		return false;
+	}
+
+	static function isValidKey(key:String):Bool {
+		try {
+			return Base64.decode(key.trim()).length == 16;
+		} catch (_:Dynamic) {
+			return false;
+		}
 	}
 }

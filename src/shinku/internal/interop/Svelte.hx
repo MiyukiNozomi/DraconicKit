@@ -66,10 +66,12 @@ class SvelteBuilder {
 		if (cacheEntry != null && cacheEntry.etag == sourceTag) {
 			return cacheEntry;
 		}
+
 		var compileResult:SvelteCompileResult = NodeRunner.runNodeScript("sveltecc.js", {
 			src: source,
 			filename: pathname,
 			preprocessorConfig: null,
+			withHotswapSupport: true,
 			rootDir: FileSystem.absolutePath(Path.join([Configuration.WorkingDirectory, "src/"]))
 		});
 
@@ -95,7 +97,9 @@ class SvelteBuilder {
 			case "script":
 				// for the page's script.. the thing becomes *pretty* annoying. we used to just inject a style tag ourselves
 				// for pages, but now for both components and pages we inject a CSS import.
-				JavaScriptTransformer.transform('${component.result.css != null ? 'import "${routename}?shinkureqtype=style";\n' : ''}${component.result.js.code}',
+				JavaScriptTransformer.transform('${component.result.css != null ? 'import "${routename}?shinkureqtype=style";\n' : ''}'
+					+
+					'import Shinku from "shinku";import.meta.hot = Shinku.createHMRContext(${Json.stringify(component.filename)});${component.result.js.code}',
 					component.filename);
 			case "style":
 				// yes, we also turn CSS into a JS script, only in dev mode though.

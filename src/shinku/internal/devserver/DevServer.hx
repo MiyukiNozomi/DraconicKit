@@ -1,19 +1,17 @@
 package shinku.internal.devserver;
 
-import shinku.Console.AnsiPrinter;
 #if draconicbuilder
 import haxe.io.Path;
 import shinku.Configuration;
+import shinku.Console.AnsiPrinter;
 import shinku.Console.Logger;
-import shinku.handling.AbstractHandler;
 import shinku.http.HttpServer;
 import shinku.internal.DraconicConfig.DraconicJSConfigLoader;
 import shinku.internal.devserver.routes.ESModuleRoute;
 import shinku.internal.esm.NodeRunner;
-import shinku.std.io.FileWatcher;
+import shinku.internal.interop.ShinkuESMDep;
 import shinku.std.io.SystemTools;
 import sys.net.Host;
-import sys.thread.Mutex;
 import sys.thread.Thread;
 
 using Lambda;
@@ -58,6 +56,8 @@ class DevServer {
 			Logger.warn('CleanupAlways was set to true, $pth will be deleted!');
 			SystemTools.deleteRecursive(pth);
 		}
+
+		ShinkuESMDep.setupModule(null, Configuration.CleanupAlways);
 
 		final httpServer = new HttpServer(new Host(serverConfig.server.host), serverConfig.server.port);
 

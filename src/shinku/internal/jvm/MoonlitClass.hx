@@ -1,9 +1,8 @@
 package shinku.internal.jvm;
 
-import haxe.Rest;
 #if draconicbuilder
+import haxe.Rest;
 import java.lang.reflect.Method;
-import haxe.io.Error;
 
 class MoonlitMethod {
 	private var parent:MoonlitClass;

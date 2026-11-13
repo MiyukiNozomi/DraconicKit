@@ -1,5 +1,6 @@
 package shinku.internal.devserver.externs;
 
+#if draconicbuilder
 import haxe.rtti.CType;
 import haxe.io.Output;
 import sys.io.File;
@@ -13,11 +14,21 @@ import sys.FileSystem;
 
 using StringTools;
 
-#if draconicbuilder
 typedef ModuleInfo = {
 	typeRoot:Array<TypeTree>
 };
 
+/**
+	It's purpose is to generate externs for the entire public API of draconic kit.
+	However,  This class has a lot of problems.
+
+
+	TODOs:
+	- Declarations such as `inline function locked<R>(fn:() -> R):R` are incorrectly generated
+	  as fields, even though it's a function. the result is that it will not contain type parameters.
+	- Default type parameter declarations are ignored. RequestEvent<T = Dynamic> will generate as RequestEvent<T>.
+
+**/
 class HaxeExternGenerator {
 	static var moduleOf:Map<String, String> = new Map();
 	static var scopeParams:Array<String> = [];
@@ -427,14 +438,16 @@ class HaxeExternGenerator {
 				needed.set(s, true);
 		}
 
-		final shouldWrite = (f:ClassField) -> /*f.isPublic*/ true || needed.exists(f.name);
+		final shouldWrite = (f:ClassField) -> (/*f.isPublic*/ true || needed.exists(f.name))
+			&& f.meta.filter(v -> v.name == ":internal").length == 0;
 
 		for (f in c.statics)
 			if (shouldWrite(f))
 				writeClassField(output, f, true, c.isInterface);
-		for (f in c.fields)
+		for (f in c.fields) {
 			if (shouldWrite(f))
 				writeClassField(output, f, false, c.isInterface);
+		}
 
 		output.writeString("}\n\n");
 	}

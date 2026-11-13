@@ -1,6 +1,5 @@
 package shinku.internal.jvm;
 
-import shinku.internal.devserver.externs.HaxeExternGenerator;
 #if draconicbuilder
 import sys.io.File;
 import shinku.std.io.SystemTools;
@@ -10,6 +9,7 @@ import sys.FileSystem;
 import sys.io.Process;
 import sys.thread.Lock;
 import sys.thread.Thread;
+import shinku.internal.devserver.externs.HaxeExternGenerator;
 
 class HaxeBuilder {
 	final projectDir:String;

@@ -35,8 +35,6 @@ class HttpServer {
 		this.requestHandler.loadStaticRoutes();
 
 		this.websocketController = new WebSocketController();
-		// Cant pass to the constructor since null safety will complain that "cannot pass this if not all fields are initialized.."
-		this.websocketController.httpServer = this;
 	}
 
 	public function start() {

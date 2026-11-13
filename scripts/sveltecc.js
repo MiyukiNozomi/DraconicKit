@@ -8,7 +8,8 @@ import { compile, preprocess } from "svelte/compiler";
  *    src: string,
  *    filename: string,
  *    preprocessorConfig: any | null,
- *    rootDir: string
+ *    rootDir: string,
+ *    withHotswapSupport: boolean
  * }
  */
 
@@ -34,6 +35,7 @@ process.stdin.on("end", async () => {
       rootDir: path.resolve(args.rootDir),
       generate: "client",
       filename: args.filename,
+      hmr: args.withHotswapSupport,
     });
     console.log(JSON.stringify(result));
     process.exit(0);

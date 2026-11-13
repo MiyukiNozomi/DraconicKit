@@ -1,3 +1,4 @@
+import hx.concurrent.collection.SynchronizedMap;
 #if draconicbuilder
 import shinku.std.URL;
 import shinku.internal.commands.HelpCommand;

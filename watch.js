@@ -2,19 +2,15 @@ import { watch } from "fs";
 import path from "path";
 import { spawn } from "child_process";
 
-const BUILD_COMMAND = "haxe";
-const BUILD_ARGS = ["build-dev-backend.hxml"];
-
-let debounceTimer;
 let currentBuild = null;
 let pendingBuild = false;
 
-function runBuild() {
+function runBuild(args) {
   if (currentBuild) return (pendingBuild = true);
 
-  console.log(`\n[${new Date().toLocaleTimeString()}] Building...`);
+  console.log(`\n[${new Date().toLocaleTimeString()}] Building ${args}...`);
 
-  currentBuild = spawn(BUILD_COMMAND, BUILD_ARGS, {
+  currentBuild = spawn("haxe", args, {
     stdio: "inherit",
   });
 
@@ -24,26 +20,46 @@ function runBuild() {
 
   currentBuild.on("close", (code) => {
     console.log(
-      `[${new Date().toLocaleTimeString()}] Build exited with code ${code}`,
+      `[${new Date().toLocaleTimeString()}] Build '${args}' exited with code ${code}`,
     );
 
     currentBuild = null;
 
     if (pendingBuild) {
       pendingBuild = false;
-      runBuild();
+      runBuild(args);
     }
   });
 }
 
 console.log(`Watching src for changes...`);
 
-watch(path.resolve("src/"), { recursive: true }, (eventType, filename) => {
-  if (!filename) return;
-  console.log(`[${eventType}] ${filename}`);
+{
+  let debounceTimer;
+  watch(path.resolve("src/"), { recursive: true }, (eventType, filename) => {
+    if (!filename) return;
+    console.log(`[${eventType}] ${filename}`);
 
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    runBuild();
-  }, 300);
-});
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      runBuild(["build-dev-backend.hxml"]);
+    }, 300);
+  });
+}
+
+{
+  let debounceTimer;
+  watch(
+    path.resolve("shinkujs/src"),
+    { recursive: true },
+    (eventType, filename) => {
+      if (!filename) return;
+      console.log(`[${eventType}] ${filename}`);
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        runBuild(["shinkujs/build.hxml"]);
+      }, 300);
+    },
+  );
+}

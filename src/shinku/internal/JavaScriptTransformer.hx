@@ -1,5 +1,6 @@
 package shinku.internal;
 
+#if draconicbuilder
 import shinku.Console.Logger;
 import sys.FileSystem;
 import shinku.internal.esm.ESMResolver;
@@ -317,3 +318,4 @@ class JavaScriptTransformer {
 		return PREAMBLE + out.toString();
 	}
 }
+#end

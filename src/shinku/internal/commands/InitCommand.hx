@@ -1,5 +1,7 @@
 package shinku.internal.commands;
 
+#if draconicbuilder
+import shinku.internal.interop.ShinkuESMDep;
 import haxe.Json;
 import haxe.io.Path;
 import shinku.Console.AnsiPrinter;
@@ -84,10 +86,15 @@ class InitCommand {
 				dependencies: {
 					// ideally we want to use the same svelte version, reason being that the svelte compiler invoked by DraconicKit is the builder's own install and not the project's.
 					// So to avoid incompatibilities of built svelte internal dependencies between project and builder we force it to use the same svelte version.
-					"svelte": ourSvelteVersion
+					"svelte": ourSvelteVersion,
+					"shinku": "file:./.shinku/esm"
 				},
 				license: license
 			}, "\t"));
+
+			// we have to set it up before the package manager installs.
+			ShinkuESMDep.setupModule(directory, true);
+
 			AnsiPrinter.print(' §0;93m*=- §0;90mInstalling dependencies with $packageManager...\n');
 
 			var cmd = [packageManager];
@@ -113,3 +120,4 @@ class InitCommand {
 		}
 	}
 }
+#end
