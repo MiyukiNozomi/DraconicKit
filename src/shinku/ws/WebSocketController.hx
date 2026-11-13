@@ -1,5 +1,6 @@
 package shinku.ws;
 
+import shinku.std.io.SocketSelect;
 import haxe.io.Bytes;
 import haxe.crypto.Sha1;
 import haxe.crypto.Base64;
@@ -57,7 +58,11 @@ class WebSocketController {
 			final handles = [for (ws in live) ws.pollHandle()];
 			var readable:Array<Socket>;
 			try {
+				#if jvm
+				readable = SocketSelect.select(handles, [], [], POLL_TIMEOUT).read;
+				#else
 				readable = Socket.select(handles, [], [], POLL_TIMEOUT).read;
+				#end
 			} catch (e:Dynamic) {
 				Logger.error("WebSocket select failed: " + Std.string(e));
 				Sys.sleep(POLL_TIMEOUT);
@@ -112,12 +117,20 @@ class WebSocketAction {
 		final version = req.getHeader("sec-websocket-version");
 		final clientProtocols = req.getHeader("sec-websocket-protocol"); // optional
 
+		Logger.debug([
+			"connection" => connection,
+			"upgrade" => upgrade,
+			"sec-websocket-key" => key,
+			"sec-websocket-version" => version,
+			"sec-websocket-protocol" => clientProtocols
+		]);
+
 		if (connection == null || upgrade == null || key == null || version == null)
-			throw new HttpResponse(400, []);
+			throw new HttpResponse(400, [], Bytes.ofString("Incomplete upgrade request."));
 		if (!hasToken(connection, "upgrade") || upgrade.trim().toLowerCase() != "websocket")
-			throw new HttpResponse(400, []);
+			throw new HttpResponse(400, [], Bytes.ofString("Bad token / unexpected target protocol."));
 		if (!isValidKey(key))
-			throw new HttpResponse(400, []);
+			throw new HttpResponse(400, [], Bytes.ofString("Invalid key."));
 		if (version.trim() != "13")
 			throw new HttpResponse(426, ["sec-websocket-version" => ["13"]]);
 
@@ -151,7 +164,7 @@ class WebSocketAction {
 	}
 
 	static function hasToken(value:String, token:String):Bool {
-		for (t in value.split(",").map(v -> v.trim()).filter(t -> t.length > 0))
+		for (t in value.split(",").map(v -> v.trim().toLowerCase()).filter(t -> t.length > 0))
 			if (t == token)
 				return true;
 		return false;
