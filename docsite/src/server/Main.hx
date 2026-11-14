@@ -116,7 +116,7 @@ class Main {
 				Logger.info(" - ", route.rawRoutePath, " -> ", output);
 
 				try {
-					sv.requestHandler.handleRequest(fakeSocket, new HttpRequest({
+					sv.requestHandler.handleRequest(sv, fakeSocket, new HttpRequest({
 						method: "GET",
 						version: "HTTP/1.1",
 						target: route.rawRoutePath

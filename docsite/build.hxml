@@ -1,5 +1,5 @@
 --class-path src
---class-path ../src
+--class-path ../packages/core/src
 -D hscriptPos
 --macro nullSafety("server", Strict)
 -lib markdown
