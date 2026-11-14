@@ -23,10 +23,6 @@ private typedef Token = {
 }
 
 class JavaScriptTransformer {
-	// Defined per module on purpose: a relative import() resolves against the
-	// module that *contains the call*, so a single shared helper would resolve
-	// every relative dynamic import against whichever module defined it first.
-	// Kept on one line (no trailing newline) so line numbers don't shift.
 	static final PREAMBLE = "/* inserted by DraconicKit. */ const __draconicImport = (p, o) => { "
 		+ "if (!p || (typeof p !== 'string' && !(p instanceof URL))) throw new Error('Bad import path: ' + p); "
 		+ "const s = String(p); "
@@ -51,8 +47,6 @@ class JavaScriptTransformer {
 	];
 
 	static final URL_LIKE = ~/^(https?|data|blob):/i;
-
-	// ---------------------------------------------------------------- lexing
 
 	private static inline function isSpace(c:Int):Bool
 		return c == 32 || c == 9 || c == 10 || c == 13 || c == 11 || c == 12;
@@ -89,7 +83,7 @@ class JavaScriptTransformer {
 			}
 			if (c == quote)
 				return i + 1;
-			if (c == 10) // unterminated, don't swallow the rest of the file
+			if (c == 10)
 				return i;
 			i++;
 		}
@@ -115,7 +109,6 @@ class JavaScriptTransformer {
 		return s.length;
 	}
 
-	// `start` is just after "${"; returns the index after the matching "}"
 	private static function skipBraces(s:String, start:Int):Int {
 		var depth = 1;
 		var i = start;
@@ -152,7 +145,6 @@ class JavaScriptTransformer {
 		return s.length;
 	}
 
-	// returns -1 if this doesn't look like a regex literal
 	private static function skipRegex(s:String, start:Int):Int {
 		var i = start + 1;
 		var inClass = false;
@@ -180,7 +172,6 @@ class JavaScriptTransformer {
 		return -1;
 	}
 
-	// is a "/" at this point a regex start (true) or a division (false)?
 	private static function regexAllowed(prev:Token):Bool {
 		if (prev == null)
 			return true;
@@ -193,7 +184,7 @@ class JavaScriptTransformer {
 
 	private static function tokenize(s:String):Array<Token> {
 		var tokens:Array<Token> = [];
-		var prev:Null<Token> = null; // last non-trivia token
+		var prev:Null<Token> = null;
 		var i = 0;
 
 		function add(kind:TokenKind, end:Int):Void {
@@ -245,14 +236,11 @@ class JavaScriptTransformer {
 		return tokens;
 	}
 
-	// -------------------------------------------------------------- rewriting
-
 	private static function resolveImport(pathname:String, thisPath:String):String {
 		try {
 			return ESMResolver.esmResolve(pathname, FileSystem.absolutePath(thisPath));
 		} catch (err) {
 			Logger.error("Could not resolve " + pathname + " because: ", err, err.stack);
-			// fall back to the bare specifier; the /@module/ handler can try to resolve it
 			return pathname;
 		}
 	}
@@ -289,7 +277,6 @@ class JavaScriptTransformer {
 		for (i in 0...tokens.length) {
 			var t = tokens[i];
 
-			// `foo.import(...)` / `Array.from(...)` are member accesses, not syntax
 			if (t.kind == Ident && (prev == null || prev.text != ".")) {
 				switch (t.text) {
 					case "import":

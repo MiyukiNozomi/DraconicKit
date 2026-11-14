@@ -1,4 +1,4 @@
 -D dev
 -D draconicdev
 -D draconicbuilder
-build-release.hxml
+build.hxml

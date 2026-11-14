@@ -1,6 +1,0 @@
---cwd shinkujs
--dce full
--D js-es=6
---class-path src
---main Shinku
---js ../bin/shinku.js

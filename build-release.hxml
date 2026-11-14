@@ -1,8 +1,0 @@
--D draconicbuilder
---dce no
---class-path src
---macro nullSafety("shinku", Strict)
---main DevMain
---library haxe-concurrent
---xml bin/shinku-project-symbols.xml
---jvm bin/DraconicKit.jar

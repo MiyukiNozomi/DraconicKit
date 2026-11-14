@@ -97,7 +97,7 @@ class SvelteBuilder {
 			case "script":
 				// for the page's script.. the thing becomes *pretty* annoying. we used to just inject a style tag ourselves
 				// for pages, but now for both components and pages we inject a CSS import.
-				JavaScriptTransformer.transform('${component.result.css != null ? 'import "${routename}?shinkureqtype=style";\n' : ''}'
+				JavaScriptTransformer.transform('${component.result.css != null ? 'import "${routename}?shinkureqtype=style";' : ''}'
 					+
 					'import Shinku from "shinku";import.meta.hot = Shinku.createHMRContext(${Json.stringify(component.filename)});${component.result.js.code}',
 					component.filename);

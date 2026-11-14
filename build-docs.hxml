@@ -1,6 +1,6 @@
 -D doc-gen
 --dce std
---class-path src
+--class-path packages/core
 --main DocumentationMain
 -lib haxe-concurrent
 --hl bin/_non_existant_

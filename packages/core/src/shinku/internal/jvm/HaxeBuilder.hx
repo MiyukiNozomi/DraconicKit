@@ -79,7 +79,9 @@ class HaxeBuilder {
 
 			// yup, a hack.
 			// the extern generator gives 0 shits about macro classes.
-			File.copy(Path.join([SystemTools.thisHomeDir(), "src/IncludeAll.hx"]), Path.join([hacksDir, "IncludeAll.hx"]));
+			// Still. it's a hack. fix it.
+			// TODO.
+			File.copy(Path.join([SystemTools.thisHomeDir(), "packages/core/src/IncludeAll.hx"]), Path.join([hacksDir, "IncludeAll.hx"]));
 		}
 
 		final hxmlFilePath = Path.join([shinkuDir, "build.hxml"]);
