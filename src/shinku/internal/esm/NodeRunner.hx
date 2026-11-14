@@ -75,7 +75,13 @@ class NodeRunner {
 		if (!FileSystem.exists(PATH_TO_NODEJS)) {
 			throw "Attempted to run a NodeJS script with.. a non-existant NodeJS installation: " + PATH_TO_NODEJS;
 		}
-		return Json.parse(runCommandAndGetOutput([PATH_TO_NODEJS, pathname], Bytes.ofString(Json.stringify(input))));
+		var output = runCommandAndGetOutput([PATH_TO_NODEJS, pathname], Bytes.ofString(Json.stringify(input)));
+		try {
+			return Json.parse(output);
+		} catch (err) {
+			Logger.debug("JSON parse failed for: " + output);
+			throw err;
+		}
 	}
 }
 #end
