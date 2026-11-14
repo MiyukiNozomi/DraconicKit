@@ -58,11 +58,7 @@ class WebSocketController {
 			final handles = [for (ws in live) ws.pollHandle()];
 			var readable:Array<Socket>;
 			try {
-				#if jvm
 				readable = SocketSelect.select(handles, [], [], POLL_TIMEOUT).read;
-				#else
-				readable = Socket.select(handles, [], [], POLL_TIMEOUT).read;
-				#end
 			} catch (e:Dynamic) {
 				Logger.error("WebSocket select failed: " + Std.string(e));
 				Sys.sleep(POLL_TIMEOUT);
