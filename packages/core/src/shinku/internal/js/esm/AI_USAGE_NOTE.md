@@ -28,7 +28,7 @@ import hell from "@dante/inferno";
 import redstone from "#minecraft";
 ```
 
-The firsst two resolve to the innermost node_modules the resolver can find, with the exception that the @ thingy on the start makes the package name be "@dante/inferno" and not just "@dante", the last one is a private, defined in package.json "import map" to a file.
+The first two resolve to the innermost node_modules the resolver can find, with the exception that the @ thingy on the start makes the package name be "@dante/inferno" and not just "@dante", the last one is a private, defined in package.json "import map" to a file.
 
 and up until here it is simple, but complexity quickly becomes unberable. let's go over the "main" and "exports" of a package.json:
 

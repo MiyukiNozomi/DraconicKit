@@ -3,5 +3,9 @@ payload.bin
 dump
 
 bin
+
+# originally wanted to keep it inside of bin/, but for some reason.. --java-lib torwards a jar inside of the output directory causes haxe to overwrite, idk why.
+lib
+
 pnpm-lock.yaml
 node_modules

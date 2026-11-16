@@ -1,4 +1,4 @@
-package shinku.internal.esm;
+package shinku.internal.js.esm;
 
 import haxe.Exception;
 

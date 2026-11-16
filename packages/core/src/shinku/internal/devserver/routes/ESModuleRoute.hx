@@ -8,7 +8,7 @@ import shinku.Console.Logger;
 import shinku.handling.AbstractHandler;
 import shinku.handling.RequestHandler.RequestEvent;
 import shinku.http.HttpMessages.HttpResponse;
-import shinku.internal.interop.Svelte.SvelteBuilder;
+import shinku.internal.js.interop.Svelte.SvelteBuilder;
 import sys.io.File;
 
 /***

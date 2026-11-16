@@ -1,10 +1,10 @@
-package shinku.internal.interop;
+package shinku.internal.js.interop;
 
 import haxe.Json;
 import haxe.crypto.Sha1;
 import haxe.io.Error;
 import haxe.io.Path;
-import shinku.internal.esm.NodeRunner;
+import shinku.internal.js.esm.NodeRunner;
 import shinku.std.URLSearchParams;
 import sys.FileSystem;
 import sys.io.File;

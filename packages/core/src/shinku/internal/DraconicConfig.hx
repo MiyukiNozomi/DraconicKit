@@ -1,7 +1,8 @@
 package shinku.internal;
 
 #if draconicbuilder
-import shinku.internal.esm.NodeRunner;
+import shinku.internal.js.crimsonrt.JSRuntime;
+import shinku.internal.js.esm.NodeRunner;
 import shinku.Console.Logger;
 import sys.FileSystem;
 import haxe.io.Path;
@@ -24,6 +25,8 @@ class DraconicJSConfigLoader {
 			Logger.error("Config file does not exist at: " + draconicConfigPath + " !");
 			return null;
 		}
+
+		//	new JSRuntime().runModule(draconicConfigPath);
 
 		var output:DraconicConfig = NodeRunner.runNodeScript("configload.js", {
 			filename: draconicConfigPath

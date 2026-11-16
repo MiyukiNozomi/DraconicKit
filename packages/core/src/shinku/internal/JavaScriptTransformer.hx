@@ -3,7 +3,7 @@ package shinku.internal;
 #if draconicbuilder
 import shinku.Console.Logger;
 import sys.FileSystem;
-import shinku.internal.esm.ESMResolver;
+import shinku.internal.js.esm.ESMResolver;
 import haxe.io.Path;
 import haxe.Json;
 

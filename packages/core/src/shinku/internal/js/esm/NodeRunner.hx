@@ -1,4 +1,4 @@
-package shinku.internal.esm;
+package shinku.internal.js.esm;
 
 import shinku.std.io.SystemTools;
 import shinku.Console.Logger;

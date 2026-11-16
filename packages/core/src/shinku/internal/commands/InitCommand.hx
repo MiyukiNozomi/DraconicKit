@@ -1,7 +1,7 @@
 package shinku.internal.commands;
 
 #if draconicbuilder
-import shinku.internal.interop.ShinkuESMDep;
+import shinku.internal.js.interop.ShinkuESMDep;
 import haxe.Json;
 import haxe.io.Path;
 import shinku.Console.AnsiPrinter;

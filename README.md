@@ -20,9 +20,11 @@ Refer to [documentation](https://draconickit.ane.jp.net).
 
 # How to build this?
 
-Simply run `haxe build-dev-backend.hxml` for a debug build. there's no production mode yet.
+First, you will have to download a version of mozilla's Rhino (yes, the javascript engine. It's used for Server-Side-Rendering and running the svelte compiler.)
 
-If you're going to be working on this, run `node watch.js`, which will watch for changes on src/ and rebuild the project.
+Simply run `haxe build.hxml`, if you wish for a debug build, run `haxe build-dev.hxml`.
+
+If you're going to be working on this, run `node watch.js`, which will watch for changes on packages/ and rebuild the project.
 
 # A few notes
 
@@ -33,5 +35,7 @@ Another import thing is conditional compilation, normally, a draconic kit projec
 ## TODO list
 
 - [ ] HMR
-- [ ] WebSockets
+- [ ] Server Sent Events
+- [ ] Form Data
+- [x] WebSockets
 - [ ] Add builder for production

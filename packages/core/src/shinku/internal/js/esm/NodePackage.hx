@@ -1,8 +1,8 @@
-package shinku.internal.esm;
+package shinku.internal.js.esm;
 
-import shinku.internal.esm.ESMErrors.InvalidModuleSpecifierError;
-import shinku.internal.esm.ESMErrors.InvalidPackageConfigurationError;
-import shinku.internal.esm.ESMErrors.ModuleNotFoundError;
+import shinku.internal.js.esm.ESMErrors.InvalidModuleSpecifierError;
+import shinku.internal.js.esm.ESMErrors.InvalidPackageConfigurationError;
+import shinku.internal.js.esm.ESMErrors.ModuleNotFoundError;
 import haxe.io.Path;
 import sys.io.File;
 import haxe.Json;

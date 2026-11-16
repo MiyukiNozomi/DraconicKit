@@ -5,7 +5,7 @@ import haxe.Json;
 import haxe.io.Path;
 import shinku.handling.AbstractHandler;
 import shinku.handling.RequestHandler.RequestEvent;
-import shinku.internal.interop.Svelte.SvelteBuilder;
+import shinku.internal.js.interop.Svelte.SvelteBuilder;
 import sys.io.File;
 
 class SvelteRoute extends AbstractHandler {
