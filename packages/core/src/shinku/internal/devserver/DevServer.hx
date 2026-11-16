@@ -66,7 +66,7 @@ class DevServer {
 		final httpServer = new HttpServer(new Host(serverConfig.server.host), serverConfig.server.port);
 
 		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@draconickit/module/[...path]", new ESModuleRoute());
-		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@draconickit/resolve-dynamic/[...path]", new ESModuleResolveRoute());
+		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@draconickit/resolve-dynamic", new ESModuleResolveRoute());
 
 		httpServer.onListen = () -> {
 			printWelcome(httpServer);
