@@ -1,4 +1,4 @@
-![Draconic Kit's Logo](src/draconic-kit-wordmark.webp)
+![Draconic Kit's Logo](packages/draconic-kit-wordmark.webp)
 
 # DraconicKit - A SvelteKit inspired.. SvelteKit replacement!
 
