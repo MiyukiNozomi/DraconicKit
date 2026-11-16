@@ -30,12 +30,14 @@ class JavaScriptTransformer {
 	static final PREAMBLE = "/* inserted by DraconicKit. */ const __draconicImport = (p, o) => { "
 		+ "if (!p || (typeof p !== 'string' && !(p instanceof URL))) throw new Error('Bad import path: ' + p); "
 		+ "const s = String(p); "
-		+ "const u = new URL('/@draconickit/resolve-dynamic/' + s, window.location.origin); "
+		+ "if (/^(\\.{1,2}(\\/|$)|\\/|[a-zA-Z][a-zA-Z\\d+.-]*:)/.test(s)) return import(s, o);"
+		+ "const u = new URL('/@draconickit/resolve-dynamic/', window.location.origin); "
 		+ "u.searchParams.set('draconicKitScriptPath', new URL(import.meta.url).pathname); "
-		+ "return import(/^(\\.{1,2}(\\/|$)|\\/|[a-zA-Z][a-zA-Z\\d+.-]*:)/.test(s) ? s : u.href, o); "
+		+ "u.searchParams.set('modulePath', s); "
+		+ "return import(u.href, o); "
 		+ "}; ";
 
-	private static function resolveImport(pathname:String, thisPath:String):String {
+	public static function resolveImport(pathname:String, thisPath:String):String {
 		try {
 			if (ESMResolver.isPathSpecifier(pathname))
 				return pathname;
@@ -75,10 +77,10 @@ class JavaScriptTransformer {
 		final output = Codegen.generate(program);
 
 		#if draconicdev
-		Logger.debug("======= TRANSFORMATION OF " + thisPath + " =======");
-		Logger.debug("====> Transformed script input: \n", input);
-		Logger.debug("====> Transformed script output: \n", output);
-		Logger.debug("======= END TRANSFORMATION OF " + thisPath + " =======");
+		//  Logger.debug("======= TRANSFORMATION OF " + thisPath + " =======");
+		// Logger.debug("====> Transformed script input: \n", input);
+		// Logger.debug("====> Transformed script output: \n", output);
+		//  Logger.debug("======= END TRANSFORMATION OF " + thisPath + " =======");
 		#end
 
 		return PREAMBLE + output;

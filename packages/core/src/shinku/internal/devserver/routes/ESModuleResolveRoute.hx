@@ -10,19 +10,16 @@ import shinku.handling.AbstractHandler;
 
 class ESModuleResolveRoute extends AbstractHandler {
 	public function GET(event:RequestEvent<Dynamic>) {
-		var modulePath = event.params.get("path");
+		var modulePath = event.url.searchParams.get("modulePath");
 		var scriptDir = event.url.searchParams.get("draconicKitScriptPath");
 
 		if (modulePath == null)
-			return text("modulePath is NULL (this is a bug by the way, report it to miyuki, not akane!)", {status: 400});
+			return text("modulePath search parameter is missing!", {status: 400});
 		if (scriptDir == null)
 			return text("draconicKitScriptPath search parameter is missing!", {status: 400});
 
 		try {
-			redirect(302, Path.join([
-				"/@draconickit/module",
-				ESMResolver.esmResolve(modulePath, Path.join(['./', scriptDir]))
-			]));
+			redirect(302, JavaScriptTransformer.resolveImport(modulePath, scriptDir));
 		} catch (res:HttpResponse) {
 			throw res;
 		} catch (err) {
