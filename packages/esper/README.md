@@ -1,3 +1,3 @@
 # Esper
 
-This part is a work in progress.
+A prototype and highly experimental ES2020 Parser.
