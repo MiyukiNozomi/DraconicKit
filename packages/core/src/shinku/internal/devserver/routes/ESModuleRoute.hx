@@ -4,11 +4,12 @@ package shinku.internal.devserver.routes;
 import haxe.crypto.Sha1;
 import haxe.io.Bytes;
 import haxe.io.Path;
+import esper.transformation.JavaScriptTransformer;
 import shinku.Console.Logger;
 import shinku.handling.AbstractHandler;
 import shinku.handling.RequestHandler.RequestEvent;
 import shinku.http.HttpMessages.HttpResponse;
-import shinku.internal.js.interop.Svelte.SvelteBuilder;
+import shinku.internal.js.Svelte.SvelteBuilder;
 import sys.io.File;
 
 /***

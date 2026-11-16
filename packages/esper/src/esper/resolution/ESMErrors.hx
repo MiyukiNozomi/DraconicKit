@@ -1,4 +1,4 @@
-package shinku.internal.js.esm;
+package esper.resolution;
 
 import haxe.Exception;
 

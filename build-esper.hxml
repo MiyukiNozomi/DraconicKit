@@ -1,3 +1,0 @@
---class-path packages/esper/src
---main EsperTest
---jvm bin/EsperTest.jar

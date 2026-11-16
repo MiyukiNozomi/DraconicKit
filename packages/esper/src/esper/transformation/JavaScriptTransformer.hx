@@ -1,30 +1,14 @@
-package shinku.internal;
+package esper.transformation;
 
-import shinku.internal.js.esm.ESMErrors.ModuleNotFoundError;
-import esper.Codegen;
 import esper.AstIterator;
+import esper.Codegen;
 import esper.Parser;
-#if draconicbuilder
+import esper.resolution.ESMResolver;
+import haxe.io.Path;
 import shinku.Console.Logger;
 import sys.FileSystem;
-import shinku.internal.js.esm.ESMResolver;
-import haxe.io.Path;
-import haxe.Json;
 
 using StringTools;
-
-private enum TokenKind {
-	Ident;
-	Str;
-	Trivia; // whitespace + comments
-	Punct;
-	Other; // numbers, template literals, regex literals
-}
-
-private typedef Token = {
-	var kind:TokenKind;
-	var text:String;
-}
 
 class JavaScriptTransformer {
 	static final PREAMBLE = "/* inserted by DraconicKit. */ const __draconicImport = (p, o) => { "
@@ -86,4 +70,3 @@ class JavaScriptTransformer {
 		return PREAMBLE + output;
 	}
 }
-#end

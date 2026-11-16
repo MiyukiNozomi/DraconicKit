@@ -1,8 +1,8 @@
-package shinku.internal.js.esm;
+package esper.resolution;
 
-import shinku.internal.js.esm.ESMErrors.InvalidModuleSpecifierError;
-import shinku.internal.js.esm.ESMErrors.InvalidPackageConfigurationError;
-import shinku.internal.js.esm.ESMErrors.ModuleNotFoundError;
+import esper.resolution.ESMErrors.InvalidModuleSpecifierError;
+import esper.resolution.ESMErrors.InvalidPackageConfigurationError;
+import esper.resolution.ESMErrors.ModuleNotFoundError;
 import haxe.io.Path;
 import sys.io.File;
 import haxe.Json;

@@ -1,4 +1,4 @@
-package shinku.internal.js.interop;
+package shinku.internal.js;
 
 import haxe.Json;
 import shinku.std.io.SystemTools;

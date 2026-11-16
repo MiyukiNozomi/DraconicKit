@@ -1,12 +1,11 @@
 package shinku.internal.devserver.routes;
 
-import shinku.http.HttpMessages.HttpResponse;
-import haxe.io.Path;
-import sys.io.File;
-import shinku.internal.js.esm.ESMResolver;
+#if draconicbuilder
+import esper.transformation.JavaScriptTransformer;
 import shinku.Console.Logger;
-import shinku.handling.RequestHandler.RequestEvent;
 import shinku.handling.AbstractHandler;
+import shinku.handling.RequestHandler.RequestEvent;
+import shinku.http.HttpMessages.HttpResponse;
 
 class ESModuleResolveRoute extends AbstractHandler {
 	public function GET(event:RequestEvent<Dynamic>) {
@@ -28,3 +27,4 @@ class ESModuleResolveRoute extends AbstractHandler {
 		}
 	}
 }
+#end

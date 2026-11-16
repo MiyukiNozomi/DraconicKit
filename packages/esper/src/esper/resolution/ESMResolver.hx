@@ -1,10 +1,10 @@
-package shinku.internal.js.esm;
+package esper.resolution;
 
-import shinku.internal.js.esm.ESMErrors.UnsupportedDirectoryImportError;
+import esper.resolution.ESMErrors.UnsupportedDirectoryImportError;
 import haxe.io.Path;
 import sys.FileSystem;
-import shinku.internal.js.esm.ESMErrors.InvalidModuleSpecifierError;
-import shinku.internal.js.esm.ESMErrors.ModuleNotFoundError;
+import esper.resolution.ESMErrors.InvalidModuleSpecifierError;
+import esper.resolution.ESMErrors.ModuleNotFoundError;
 import shinku.std.URL;
 
 #if windows

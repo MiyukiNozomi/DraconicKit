@@ -1,11 +1,12 @@
 package shinku.internal.devserver.routes;
 
+import esper.transformation.JavaScriptTransformer;
 #if draconicbuilder
 import haxe.Json;
 import haxe.io.Path;
 import shinku.handling.AbstractHandler;
 import shinku.handling.RequestHandler.RequestEvent;
-import shinku.internal.js.interop.Svelte.SvelteBuilder;
+import shinku.internal.js.Svelte.SvelteBuilder;
 import sys.io.File;
 
 class SvelteRoute extends AbstractHandler {

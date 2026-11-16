@@ -1,15 +1,16 @@
-package shinku.internal.js.interop;
+package shinku.internal.js;
 
+#if draconicbuilder
+import esper.transformation.JavaScriptTransformer;
 import haxe.Json;
 import haxe.crypto.Sha1;
 import haxe.io.Error;
 import haxe.io.Path;
-import shinku.internal.js.esm.NodeRunner;
+import esper.execution.NodeRunner;
 import shinku.std.URLSearchParams;
 import sys.FileSystem;
 import sys.io.File;
 
-#if draconicbuilder
 typedef SvelteCompileResult = {
 	/** The compiled JavaScript */
 	js:{
