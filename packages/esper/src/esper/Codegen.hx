@@ -15,6 +15,7 @@ class Codegen {
 	static var IDENT_NAME = ~/^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
 	var level = 0;
+	var noIn = false;
 
 	public function new() {}
 
@@ -125,7 +126,9 @@ class Codegen {
 				return ifText;
 
 			case ForStatement(init, test, update, body):
+				noIn = true;
 				var initText = init == null ? "" : (isVarDecl(init) ? varDecl(init) : expr(init, 0));
+				noIn = false;
 				var testText = test == null ? "" : expr(test, 0);
 				var updateText = update == null ? "" : expr(update, 0);
 				return "for (" + initText + "; " + testText + "; " + updateText + ") " + stmt(body);
@@ -182,7 +185,7 @@ class Codegen {
 			case ExportNamedDeclaration(decl, specs, source):
 				if (decl != null)
 					return "export " + stmt(decl);
-				var items = [for (s in specs) exportSpecText(s)];
+				var items = [for (s in specs) exportSpecText(s, source)];
 				return "export { " + items.join(", ") + " }" + (source == null ? "" : " from " + quote(source)) + ";";
 
 			case ExportDefaultDeclaration(decl):
@@ -233,6 +236,7 @@ class Codegen {
 	static function needsStatementParens(s:String):Bool {
 		return StringTools.startsWith(s, "{")
 			|| StringTools.startsWith(s, "function")
+			|| StringTools.startsWith(s, "async function")
 			|| StringTools.startsWith(s, "class")
 			|| StringTools.startsWith(s, "let [");
 	}
@@ -288,7 +292,7 @@ class Codegen {
 				case ImportNamespaceSpecifier(local):
 					ns = "* as " + local;
 				case ImportSpecifier(imported, local):
-					named.push(imported == local ? moduleName(imported) : moduleName(imported) + " as " + local);
+					named.push(imported == local ? local : moduleName(imported) + " as " + local);
 				default:
 					continue;
 			}
@@ -304,10 +308,11 @@ class Codegen {
 		return "import " + bindings.join(", ") + " from " + quote(source) + ";";
 	}
 
-	function exportSpecText(s:Node):String {
+	function exportSpecText(s:Node, source:Null<String>):String {
 		return switch s.kind {
 			case ExportSpecifier(local, exported):
-				local == exported ? moduleName(local) : moduleName(local) + " as " + moduleName(exported);
+				var l = source == null ? local : moduleName(local);
+				local == exported ? l : l + " as " + moduleName(exported);
 			default:
 				"";
 		};
@@ -458,7 +463,8 @@ class Codegen {
 				var p = binPrec(op);
 				var ls = op == "**" ? expr(left, 16) : expr(left, p);
 				var rs = op == "**" ? expr(right, 14) : expr(right, p + 1);
-				return ls + " " + op + " " + rs;
+				var s = ls + " " + op + " " + rs;
+				return (noIn && op == "in") ? "(" + s + ")" : s;
 
 			case LogicalExpression(op, left, right):
 				if (op == "??")
@@ -566,7 +572,7 @@ class Codegen {
 	function templateText(raws:Array<String>, exprs:Array<Node>):String {
 		var s = "`" + raws[0];
 		for (k in 0...exprs.length) {
-			s += "\\${" + expr(exprs[k], 0) + "}" + raws[k + 1];
+			s += "${" + expr(exprs[k], 0) + "}" + raws[k + 1];
 		}
 		return s + "`";
 	}

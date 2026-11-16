@@ -1,24 +1,51 @@
+import esper.AstIterator;
 import esper.Codegen;
 import esper.Parser;
 
 class EsperTest {
 	static function main() {
 		var source = "
-			import foo from 'foooooooo';
-			const add = (a, b = 2) => a + b;
-			class Counter extends Base {
-				#count = 0;
-				increment() { this.#count++; }
-			}
-			for (const [k, v] of Object.entries({ x: 1 })) console.log(`\\${k}=\\${v}`);
-			const mod = await import('./mod.js');
-			console.log(import.meta.url);
-			export { add as sum };
-			export * as utils from './utils.js';
-		";
+			await window.__draconicKit('fakepath');
+			await import('fakepath');
+			";
 
 		var program = Parser.parse(source, true);
 
+		var it = new AstIterator(program);
+
+		for (node in it) {
+			var indent = StringTools.lpad("", " ", it.lastDepth * 2);
+			trace(indent + Type.enumConstructor(node.kind) + ' (line ${node.line}, col ${node.col})');
+
+			switch (node.kind) {
+				case ExportNamedDeclaration(declaration, specifiers, source):
+					trace(declaration, specifiers, source);
+				case ExportAllDeclaration(exported, source):
+					trace(exported, source);
+				case ImportExpression(source, options):
+					node.kind = CallExpression({
+						kind: MemberExpression({
+							kind: Identifier('window'),
+							line: source.line,
+							col: source.col
+						}, {
+							kind: Identifier('__draconicKit'),
+							line: source.line,
+							col: source.col
+						}, false, false),
+						line: source.line,
+						col: source.col
+					}, options != null ? [source, options] : [source], false);
+				default:
+			}
+		}
+
+		var it = new AstIterator(program);
+
+		for (node in it) {
+			var indent = StringTools.lpad("", " ", it.lastDepth * 2);
+			trace(indent + Type.enumConstructor(node.kind) + ' (line ${node.line}, col ${node.col})');
+		}
 		Sys.println(Codegen.generate(program));
 	}
 }

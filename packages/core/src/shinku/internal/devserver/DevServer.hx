@@ -1,5 +1,6 @@
 package shinku.internal.devserver;
 
+import shinku.internal.devserver.routes.ESModuleResolveRoute;
 import sys.FileSystem;
 import shinku.std.io.FileWatcher;
 #if draconicbuilder
@@ -64,7 +65,8 @@ class DevServer {
 
 		final httpServer = new HttpServer(new Host(serverConfig.server.host), serverConfig.server.port);
 
-		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@module/[...path]", new ESModuleRoute());
+		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@draconickit/module/[...path]", new ESModuleRoute());
+		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@draconickit/resolve-dynamic/[...path]", new ESModuleResolveRoute());
 
 		httpServer.onListen = () -> {
 			printWelcome(httpServer);

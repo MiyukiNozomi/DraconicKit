@@ -6,7 +6,7 @@ import shinku.handling.RequestHandler.RequestEvent;
 
 typedef ResponseOptions = {
 	status:Null<Int>,
-	headers:Null<Map<String, String>>,
+	?headers:Null<Map<String, String>>,
 }
 
 @:rtti

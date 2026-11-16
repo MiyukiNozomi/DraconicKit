@@ -47,7 +47,7 @@ class ESMResolver {
 		return spec.startsWith("$lib");
 	}
 
-	private static function isPathSpecifier(spec:String):Bool {
+	public static function isPathSpecifier(spec:String):Bool {
 		return spec == "." || spec == ".." || spec.startsWith("./") || spec.startsWith("../") || spec.startsWith("/");
 	}
 

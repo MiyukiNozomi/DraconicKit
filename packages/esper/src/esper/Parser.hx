@@ -1,13 +1,10 @@
 package esper;
 
+import esper.Ast.ClassData;
+import esper.Ast.FunctionData;
 import esper.Ast.Node;
 import esper.Ast.NodeKind;
-import esper.Ast.NodeKind.*;
-import esper.Ast.FunctionData;
-import esper.Ast.ClassData;
 import esper.Token.Token;
-import esper.Token.TokenType;
-import esper.Token.TokenType.*;
 
 class Parser {
 	static final ASSIGN_OPS:Array<String> = [

@@ -3,6 +3,7 @@
 --java-lib ../../lib/rhino.jar
 --cwd packages/core
 --class-path src
+--class-path ../esper/src
 --macro nullSafety("shinku", Strict)
 --main DevMain
 --library haxe-concurrent
