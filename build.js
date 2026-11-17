@@ -98,10 +98,12 @@ function runBuild(args) {
 
 console.log("Checking dependencies and installing..");
 
+/*
 await checkAndUpdateJavaLib({
   groupId: "org.mozilla",
   artifactId: "rhino",
 });
+*/
 
 const hxmlFile = process.argv.includes("--dev")
   ? "build-dev.hxml"

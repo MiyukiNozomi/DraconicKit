@@ -2,5 +2,4 @@
 --class-path packages/core/src
 --library haxe-concurrent
 --jvm bin/EsperTest.jar
---java-lib lib/rhino.jar
 --main EsperTest

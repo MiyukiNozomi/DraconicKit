@@ -46,7 +46,7 @@ class DevServer {
 	}
 
 	public static function runDevServer() {
-		NodeRunner.ensureNodeJSIsInstalled();
+		NodeRunner.prepare();
 
 		final serverConfig = DraconicJSConfigLoader.getConfig();
 		if (serverConfig == null) {

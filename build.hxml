@@ -1,6 +1,5 @@
 -D draconicbuilder
 --dce no
---java-lib ../../lib/rhino.jar
 --cwd packages/core
 --class-path src
 --class-path ../esper/src

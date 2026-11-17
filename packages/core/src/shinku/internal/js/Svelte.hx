@@ -68,10 +68,10 @@ class SvelteBuilder {
 			return cacheEntry;
 		}
 
-		var compileResult:SvelteCompileResult = NodeRunner.runNodeScript("sveltecc.js", {
+		var compileResult:SvelteCompileResult = NodeRunner.invoke("compileSvelte", {
+			isDevMode: true,
 			src: source,
 			filename: pathname,
-			preprocessorConfig: null,
 			withHotswapSupport: true,
 			rootDir: FileSystem.absolutePath(Path.join([Configuration.WorkingDirectory, "src/"]))
 		});

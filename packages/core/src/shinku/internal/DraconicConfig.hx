@@ -25,7 +25,7 @@ class DraconicJSConfigLoader {
 			return null;
 		}
 
-		var output:DraconicConfig = NodeRunner.runNodeScript("configload.js", {
+		var output:DraconicConfig = NodeRunner.invoke("loadConfig", {
 			filename: draconicConfigPath
 		});
 
@@ -33,7 +33,7 @@ class DraconicJSConfigLoader {
 	}
 
 	public static function installConfig(serverConfig:DraconicConfig) {
-		Logger.debug("Configuration to install is: ", serverConfig);
+		Logger.debug("Configuration to install is: ", Type.typeof(serverConfig), " ", serverConfig);
 		#if !draconicdev
 		Configuration.ShowDebugLogs = serverConfig.server.logging.debugLogs;
 		Configuration.CleanupAlways = serverConfig.builder.alwaysCleanup;
