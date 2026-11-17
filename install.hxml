@@ -1,3 +1,6 @@
+--next
 build.hxml
+--next
+packages/shinkujs/build.hxml
 --cmd "cat scripts/draconickit | sed "s|INPUT_PATHNAME_HERE|$(pwd)|" > bin/draconickit"
 --cmd chmod u+x bin/draconickit

@@ -2,3 +2,5 @@
 -D draconicdev
 -D draconicbuilder
 build.hxml
+--next
+packages/shinkujs/build-dev.hxml

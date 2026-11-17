@@ -1,19 +1,31 @@
 package shinkujs;
 
-import js.html.WebSocket;
+import js.html.EventSource;
 
 typedef ModuleDefinition = Dynamic;
 
 @:expose
 class ShinkuHotContext {
 	var id:String;
-	var ws:WebSocket;
+	var sse:EventSource;
 
 	public function new(id:String) {
 		this.id = id;
 		Shinku.log("Hot context created for ", id);
 
-		ws = new WebSocket("/@draconickit/ws");
+		sse = new EventSource("/@draconickit/ws");
+
+		sse.onmessage = (event) -> {
+			#if draconicdev
+			Shinku.log("Got an event: ", event);
+			#end
+		}
+
+		sse.addEventListener("notification", (event) -> {
+			#if draconicdev
+			Shinku.log("Notification:", event.data);
+			#end
+		});
 	}
 
 	/** 

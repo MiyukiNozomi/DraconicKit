@@ -174,6 +174,8 @@ class HttpResponse extends Exception {
 	**/
 	public var onResponseWritten:Null<() -> Void>;
 
+	public var forceSocketClosure:Bool = false;
+
 	/**
 		Creates a new response.
 

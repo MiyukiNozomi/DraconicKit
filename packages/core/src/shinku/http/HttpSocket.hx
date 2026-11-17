@@ -1,15 +1,14 @@
 package shinku.http;
 
-import haxe.io.Eof;
-import haxe.Timer;
-import shinku.Console.Logger;
 import haxe.Exception;
-import haxe.io.Input;
-import haxe.io.Encoding;
+import haxe.Timer;
 import haxe.io.Bytes;
 import haxe.io.BytesBuffer;
 import haxe.io.BytesInput;
+import haxe.io.Encoding;
 import haxe.io.Error;
+import haxe.io.Input;
+import shinku.Console.Logger;
 import shinku.http.HttpMessages.HttpRequest;
 import shinku.http.HttpMessages.HttpResponse;
 import sys.net.Socket;
@@ -69,60 +68,77 @@ class HttpSocket {
 	}
 
 	public function sendResponse(response:HttpResponse) {
-		response.prepareBeforeCommit();
+		try {
+			response.prepareBeforeCommit();
 
-		// prepare yourselves, this is going to be annoying as hell!
-		var requestHead = ['HTTP/1.1 ${response.status} ${response.statusText()}'];
-		for (key => value in response.headersIterator()) {
-			for (v in value) {
-				requestHead.push('${key}: ${v}');
+			// prepare yourselves, this is going to be annoying as hell!
+			var requestHead = ['HTTP/1.1 ${response.status} ${response.statusText()}'];
+			for (key => value in response.headersIterator()) {
+				for (v in value) {
+					requestHead.push('${key}: ${v}');
+				}
 			}
-		}
-		requestHead.push("");
-		requestHead.push("");
-		// push two empty lines so we always end with CRLF.
+			requestHead.push("");
+			requestHead.push("");
+			// push two empty lines so we always end with CRLF.
 
-		// this is probably wrong, but lets see.
-		this.socket.output.writeString(requestHead.join("\r\n"), Encoding.UTF8);
-		this.socket.output.flush();
+			// this is probably wrong, but lets see.
+			this.socket.output.writeString(requestHead.join("\r\n"), Encoding.UTF8);
+			this.socket.output.flush();
 
-		var didOriginateFromHEAD = response.isBodyDisallowed();
+			var didOriginateFromHEAD = response.isBodyDisallowed();
 
-		if (response.payload != null) {
-			var buffer = Std.downcast(response.payload, Bytes);
-			var stream = Std.downcast(response.payload, Input);
+			if (response.payload != null) {
+				var buffer = Std.downcast(response.payload, Bytes);
+				var stream = Std.downcast(response.payload, Input);
 
-			if (buffer != null) {
-				if (!didOriginateFromHEAD) {
-					this.socket.output.write(buffer);
-					this.socket.output.flush();
-				}
-			} else if (stream != null) {
-				if (!didOriginateFromHEAD) {
-					try {
-						var nRead = 4096;
-						var buff = Bytes.alloc(nRead);
-						while (nRead == buff.length) {
-							nRead = stream.readBytes(buff, 0, buff.length);
-							if (nRead > 0) {
-								this.socket.output.writeString('${StringTools.hex(nRead)}\r\n');
-								this.socket.output.writeBytes(buff, 0, nRead);
-								this.socket.output.writeString('\r\n');
+				if (buffer != null) {
+					if (!didOriginateFromHEAD) {
+						this.socket.output.write(buffer);
+						this.socket.output.flush();
+					}
+				} else if (stream != null) {
+					if (!didOriginateFromHEAD) {
+						try {
+							var nRead = 4096;
+							var buff = Bytes.alloc(nRead);
+							while (nRead == buff.length) {
+								nRead = stream.readBytes(buff, 0, buff.length);
+								if (nRead > 0) {
+									this.socket.output.writeString('${StringTools.hex(nRead)}\r\n');
+									this.socket.output.writeFullBytes(buff, 0, nRead);
+									this.socket.output.writeString('\r\n');
+									this.socket.output.flush();
+								}
 							}
-						}
-					} catch (eof:haxe.io.Eof) {}
-					this.socket.output.writeString("0\r\n\r\n");
-					this.socket.output.flush();
-					stream.close();
-				} else {
-					stream.close();
+						} catch (eof:haxe.io.Eof) {}
+						this.socket.output.writeString("0\r\n\r\n");
+						this.socket.output.flush();
+						stream.close();
+					} else {
+						stream.close();
+					}
 				}
+			}
+		} catch (err) {
+			Logger.debug("Could not send response to " + socket.host().host + "!");
+			Logger.debug(err);
+			socket.close();
+
+			final stream = response.payload != null ? Std.downcast(response.payload, Input) : null;
+			if (stream != null) {
+				stream.close();
 			}
 		}
 	}
 
+	var isClosed = false;
+
 	public function close() {
 		try {
+			if (isClosed)
+				return;
+			this.isClosed = true;
 			this.socket.close();
 		} catch (e) {
 			Logger.debug(e.toString() + "\n" + e.stack.toString());

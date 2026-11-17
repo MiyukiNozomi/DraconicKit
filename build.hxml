@@ -1,17 +1,9 @@
 -D draconicbuilder
---dce no
---cwd packages/core
---class-path src
---class-path ../esper/src
+--dce no 
+--class-path packages/core/src
+--class-path packages/esper/src
 --macro nullSafety("shinku", Strict)
 --main DevMain
 --library haxe-concurrent
---xml ../../bin/shinku-project-symbols.xml
---jvm ../../bin/DraconicKit.jar
-
---next
--dce full
--D js-es=6
---class-path packages/shinkujs/src
---main Shinku
---js bin/shinku.js
+--xml bin/shinku-project-symbols.xml
+--jvm bin/DraconicKit.jar

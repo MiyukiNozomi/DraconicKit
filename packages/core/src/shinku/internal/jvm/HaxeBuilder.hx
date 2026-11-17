@@ -95,7 +95,7 @@ class HaxeBuilder {
 --library haxe-concurrent
 --class-path src
 --class-path .shinku/hacks
---class-path .shinku/externs/src
+--class-path .shinku/externs/packages/core/src
 --main StubsMain
 ');
 		}

@@ -76,7 +76,7 @@ class HttpServer {
 					req = client.nextRequest();
 					if (req == null) {
 						Logger.warn("Got a broken request!");
-						client.socket.close();
+						client.close();
 						return;
 					}
 					if (Configuration.ShowDevRequests)
@@ -96,7 +96,7 @@ class HttpServer {
 							Logger.error(err.toString());
 							Logger.error(err.stack.toString());
 						}
-						client.socket.close();
+						client.close();
 						return;
 					}
 
@@ -104,7 +104,7 @@ class HttpServer {
 					Logger.debug("Response for ", client.socket.peer(), " is ", res.status);
 					client.sendResponse(res);
 
-					if (wantsConnectionClose(req)) {
+					if (res.forceSocketClosure || wantsConnectionClose(req)) {
 						client.close();
 						return;
 					}
