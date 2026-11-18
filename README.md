@@ -20,22 +20,22 @@ Refer to [documentation](https://draconickit.ane.jp.net).
 
 # How to build this?
 
-First, you will have to download a version of mozilla's Rhino (yes, the javascript engine. It's used for Server-Side-Rendering and running the svelte compiler.)
-
 Simply run `haxe build.hxml`, if you wish for a debug build, run `haxe build-dev.hxml`.
+For the global `draconickit` command, run `haxe install.hxml` and symlink the script into a directory in your PATH environment.
+(please be aware this will re-build draconickit in release mode. You can re-build it as `build-dev.hxml`)
 
 If you're going to be working on this, run `node watch.js`, which will watch for changes on packages/ and rebuild the project.
 
 # A few notes
 
-If you build draconickit from `build-dev-backend.hxml`, it will set `Configuration.CleanupAlways = true`, which will always completely remove the `.shinku` working directory every time it starts, this is done so that the hot reloader wont load old code cache built against the stale user libraries.
+If you build draconickit from `build-dev.hxml`, it will set `Configuration.CleanupAlways = true`, which will always completely remove the `.shinku` working directory every time it starts, this is done so that the hot reloader wont load old code cache built against the stale user libraries.
 
 Another import thing is conditional compilation, normally, a draconic kit project has `dev` as it's development mode flag. However, the builder itself has it's own dev flag. being `draconicdev`. Code that is specific to the draconic builder needs to be encloused in a check against `draconicbuilder`.
 
 ## TODO list
 
 - [ ] HMR
-- [ ] Server Sent Events
+- [x] Server Sent Events
 - [ ] Form Data
 - [x] WebSockets
 - [ ] Add builder for production

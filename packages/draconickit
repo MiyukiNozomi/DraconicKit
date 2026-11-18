@@ -10,7 +10,7 @@ if ! command -v java >/dev/null 2>&1; then
 fi
 
 if [ ! -f "$JAR_PATH" ]; then
-    printf '%s\n' "Error: DraconicKit.jar could not be found. at \"$JAR_PATH\"." >&2
+    printf '%s\n' "Error: DraconicKit.jar could not be found at \"$JAR_PATH\"." >&2
     exit 2
 fi
 
