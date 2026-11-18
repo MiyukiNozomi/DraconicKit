@@ -1,31 +1,14 @@
 package shinkujs;
 
-import js.html.EventSource;
-
 typedef ModuleDefinition = Dynamic;
 
 @:expose
-class ShinkuHotContext {
+class HotContext {
 	var id:String;
-	var sse:EventSource;
 
-	public function new(id:String) {
+	public function new(client:HMRClient, id:String) {
 		this.id = id;
-		Shinku.log("Hot context created for ", id);
-
-		sse = new EventSource("/@draconickit/ws");
-
-		sse.onmessage = (event) -> {
-			#if draconicdev
-			Shinku.log("Got an event: ", event);
-			#end
-		}
-
-		sse.addEventListener("notification", (event) -> {
-			#if draconicdev
-			Shinku.log("Notification:", event.data);
-			#end
-		});
+		Shinku.debug("Hot context created for ", id);
 	}
 
 	/** 

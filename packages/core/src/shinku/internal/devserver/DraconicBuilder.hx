@@ -29,8 +29,6 @@ class DraconicBuilder {
 	// build thread and watcher thread both touch this
 	private static final pagesLock = new Mutex();
 
-	private static final hmrChannel = new HMRChannelRoute();
-
 	private static function getRoutename(fp:String) {
 		final normalizedPath = fp.substring(srcDir.length);
 		if (!normalizedPath.startsWith("/routes")
@@ -57,11 +55,9 @@ class DraconicBuilder {
 		return true;
 	}
 
-	public static function runBuilderProcess(httpServer:HttpServer) {
+	public static function runBuilderProcess(httpServer:HttpServer, onChange:(e:FileEvent) -> Void) {
 		srcDir = FileSystem.absolutePath(Path.join([Configuration.WorkingDirectory, "src"]));
 		Logger.debug("src directory is: ", srcDir);
-
-		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@draconickit/ws", hmrChannel);
 
 		final hotReloader = new HotReloader((cls, name) -> {
 			if (!name.startsWith("routes."))
@@ -170,22 +166,25 @@ class DraconicBuilder {
 		// lets build our structure first, then we initiate the watcher.
 		SystemTools.visitDirRecursive(srcDir, handleNewFile);
 
-		var watcher = new FileWatcher(srcDir, e -> switch e {
-			case Added(p): {
-					AnsiPrinter.print('§1;32m+ §0;90m$p\n');
-					handleNewFile(FileSystem.absolutePath(p));
-				}
-			case Modified(p): {
-					AnsiPrinter.print('§1;33m~ §0;90m$p\n');
-					final fullPath = FileSystem.absolutePath(p);
-					if (!fullPath.endsWith(".svelte"))
-						handleFileDeletion(fullPath);
-					handleNewFile(fullPath);
-				}
-			case Removed(p): {
-					AnsiPrinter.print('§1;31m- §0;90m$p\n');
-					handleFileDeletion(FileSystem.absolutePath(p));
-				}
+		var watcher = new FileWatcher(srcDir, e -> {
+			switch e {
+				case Added(p): {
+						AnsiPrinter.print('§1;32m+ §0;90m$p\n');
+						handleNewFile(FileSystem.absolutePath(p));
+					}
+				case Modified(p): {
+						AnsiPrinter.print('§1;33m~ §0;90m$p\n');
+						final fullPath = FileSystem.absolutePath(p);
+						if (!fullPath.endsWith(".svelte"))
+							handleFileDeletion(fullPath);
+						handleNewFile(fullPath);
+					}
+				case Removed(p): {
+						AnsiPrinter.print('§1;31m- §0;90m$p\n');
+						handleFileDeletion(FileSystem.absolutePath(p));
+					}
+			};
+			onChange(e);
 		}, 300, p -> p.indexOf("node_modules") != -1 || p.indexOf(".git") != -1);
 		watcher.run();
 	}

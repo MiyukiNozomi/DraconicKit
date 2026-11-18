@@ -1,17 +1,18 @@
 import js.html.Console;
 import haxe.PosInfos;
-import shinkujs.ShinkuHotContext;
 import haxe.ds.StringMap;
+import shinkujs.HotContext;
+import shinkujs.HMRClient;
 
 @:expose
 class Shinku {
-	static var hotModules:StringMap<ShinkuHotContext> = new StringMap();
+	static var client = new HMRClient();
+	static var hotModules = new StringMap<HotContext>();
 
-	public static function createHMRContext(id:String):ShinkuHotContext {
+	public static function createHMRContext(id:String):HotContext {
 		if (!hotModules.exists(id)) {
-			hotModules.set(id, new ShinkuHotContext(id));
+			hotModules.set(id, new HotContext(client, id));
 		}
-
 		return hotModules.get(id);
 	}
 
@@ -22,6 +23,12 @@ class Shinku {
 
 	public static function error(?p:Null<PosInfos>, ...args:Dynamic)
 		logImplementation(true, p, args);
+
+	public static function debug(?p:Null<PosInfos>, ...args:Dynamic) {
+		#if draconicdev
+		logImplementation(false, p, args);
+		#end
+	}
 
 	static function logImplementation(isError:Bool, p:Null<PosInfos>, args:Array<Dynamic>) {
 		(isError ? Console.error : Console.log)("%cDraconicKit",

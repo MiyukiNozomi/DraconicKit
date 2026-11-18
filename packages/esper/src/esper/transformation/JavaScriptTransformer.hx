@@ -37,10 +37,9 @@ const __draconicImport = (p, o) => {
 		try {
 			if (ESMResolver.isPathSpecifier(pathname))
 				return pathname;
-			return Path.join([
-				browser ? "/@draconickit/module" : "./",
-				ESMResolver.esmResolve(pathname, FileSystem.absolutePath(thisPath))
-			]);
+
+			var resolvedPath = ESMResolver.esmResolve(pathname, FileSystem.absolutePath(thisPath));
+			return browser ? Path.join(["/@draconickit/module", resolvedPath]) : resolvedPath;
 		} catch (err) {
 			Logger.error("Could not resolve " + pathname + " because: ", err);
 			throw err;

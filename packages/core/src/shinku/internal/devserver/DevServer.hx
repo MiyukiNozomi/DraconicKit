@@ -1,5 +1,6 @@
 package shinku.internal.devserver;
 
+import shinku.internal.devserver.routes.HMRChannelRoute;
 #if draconicbuilder
 import esper.execution.NodeRunner;
 import haxe.io.Path;
@@ -23,6 +24,8 @@ using StringTools;
 class DevServer {
 	public static var builderThread:Null<Thread>;
 	public static var staticDirWatcherThread:Null<Thread>;
+
+	private static final hmrChannel = new HMRChannelRoute();
 
 	private static function printWelcome(httpServer:HttpServer) {
 		final separator = '\u2501\u2501\u2501\u2501\u2501\u2501---------';
@@ -67,17 +70,24 @@ class DevServer {
 
 		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@draconickit/module/[...path]", new ESModuleRoute());
 		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@draconickit/resolve-dynamic", new ESModuleResolveRoute());
+		httpServer.requestHandler.dynamicRouter.addDynamicRoute("/@draconickit/hmr", hmrChannel);
 
 		httpServer.onListen = () -> {
 			printWelcome(httpServer);
 
 			builderThread = Thread.create("DraconicBuilder", () -> {
-				DraconicBuilder.runBuilderProcess(httpServer);
+				DraconicBuilder.runBuilderProcess(httpServer, (e) -> {
+					// TODO: proper HMR
+					hmrChannel.requestInvalidateAll();
+				});
 			});
 
 			staticDirWatcherThread = Thread.create("StaticFileWatcher", () -> {
 				final staticDir = FileSystem.absolutePath(Path.join([Configuration.WorkingDirectory, Configuration.StaticDirectory]));
 				final watcher = new FileWatcher(staticDir, (event) -> {
+					// TODO: proper HMR
+					hmrChannel.requestInvalidateAll();
+
 					Logger.debug("Static directory at", staticDir, "has changed! reloading static route...");
 					httpServer.requestHandler.loadStaticRoutes();
 				});
