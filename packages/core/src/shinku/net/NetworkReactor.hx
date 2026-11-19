@@ -76,8 +76,8 @@ class NetworkReactor {
 			removeSocket(h.socket);
 
 		#if draconicdev
-		Logger.debug("Socket count: ", this.handlers.size());
-		Logger.debug("Busy socket count: ", this.handlers.size() - candidates.length);
+		// Logger.debug("Socket count: ", this.handlers.size());
+		// Logger.debug("Busy socket count: ", this.handlers.size() - candidates.length);
 		#end
 
 		modifyLock.release();

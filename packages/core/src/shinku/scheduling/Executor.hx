@@ -13,13 +13,13 @@ import shinku.scheduling.ThreadPool;
 	Mostly used to delegate the job of http connections and websockets.
 **/
 class Executor {
-	private static var pool:Null<ThreadPool>;
+	private static var pool:Null<ElasticThreadPool>;
 
 	public static function prepare() {
 		var n = SystemTools.getProcessorCount();
 		// TODO: replace this with an ElasticThreadPool instead.
-		pool = new ThreadPool(n);
-		Logger.debug("Working with " + pool.threadsCount + " worker threads.");
+		pool = new ElasticThreadPool(n);
+		Logger.debug("Working with a maximum of " + n + " worker threads.");
 	}
 
 	public static function schedule(task:() -> Void) {

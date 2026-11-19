@@ -20,52 +20,57 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-/**
-	This technically was on Haxe 4.3.7, but was.. apperantely nuked in the Haxe 5 preview. So I bought it back!
-
-
-	*edit:* apperantely it was moved? but meh, shouldnt be that big of a deal to have a local copy.
-**/
 package shinku.scheduling;
 
-import haxe.io.Error;
-import sys.thread.Thread;
-import sys.thread.Mutex;
-import sys.thread.Deque;
-#if (!target.threaded) #error "This class is not available on this target" #end
+import sys.thread.Lock;
 import haxe.Exception;
+import haxe.Exception;
+import haxe.atomic.AtomicBool;
+import haxe.io.Error;
+import shinku.Console.Logger;
+import sys.thread.Deque;
+import sys.thread.Mutex;
+import sys.thread.Thread;
+
+#if (!target.threaded) #error "DraconicKit does not, and will not run under a non-system target without thread support." #end
 
 /**
-	Thread pool with a constant amount of threads.
-	Threads in the pool will exist until the pool is explicitly shut down.
-**/
-class ThreadPool {
-	/* Amount of threads in this pool. */
-	public var threadsCount(get, null):Int;
+	Thread pool with a varying amount of threads.
 
-	function get_threadsCount():Int
-		return threadsCount;
+	A new thread is spawned every time a task is submitted while all existing
+	threads are busy.
+**/
+class ElasticThreadPool {
+	/* Amount of alive threads in this pool. */
+	public var threadsCount(get, null):Int;
+	/* Maximum amount of threads in this pool. */
+	public var maxThreadsCount:Int;
 
 	/** Indicates if `shutdown` method of this pool has been called. */
 	public var isShutdown(get, never):Bool;
 
-	var _isShutdown = false;
+	var _isShutdown = new AtomicBool(false);
 
 	function get_isShutdown():Bool
-		return _isShutdown;
+		return _isShutdown.load();
 
-	final pool:Array<Worker>;
-	final poolMutex = new Mutex();
+	final pool:Array<Worker> = [];
 	final queue = new Deque<() -> Void>();
+	final mutex = new Mutex();
+	final threadTimeout:Float;
 
 	/**
 		Create a new thread pool with `threadsCount` threads.
+
+		If a worker thread does not receive a task for `threadTimeout` seconds it
+		is terminated.
 	**/
-	public function new(threadsCount:Int):Void {
-		if (threadsCount < 1)
-			throw Error.Custom('FixedThreadPool needs threadsCount to be at least 1.');
-		this.threadsCount = threadsCount;
-		pool = [for (i in 0...threadsCount) new Worker(i, queue)];
+	public function new(maxThreadsCount:Int, threadTimeout:Float = 60):Void {
+		if (maxThreadsCount < 1)
+			throw Error.Custom('ElasticThreadPool needs maxThreadsCount to be at least 1.');
+		this.maxThreadsCount = maxThreadsCount;
+		this.threadTimeout = threadTimeout;
+		this.threadsCount = 0;
 	}
 
 	/**
@@ -74,11 +79,36 @@ class ThreadPool {
 		Throws an exception if the pool is shut down.
 	**/
 	public function run(task:() -> Void):Void {
-		if (_isShutdown)
+		if (_isShutdown.load())
 			throw Error.Custom('Task is rejected. Thread pool is shut down.');
 		if (task == null)
 			throw Error.Custom('Task to run must not be null.');
-		queue.add(task);
+
+		mutex.acquire();
+		var submitted = false;
+		var deadWorker = null;
+		for (worker in pool) {
+			if (deadWorker == null && worker.dead) {
+				deadWorker = worker;
+			}
+			if (worker.task == null) {
+				submitted = true;
+				worker.wakeup(task);
+				break;
+			}
+		}
+		if (!submitted) {
+			if (deadWorker != null) {
+				deadWorker.wakeup(task);
+			} else if (pool.length < maxThreadsCount) {
+				var worker = new Worker(queue, threadTimeout);
+				pool.push(worker);
+				worker.wakeup(task);
+			} else {
+				queue.add(task);
+			}
+		}
+		mutex.release();
 	}
 
 	/**
@@ -89,42 +119,90 @@ class ThreadPool {
 		Multiple calls to this method have no effect.
 	**/
 	public function shutdown():Void {
-		if (_isShutdown)
+		if (_isShutdown.load())
 			return;
-		_isShutdown = true;
-		for (_ in pool) {
-			queue.add(shutdownTask);
+		mutex.acquire();
+		_isShutdown.store(true);
+		for (worker in pool) {
+			worker.shutdown();
 		}
+		mutex.release();
 	}
 
-	static function shutdownTask():Void {
-		throw new ShutdownException('');
+	function get_threadsCount():Int {
+		var result = 0;
+		for (worker in pool)
+			if (!worker.dead)
+				++result;
+		return result;
 	}
 }
 
-private class ShutdownException extends Exception {}
-
-// nasty I know..
-
-@:nullSafety(Off)
 private class Worker {
-	var workerId:Int;
-	var thread:Thread;
-	final queue:Deque<Null<() -> Void>>;
+	public var task(default, null):Null<() -> Void>;
+	public var dead(default, null) = false;
 
-	public function new(workerId:Int, queue:Deque<Null<() -> Void>>) {
+	final deathMutex = new Mutex();
+	final waiter = new Lock();
+	final queue:Deque<() -> Void>;
+	final timeout:Float;
+	var thread:Null<Thread>;
+	var isShutdown = false;
+
+	public function new(queue:Deque<() -> Void>, timeout:Float) {
 		this.queue = queue;
-		thread = Thread.create('Worker/${workerId}', loop);
+		this.timeout = timeout;
+		start();
+	}
+
+	public function wakeup(task:() -> Void) {
+		deathMutex.acquire();
+		if (dead)
+			start();
+		this.task = task;
+		waiter.release();
+		deathMutex.release();
+	}
+
+	public function shutdown() {
+		isShutdown = true;
+		waiter.release();
+	}
+
+	function start() {
+		dead = false;
+		thread = Thread.create(loop);
 	}
 
 	function loop() {
 		try {
-			while (true) {
-				var task = queue.pop(true);
-				task();
+			while (waiter.wait(timeout)) {
+				switch task {
+					case null:
+						if (isShutdown)
+							break;
+					case fn:
+						fn();
+						// if more tasks were added while all threads were busy
+						while (true) {
+							switch queue.pop(false) {
+								case null: break;
+								case fn: fn();
+							}
+						}
+						task = null;
+				}
 			}
-		} catch (_:ShutdownException) {} catch (e) {
-			thread = Thread.create(loop);
+			deathMutex.acquire();
+			// in case a task was submitted right after the lock timed out
+			if (task != null)
+				start()
+			else
+				dead = true;
+			deathMutex.release();
+		} catch (e) {
+			task = null;
+			start();
 			throw e;
 		}
 	}
