@@ -7,8 +7,8 @@ import haxe.io.Eof;
 import haxe.io.Error;
 import haxe.io.Input;
 
-class Http11ChunkedInput extends Input {
-	private var socket:HttpSocket;
+class HttpChunkedInput extends Input {
+	private var socket:HttpEventHandler;
 	private var localBuffer:Bytes;
 
 	private var cursor:Int;
@@ -21,12 +21,12 @@ class Http11ChunkedInput extends Input {
 	function get_isFinished()
 		return hasReachedEOF;
 
-	public function new(socket:HttpSocket) {
+	public function new(socket:HttpEventHandler) {
 		this.cursor = 0;
 		this.totalReadAmount = 0;
 		this.currentChunkLength = 0;
 		this.socket = socket;
-		this.localBuffer = Bytes.alloc(HttpSocket.MAX_CHUNKED_TRANSFER_BLOCK_SIZE);
+		this.localBuffer = Bytes.alloc(HttpEventHandler.MAX_CHUNKED_TRANSFER_BLOCK_SIZE);
 	}
 
 	public override function readByte():Int {
@@ -139,7 +139,7 @@ class Http11ChunkedInput extends Input {
 		}
 
 		totalReadAmount += length;
-		if (totalReadAmount > HttpSocket.MAXIMUM_PAYLOAD_LENGTH) {
+		if (totalReadAmount > HttpEventHandler.MAXIMUM_PAYLOAD_LENGTH) {
 			throw new HttpResponse(413);
 		}
 

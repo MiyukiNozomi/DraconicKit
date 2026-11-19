@@ -1,5 +1,6 @@
 package shinku.handling;
 
+import shinku.http.HttpEventHandler;
 import shinku.http.HttpServer;
 import shinku.handling.tools.Cookies;
 import haxe.io.Error;
@@ -10,7 +11,6 @@ import shinku.handling.AbstractHooks.AbstractServerHooks;
 import shinku.handling.RequestHandler.RequestEvent;
 import shinku.http.HttpMessages.HttpRequest;
 import shinku.http.HttpMessages.HttpResponse;
-import shinku.http.HttpSocket;
 import shinku.std.URL;
 
 typedef DynamicHandler = {
@@ -82,7 +82,7 @@ class DynamicRouter {
 			if (method == null || !Reflect.isFunction(method))
 				continue;
 
-			if (!HttpSocket.ACCEPTED_METHODS.contains(field)) {
+			if (!HttpEventHandler.ACCEPTED_METHODS.contains(field)) {
 				if (~/\b[A-Z]+\b/.match(field)) {
 					Sys.println("\nWARNING: In handler for "
 						+ path
@@ -125,7 +125,7 @@ class DynamicRouter {
 		}
 	}
 
-	public function tryHandleRequest(server:HttpServer, socket:HttpSocket, url:URL, req:HttpRequest) {
+	public function tryHandleRequest(server:HttpServer, socket:HttpEventHandler, url:URL, req:HttpRequest) {
 		var e:RequestEvent = {
 			socket: socket,
 			req: req,
