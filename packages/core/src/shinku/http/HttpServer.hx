@@ -1,5 +1,6 @@
 package shinku.http;
 
+import haxe.atomic.AtomicBool;
 import shinku.Console.Logger;
 import shinku.handling.RequestHandler;
 import shinku.net.NetworkReactor;
@@ -11,7 +12,7 @@ import sys.thread.Thread;
 
 class HttpServer {
 	var socket:Socket;
-	var running:Bool;
+	var isRunning = new AtomicBool(true);
 
 	var networkReactorThread:Null<Thread>;
 
@@ -32,7 +33,6 @@ class HttpServer {
 
 		this.socket = new Socket();
 		this.socket.bind(host, port);
-		this.running = true;
 
 		this.requestHandler = new RequestHandler();
 		this.websocketController = new WebSocketController();
@@ -54,7 +54,7 @@ class HttpServer {
 			this.networkReactor.run();
 		});
 
-		while (running) {
+		while (isRunning.load()) {
 			try {
 				this.networkReactor.registerHandler(new HttpEventHandler(this.socket.accept(), this));
 			} catch (err) {
@@ -65,7 +65,7 @@ class HttpServer {
 	}
 
 	public function stop() {
-		this.running = false;
+		this.isRunning.store(false);
 		this.networkReactor.stop();
 	}
 }

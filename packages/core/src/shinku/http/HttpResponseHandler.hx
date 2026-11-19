@@ -39,7 +39,7 @@ class HttpResponseHandler {
 			// So, it's switching protocols, that means this thread cannot continue handling it.
 			if (res.status == 101) {
 				// Stop handling this socket, keep it open so the underlying transfer protocol can manage it.
-				transport.requestDetatch();
+				transport.requestDetach();
 			}
 		} catch (err) {
 			Logger.error(err.toString());

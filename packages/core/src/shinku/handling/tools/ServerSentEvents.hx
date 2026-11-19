@@ -1,5 +1,6 @@
 package shinku.handling.tools;
 
+import shinku.http.HttpEventHandler;
 import shinku.std.Streams.PipeClosed;
 import haxe.extern.EitherType;
 import haxe.io.Error;
@@ -31,7 +32,11 @@ class ServerEventsAction {
 
 		Executor.schedule(() -> {
 			try {
-				onConnected(new SSEWriter(output));
+				// TODO There's a chance the Executor might get overloaded
+				// and the socket be booted off the network for inactivity.
+				// might need some extra testing.
+
+				onConnected(new SSEWriter(output, event.socket));
 			} catch (p:PipeClosed) {
 				// not really an error
 			} catch (err) {
@@ -53,12 +58,15 @@ class ServerEventsAction {
 **/
 class SSEWriter {
 	var output:Output;
+	var socket:HttpEventHandler;
 
-	public function new(output:Output) {
+	public function new(output:Output, socket:HttpEventHandler) {
 		this.output = output;
+		this.socket = socket;
 	}
 
 	function send(prefix:String, data:String):Void {
+		this.socket.touch();
 		data = data.split("\r\n").join("\n").split("\r").join("\n");
 
 		for (ln in data.split('\n')) {
@@ -71,6 +79,7 @@ class SSEWriter {
 		This function will throw if `value` contains newlines.
 	**/
 	public function id(id:EitherType<String, Int>):Void {
+		this.socket.touch();
 		final value = Std.string(id);
 		if (value.indexOf('\n') != -1 || value.indexOf('\r') != -1)
 			throw Error.Custom("Cannot have newlines in an ID!");
@@ -78,6 +87,7 @@ class SSEWriter {
 	}
 
 	public function retry(milliseconds:Int):Void {
+		this.socket.touch();
 		if (milliseconds < 0)
 			throw Error.Custom("Retry interval cannot be negative!");
 		output.writeString('retry: $milliseconds\n\n');

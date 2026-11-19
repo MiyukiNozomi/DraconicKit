@@ -1,3 +1,9 @@
+/**
+	This class is broken, and needs fixing ASAP.
+
+	TODO.
+**/
+
 package shinku.std;
 
 import haxe.Exception;
