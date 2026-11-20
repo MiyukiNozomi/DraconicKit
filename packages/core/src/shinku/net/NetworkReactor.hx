@@ -95,7 +95,7 @@ class NetworkReactor {
 			readable = SocketSelect.select(candidates, [], [], POLL_TIMEOUT).read;
 		} catch (e) {
 			Logger.debug("Socket select failure, pruning invalid sockets: ", e);
-			final dead = [for (s in candidates) if (!isDead(s)) s]; // see below
+			final dead = [for (s in candidates) if (isDead(s)) s]; // see below
 			final doomed:Array<NetworkEventHandler> = [];
 
 			if (dead.length == 0) {
