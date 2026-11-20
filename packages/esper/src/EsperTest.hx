@@ -6,11 +6,8 @@ using StringTools;
 
 class EsperTest {
 	static function main() {
-		//	transformTest();
-		executionTest();
+		transformTest();
 	}
-
-	static function executionTest() {}
 
 	static function transformTest() {
 		var source = '
