@@ -1,26 +1,26 @@
 package server;
 
-import sys.io.File;
-import haxe.io.Input;
 import haxe.io.Bytes;
 import haxe.io.Error;
-import shinku.http.HttpMessages.HttpRequest;
-import sys.net.Socket;
-import shinku.http.HttpSocket;
-import shinku.http.HttpMessages.HttpResponse;
-import sys.FileSystem;
-import server.routes.apiref.APIReferenceRoute.APIReference;
-import server.routes.XHTMLRoute;
+import haxe.io.Input;
 import haxe.io.Path;
-import shinku.std.io.SystemTools;
-import sys.thread.Thread;
+import server.routes.XHTMLRoute;
+import server.routes.apiref.APIReferenceRoute.APIReference;
 import shinku.Configuration;
-import shinku.std.io.FileWatcher;
 import shinku.Console.Logger;
-import shinku.handling.RequestHandler.RequestEvent;
 import shinku.handling.AbstractHandler;
-import sys.net.Host;
+import shinku.handling.RequestHandler.RequestEvent;
+import shinku.http.HttpEventHandler;
+import shinku.http.HttpMessages.HttpRequest;
+import shinku.http.HttpMessages.HttpResponse;
 import shinku.http.HttpServer;
+import shinku.std.io.FileWatcher;
+import shinku.std.io.SystemTools;
+import sys.FileSystem;
+import sys.io.File;
+import sys.net.Host;
+import sys.net.Socket;
+import sys.thread.Thread;
 
 using StringTools;
 
@@ -105,7 +105,7 @@ class Main {
 			}
 			FileSystem.createDirectory(OUTPUT);
 
-			var fakeSocket = new HttpSocket(new Socket());
+			var fake = new Socket();
 
 			Logger.info("Server will build the following routes: ");
 			for (route in sv.requestHandler.dynamicRouter.routes) {
@@ -116,7 +116,7 @@ class Main {
 				Logger.info(" - ", route.rawRoutePath, " -> ", output);
 
 				try {
-					sv.requestHandler.handleRequest(sv, fakeSocket, new HttpRequest({
+					sv.requestHandler.handleRequest(sv, new HttpEventHandler(fake, sv), new HttpRequest({
 						method: "GET",
 						version: "HTTP/1.1",
 						target: route.rawRoutePath

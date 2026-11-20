@@ -1,6 +1,7 @@
 -D doc-gen
 --dce std
 --class-path packages/core/src
+--class-path packages/esper/src
 --main DocumentationMain
 -lib haxe-concurrent
 --hl bin/_non_existant_

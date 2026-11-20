@@ -15,6 +15,8 @@ private typedef TreeNode = {
 	children:Array<TreeNode>
 }
 
+// TODO: make the API reference also show other DraconicKit packages?
+// i think it would actually be better to give esper it's own page...
 class APIReference {
 	static final ROOT_PACKAGE = "shinku";
 	static final ROUTE_PREFIX = "/apiref";
