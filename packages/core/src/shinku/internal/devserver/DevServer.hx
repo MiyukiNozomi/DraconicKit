@@ -77,7 +77,6 @@ class DevServer {
 
 			builderThread = Thread.create("DraconicBuilder", () -> {
 				DraconicBuilder.runBuilderProcess(httpServer, (e) -> {
-					// TODO: proper HMR
 					hmrChannel.requestInvalidateAll();
 				});
 			});
@@ -85,7 +84,6 @@ class DevServer {
 			staticDirWatcherThread = Thread.create("StaticFileWatcher", () -> {
 				final staticDir = FileSystem.absolutePath(Path.join([Configuration.WorkingDirectory, Configuration.StaticDirectory]));
 				final watcher = new FileWatcher(staticDir, (event) -> {
-					// TODO: proper HMR
 					hmrChannel.requestInvalidateAll();
 
 					Logger.debug("Static directory at", staticDir, "has changed! reloading static route...");

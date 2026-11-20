@@ -1,5 +1,6 @@
 package shinku.internal.js;
 
+#if draconicbuilder
 import haxe.Json;
 import shinku.std.io.SystemTools;
 import sys.io.File;
@@ -34,3 +35,4 @@ export default Shinku;
 ';
 	}
 }
+#end

@@ -65,10 +65,8 @@ private class StatusCode {
 	@author suisei
 **/
 class WebSocket {
-	// TODO: make these configurable?
 	public static final WS_SOCKET_TIMEOUT = 1.0;
 	public static final WS_SOCKET_POKE_TIMEOUT = 0.1;
-	public static final WS_MAX_PAYLOAD_SIZE = 4 * 1024 * 1024;
 
 	/** Seconds to wait for the peer to answer our Close frame before dropping TCP. **/
 	public static final WS_CLOSE_TIMEOUT = 2.0;
@@ -328,7 +326,7 @@ class WebSocket {
 				final hi = readUInt32(rxStart + 2);
 				final lo = readUInt32(rxStart + 6);
 				// Reject anything that doesn't fit in our limit, including a set MSB (lo < 0).
-				if (hi != 0 || lo < 0 || lo > WS_MAX_PAYLOAD_SIZE) {
+				if (hi != 0 || lo < 0 || lo > Configuration.WebSocketMaxPayloadSize) {
 					fail(s, StatusCode.MessageTooBig, "payload too large");
 					return;
 				}
@@ -356,7 +354,7 @@ class WebSocket {
 				fail(s, StatusCode.ProtocolError, "unknown opcode " + opcode);
 				return;
 			}
-			if (payloadLen > WS_MAX_PAYLOAD_SIZE) {
+			if (payloadLen > Configuration.WebSocketMaxPayloadSize) {
 				fail(s, StatusCode.MessageTooBig, "payload too large");
 				return;
 			}
@@ -416,7 +414,7 @@ class WebSocket {
 			fragmentSize = 0;
 		}
 
-		if (fragmentSize + payload.length > WS_MAX_PAYLOAD_SIZE) {
+		if (fragmentSize + payload.length > Configuration.WebSocketMaxPayloadSize) {
 			fail(s, StatusCode.MessageTooBig, "message too large");
 			return;
 		}

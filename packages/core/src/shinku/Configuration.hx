@@ -55,4 +55,9 @@ class Configuration {
 		Files inside of it are served without a prefix, so if you have `static/suisei.png`, requesting `/suisei.png` will return that file.
 	**/
 	public static var StaticDirectory:String = "static/";
+
+	/**
+		Defines the maximum payload size of a WebSocket payload.
+	**/
+	public static final WebSocketMaxPayloadSize = 4 * 1024 * 1024;
 }

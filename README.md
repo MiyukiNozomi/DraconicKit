@@ -34,8 +34,4 @@ Another import thing is conditional compilation, normally, a draconic kit projec
 
 ## TODO list
 
-- [ ] HMR
-- [x] Server Sent Events
-- [ ] Form Data
-- [x] WebSockets
-- [ ] Add builder for production
+see [TODOs.md](TODOs.md)

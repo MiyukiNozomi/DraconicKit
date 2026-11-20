@@ -66,14 +66,6 @@ class DraconicBuilder {
 			try {
 				var clsInstance = new MoonlitClass(cls);
 
-				/*
-					TODO: use this to generate TypeScript declarations?
-
-					var rtti = clsInstance.getMethods("DraconicKitGetRTTI");
-					if (rtti.length > 0)
-						trace(clsInstance.getName(), rtti[0].invoke());
-				 */
-
 				var handlerInstance = clsInstance.tryCast(AbstractHandler);
 				var serverPageInstance = clsInstance.tryCast(AbstractServerPage);
 				var serverHooksIntance = clsInstance.tryCast(AbstractServerHooks);

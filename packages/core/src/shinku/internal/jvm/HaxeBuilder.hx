@@ -76,11 +76,7 @@ class HaxeBuilder {
 		final externsDir = Path.join([shinkuDir, "externs"]);
 		if (!FileSystem.exists(externsDir)) {
 			HaxeExternGenerator.generate(externsDir);
-
-			// yup, a hack.
-			// the extern generator gives 0 shits about macro classes.
-			// Still. it's a hack. fix it.
-			// TODO.
+			// We need this to build the user code without explicit imports.
 			File.copy(Path.join([SystemTools.thisHomeDir(), "packages/core/src/IncludeAll.hx"]), Path.join([hacksDir, "IncludeAll.hx"]));
 		}
 

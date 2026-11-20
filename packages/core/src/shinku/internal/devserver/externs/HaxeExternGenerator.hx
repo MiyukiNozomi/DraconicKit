@@ -21,13 +21,6 @@ typedef ModuleInfo = {
 /**
 	It's purpose is to generate externs for the entire public API of draconic kit.
 	However,  This class has a lot of problems.
-
-
-	TODOs:
-	- Declarations such as `inline function locked<R>(fn:() -> R):R` are incorrectly generated
-	  as fields, even though it's a function. the result is that it will not contain type parameters.
-	- Default type parameter declarations are ignored. RequestEvent<T = Dynamic> will generate as RequestEvent<T>.
-
 **/
 class HaxeExternGenerator {
 	static var moduleOf:Map<String, String> = new Map();

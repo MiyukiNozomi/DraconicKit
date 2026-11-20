@@ -1,14 +1,12 @@
 package shinku.internal.devserver.routes;
 
-import haxe.Timer;
-import haxe.atomic.AtomicInt;
-import haxe.atomic.AtomicBool;
 #if draconicbuilder
+import haxe.Timer;
+import haxe.atomic.AtomicBool;
 import shinku.Console.Logger;
 import shinku.handling.AbstractHandler;
 import shinku.handling.RequestHandler.RequestEvent;
 import shinku.handling.tools.ServerSentEvents.ServerEventsAction;
-import hx.concurrent.collection.SynchronizedMap;
 
 class HMRChannelRoute extends AbstractHandler {
 	public function new() {

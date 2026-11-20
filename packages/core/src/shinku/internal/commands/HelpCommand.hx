@@ -26,7 +26,6 @@ class HelpCommand {
 	];
 
 	// heads up that this isnt exactly based on how the terminal handles unicodes
-	// TODO. make it unicode aware so we will still have text aligned no matter the terminal config
 	static function printHelp(sidebar:Array<String>) {
 		var totalLines = new Array<String>();
 

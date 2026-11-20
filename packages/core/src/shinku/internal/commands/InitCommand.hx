@@ -13,7 +13,6 @@ import sys.io.File;
 using StringTools;
 
 class InitCommand {
-	// TODO: delete directory on failure?
 	public static function projectInit(args:Array<String>) {
 		final username = SystemTools.getSystemUsername() ?? "Unnamed Dragon";
 

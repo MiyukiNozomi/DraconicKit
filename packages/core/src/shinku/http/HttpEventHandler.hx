@@ -58,7 +58,7 @@ class HttpEventHandler extends NetworkEventHandler {
 		var hasContentLength = request.headers.exists("content-length");
 		if (hasTransferEncoding && hasContentLength)
 			throw new HttpResponse(400);
-		// TODO: compression for the buffer based one too..
+
 		if (hasTransferEncoding) {
 			return this.readBodyAsChunkedEncoding(request);
 		} else if (hasContentLength) {
@@ -74,7 +74,6 @@ class HttpEventHandler extends NetworkEventHandler {
 			.map(StringTools.trim)
 			.filter(v -> v.length > 0);
 
-		// TODO: compression
 		if (!(header.length == 1 && header[0].toLowerCase() == "chunked")) {
 			throw new HttpResponse(400);
 		}

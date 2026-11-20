@@ -5,8 +5,6 @@ import shinku.Console.Logger;
 import haxe.io.Error;
 import shinku.scheduling.ThreadPool;
 
-// TODO: implement setTimeout?
-
 /**
 	A Class that manage server-wide threads.
 
@@ -17,7 +15,6 @@ class Executor {
 
 	public static function prepare() {
 		var n = SystemTools.getProcessorCount();
-		// TODO: replace this with an ElasticThreadPool instead.
 		pool = new ElasticThreadPool(n);
 		Logger.debug("Working with a maximum of " + n + " worker threads.");
 	}

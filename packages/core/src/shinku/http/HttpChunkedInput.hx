@@ -112,7 +112,6 @@ class HttpChunkedInput extends Input {
 		if (cutOff != -1) {
 			// technically parseInt will ignore everything from ; and onwards.
 			// but lets cut it in case we want to do something about this in the future.
-			// TODO.
 			lengthStr = lengthStr.substring(0, cutOff);
 		}
 
