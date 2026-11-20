@@ -97,10 +97,9 @@ class HttpResponseHandler {
 				} else if (stream != null) {
 					if (!didOriginateFromHEAD) {
 						try {
-							var nRead = 4096;
-							var buff = Bytes.alloc(nRead);
-							while (nRead == buff.length) {
-								nRead = stream.readBytes(buff, 0, buff.length);
+							final buff = Bytes.alloc(4096);
+							while (true) {
+								final nRead = stream.readBytes(buff, 0, buff.length);
 								if (nRead > 0) {
 									transport.socket.output.writeString('${StringTools.hex(nRead)}\r\n');
 									transport.socket.output.writeFullBytes(buff, 0, nRead);

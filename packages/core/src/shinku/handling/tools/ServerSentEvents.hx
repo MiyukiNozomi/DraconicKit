@@ -31,21 +31,19 @@ class ServerEventsAction {
 		res.forceSocketClosure = true;
 
 		Executor.schedule(() -> {
+			final writer = new SSEWriter(output, event.socket);
 			try {
-				// TODO There's a chance the Executor might get overloaded
-				// and the socket be booted off the network for inactivity.
-				// might need some extra testing.
-
-				onConnected(new SSEWriter(output, event.socket));
-			} catch (p:PipeClosed) {
-				// not really an error
-			} catch (err) {
-				Logger.error(err);
+				onConnected(writer);
+			} catch (p:PipeClosed) {} catch (err) {
 				Logger.error("An exception was thrown inside of the onConnected event of the Server Sent Events Action! (see above)");
-				output.close();
 			}
-			if (onDisconnect != null)
+			output.close();
+
+			try {
 				safeDisconnect();
+			} catch (e) {
+				Logger.error("Exception occurred in onDisconnect of a Server Sent Events onDisconnect!: ", e);
+			}
 		});
 		throw res;
 	}
@@ -73,6 +71,7 @@ class SSEWriter {
 			output.writeString('$prefix: $ln\n');
 		}
 		output.writeString('\n');
+		output.flush();
 	}
 
 	/**
@@ -84,6 +83,7 @@ class SSEWriter {
 		if (value.indexOf('\n') != -1 || value.indexOf('\r') != -1)
 			throw Error.Custom("Cannot have newlines in an ID!");
 		output.writeString('id: $value\n\n');
+		output.flush();
 	}
 
 	public function retry(milliseconds:Int):Void {
@@ -91,6 +91,7 @@ class SSEWriter {
 		if (milliseconds < 0)
 			throw Error.Custom("Retry interval cannot be negative!");
 		output.writeString('retry: $milliseconds\n\n');
+		output.flush();
 	}
 
 	public function data(data:String) {

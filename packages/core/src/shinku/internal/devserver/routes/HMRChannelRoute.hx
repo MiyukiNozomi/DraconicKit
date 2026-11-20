@@ -1,5 +1,6 @@
 package shinku.internal.devserver.routes;
 
+import haxe.Timer;
 import haxe.atomic.AtomicInt;
 import haxe.atomic.AtomicBool;
 #if draconicbuilder
@@ -26,7 +27,7 @@ class HMRChannelRoute extends AbstractHandler {
 			// writer.event("banana", "i got nothin!");
 
 			// just let it sleep indefinitely now
-			var lastUpdate = Sys.time();
+			var lastUpdate = Timer.stamp();
 			while (true) {
 				Sys.sleep(0.1);
 
@@ -35,7 +36,7 @@ class HMRChannelRoute extends AbstractHandler {
 					lastUpdate += 5;
 				}
 
-				if (Sys.time() - lastUpdate > 5) {
+				if (Timer.stamp() - lastUpdate > 5) {
 					writer.comment("ping!");
 					lastUpdate += 5;
 				}
