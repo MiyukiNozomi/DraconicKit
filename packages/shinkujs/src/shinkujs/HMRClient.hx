@@ -9,6 +9,10 @@ class HMRClient {
 	public function new() {
 		sse = new EventSource("/@draconickit/hmr");
 
+		sse.onopen = (_) -> {
+			Shinku.debug("HMR connected at ", Date.now().toString());
+		};
+
 		sse.onerror = () -> {
 			Shinku.error("Connection with HMR channel has been lost!");
 		};
