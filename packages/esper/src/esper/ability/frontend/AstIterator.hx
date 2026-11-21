@@ -1,6 +1,7 @@
-package esper;
+package esper.ability.frontend;
 
-import esper.Ast.Node;
+import haxe.io.Error;
+import esper.ability.frontend.Ast.Node;
 
 /**
  *  Depth-first, pre-order iterator over every node of an AST.
@@ -26,6 +27,8 @@ class AstIterator {
 
 	public function next():Node {
 		var entry = stack.pop();
+		if (entry == null)
+			throw Error.Custom;
 		lastDepth = entry.depth;
 		var kids = Ast.children(entry.node);
 		var idx = kids.length;

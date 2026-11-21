@@ -3,6 +3,7 @@
 --class-path packages/core/src
 --class-path packages/esper/src
 --macro nullSafety("shinku", Strict)
+--macro nullSafety("esper", Strict)
 --main DevMain
 --library haxe-concurrent
 --xml bin/shinku-project-symbols.xml

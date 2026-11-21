@@ -26,6 +26,8 @@
 
 ## Esper
 
+- [ ] BigInt
+
 ## ShinkuJS
 
 - [ ] HMR APIs

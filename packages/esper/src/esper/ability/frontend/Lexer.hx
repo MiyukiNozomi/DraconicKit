@@ -1,8 +1,8 @@
-package esper;
+package esper.ability.frontend;
 
-import esper.Parser.ParseError;
-import esper.Token.Token;
-import esper.Token.TokenType;
+import esper.ability.frontend.Parser.ParseError;
+import esper.ability.frontend.Token.Token;
+import esper.ability.frontend.Token.TokenType;
 
 class Lexer {
 	static final KEYWORDS:Array<String> = [

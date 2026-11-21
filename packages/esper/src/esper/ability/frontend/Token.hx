@@ -1,4 +1,4 @@
-package esper;
+package esper.ability.frontend;
 
 enum TokenType {
 	TIdent; // identifiers, including contextual keywords such as let, async, of, get, set

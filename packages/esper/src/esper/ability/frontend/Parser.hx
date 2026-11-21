@@ -1,11 +1,12 @@
-package esper;
+package esper.ability.frontend;
 
-import esper.Ast.ClassData;
-import esper.Ast.FunctionData;
-import esper.Ast.Node;
-import esper.Ast.NodeKind;
-import esper.Token.Token;
+import esper.ability.frontend.Ast.ClassData;
+import esper.ability.frontend.Ast.FunctionData;
+import esper.ability.frontend.Ast.Node;
+import esper.ability.frontend.Ast.NodeKind;
+import esper.ability.frontend.Token.Token;
 
+@:nullSafety(Off)
 class Parser {
 	static final ASSIGN_OPS:Array<String> = [
 		"=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", ">>>=", "&=", "|=", "^=", "&&=", "||=", "??="

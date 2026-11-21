@@ -1,12 +1,12 @@
 package esper.transformation;
 
-import esper.AstIterator;
-import esper.Codegen;
-import esper.Parser;
-import esper.resolution.ESMResolver;
+import esper.ability.JSStringifier;
+import esper.ability.frontend.Parser;
+import esper.ability.frontend.AstIterator;
 import haxe.io.Path;
-import shinku.Console.Logger;
 import sys.FileSystem;
+import shinku.Console.Logger;
+import esper.resolution.ESMResolver;
 
 using StringTools;
 
@@ -69,7 +69,7 @@ const __draconicImport = (p, o) => {
 			//	trace(indent + Type.enumConstructor(node.kind) + ' (line ${node.line}, col ${node.col})');
 		}
 
-		final output = Codegen.generate(program);
+		final output = JSStringifier.stringify(program);
 
 		#if draconicdev
 		//  Logger.debug("======= TRANSFORMATION OF " + thisPath + " =======");

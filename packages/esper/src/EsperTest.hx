@@ -1,12 +1,19 @@
-import esper.AstIterator;
-import esper.Parser;
+import esper.ability.compiler.Compiler;
+import sys.io.File;
+import esper.ability.frontend.Parser;
+import esper.ability.frontend.AstIterator;
 import esper.transformation.JavaScriptTransformer;
 
 using StringTools;
 
 class EsperTest {
 	static function main() {
-		transformTest();
+		engineTest();
+		// transformTest();
+	}
+
+	static function engineTest() {
+		new Compiler("test.cjs").compile(File.getContent("test.cjs"));
 	}
 
 	static function transformTest() {

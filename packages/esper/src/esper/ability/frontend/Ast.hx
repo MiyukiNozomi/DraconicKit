@@ -1,4 +1,4 @@
-package esper;
+package esper.ability.frontend;
 
 typedef Node = {
 	var kind:NodeKind;

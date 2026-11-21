@@ -2,4 +2,5 @@
 --class-path packages/core/src
 --library haxe-concurrent
 --jvm bin/EsperTest.jar
+--macro nullSafety("esper", Strict)
 --main EsperTest

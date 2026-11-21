@@ -1,8 +1,8 @@
-package esper;
+package esper.ability;
 
-import esper.Ast.ClassData;
-import esper.Ast.FunctionData;
-import esper.Ast.Node;
+import esper.ability.frontend.Ast.ClassData;
+import esper.ability.frontend.Ast.FunctionData;
+import esper.ability.frontend.Ast.Node;
 
 /**
  * Turns an AST back into JavaScript source text.
@@ -11,7 +11,7 @@ import esper.Ast.Node;
  * decides where parentheses are needed from operator precedence. Comments are not part
  * of the AST and are not printed.
  */
-class Codegen {
+class JSStringifier {
 	static var IDENT_NAME = ~/^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
 	var level = 0;
@@ -19,8 +19,8 @@ class Codegen {
 
 	public function new() {}
 
-	public static function generate(program:Node):String {
-		return new Codegen().program(program);
+	public static function stringify(program:Node):String {
+		return new JSStringifier().program(program);
 	}
 
 	function pad():String {
