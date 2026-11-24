@@ -1,14 +1,19 @@
 package esper.ability.compiler;
 
-import esper.ability.frontend.AstIterator;
 import esper.ability.bytecode.BytecodeWriter;
 import esper.ability.bytecode.Opcodes;
 import esper.ability.frontend.Ast;
+import esper.ability.frontend.AstIterator;
 import esper.ability.frontend.Parser;
 import haxe.Exception;
 import haxe.ds.StringMap;
 import haxe.io.Error;
 import shinku.Console.Logger;
+
+typedef Scope = {
+	depth:Int,
+	isFunction:Bool,
+}
 
 enum VariableKind {
 	VAR;
@@ -29,40 +34,45 @@ class CompilerContext {
 	public var parent:Null<CompilerContext>;
 
 	public var writer:BytecodeWriter;
-	public var scopeDepth:Int;
 	public var varSlots:StringMap<Array<VariableSlot>>;
 
 	public var funcData:Null<FunctionData>;
 
 	public var varCount(default, null) = 0;
-	public var isFunctionScope(get, never):Bool;
-	public var isTopLevel(get, never):Bool;
+
+	public var scopes:Array<Scope>;
 
 	var compiler:Compiler;
 
+	public var isFunctionScope(get, never):Bool;
+	public var isTopLevel(get, never):Bool;
+	public var scopeDepth(get, never):Int;
+
 	public function new(compiler:Compiler, parent:Null<CompilerContext>, ?funcData:FunctionData) {
-		this.compiler = compiler;
 		this.parent = parent;
-		this.funcData = funcData;
 		this.writer = new BytecodeWriter();
-		this.scopeDepth = 0;
 		this.varSlots = new StringMap();
+		this.funcData = funcData;
+		this.scopes = [];
+		this.compiler = compiler;
 	}
 
-	function get_isFunctionScope() {
-		return this.scopeDepth == 1;
-	}
+	function get_isFunctionScope()
+		return scopes.length > 0 && scopes[scopes.length - 1].isFunction;
+
+	function get_scopeDepth()
+		return scopes.length;
 
 	function get_isTopLevel() {
 		return this.isFunctionScope && this.parent == null;
 	}
 
-	public function openScope() {
-		this.scopeDepth++;
+	public function openScope(isFunction:Bool = false) {
+		scopes.push({depth: scopes.length, isFunction: isFunction});
 	}
 
 	public function closeScope() {
-		this.scopeDepth--;
+		this.scopes.pop();
 
 		final names = [for (k in this.varSlots.keys()) k];
 		for (name in names)
@@ -99,6 +109,10 @@ class CompilerContext {
 			this.varSlots.set(name, existing);
 			return variableData.slot;
 		};
+
+		// isn't this deviating a bit?
+		if (name == "undefined" && variableData.isTopLevel)
+			error({nd: nd}, "Cannot redeclare `undefined` in the top level scope.");
 
 		switch (variableData.kind) {
 			case VAR:
@@ -155,26 +169,21 @@ class Compiler {
 	var current(get, never):CompilerContext;
 
 	public var filename:String;
+	public var rootNode:Null<Node>;
 	public var strictMode:Bool = false;
 
 	public function new(filename:String) {
 		this.filename = filename;
 	}
 
-	public function compile(contents:String):Null<EsperFunction> {
+	public function compile(contents:String):EsperFunction {
 		var rootNode:Node;
 		try {
 			rootNode = Parser.parse(contents, false); // no ESM support yet.
 		} catch (p:ParseError) {
 			throw new CompilerError({line: p.line, col: p.col}, p.message, "SyntaxError");
 		}
-
-		var it = new AstIterator(rootNode);
-
-		for (node in it) {
-			var indent = StringTools.lpad("", " ", it.lastDepth * 2);
-			trace(indent + Type.enumConstructor(node.kind) + ' (line ${node.line}, col ${node.col})');
-		}
+		this.rootNode = rootNode;
 
 		// access if we're in strict mode or not
 		switch (rootNode.kind) {
@@ -190,14 +199,13 @@ class Compiler {
 			default:
 		}
 
-		Logger.warn("Is strict mode? ", this.strictMode);
-
 		newContext();
-		// initialize it as 1 so it matches a function declaration.
-		this.current.scopeDepth = 1;
 
+		this.current.openScope(true);
 		this.visitNode(rootNode);
-		return closeFunction();
+		this.current.closeScope();
+
+		return closeFunction(null);
 	}
 
 	function visitNode(node:Node) {
@@ -224,8 +232,59 @@ class Compiler {
 			case Identifier(_):
 				writeAquisition(node);
 			default:
+				this.visitExpr(node);
+		}
+	}
+
+	function visitExpr(node:Node) {
+		switch (node.kind) {
+			case ExpressionStatement(expr):
+				this.visitExpr(expr);
+				current.writer.write(node.line, Opcodes.Pop);
+			case Identifier(_):
+				writeAquisition(node);
+			case NumberLiteral(v):
+				current.writer.write(node.line, Opcodes.Push, current.writer.addConstant(JSValue(Number(v))));
+			case BigIntLiteral(v):
+				current.writer.write(node.line, Opcodes.Push, current.writer.addConstant(JSValue(BigInt(v))));
+			case StringLiteral(v):
+				current.writer.write(node.line, Opcodes.Push, current.writer.addConstant(JSValue(String(v))));
+			case BooleanLiteral(v):
+				current.writer.write(node.line, v ? Opcodes.PushTrue : Opcodes.PushFalse);
+			case NullLiteral:
+				current.writer.write(node.line, Opcodes.PushNull);
+			case BinaryExpression(operator_, left, right):
+				this.handleBinary(node, operator_, left, right);
+			default:
 				error({nd: node}, "This node has not been implemented in the compiler:", node.kind.getName());
 		}
+	}
+
+	function handleBinary(nd:Node, operator_:String, left:Node, right:Node) {
+		this.visitExpr(left);
+		this.visitExpr(right);
+
+		current.writer.write(nd.line, switch (operator_) {
+			case "+": Opcodes.Add;
+			case "-": Opcodes.Sub;
+			case "/": Opcodes.Div;
+			case "*": Opcodes.Mul;
+			case "%": Opcodes.Mod;
+
+			case "==": Opcodes.CheckEqual;
+			case "!=": Opcodes.CheckNotEqual;
+
+			case "===": Opcodes.CheckEqualStrictType;
+			case "!==": Opcodes.CheckNotEqualStrictType;
+
+			case ">": Opcodes.GreaterThan;
+			case ">=": Opcodes.GreaterOrEqual;
+			case "<": Opcodes.LessThan;
+			case "<=": Opcodes.LessOrEqual;
+			default:
+				error({nd: nd}, "Operator not implemented in handleBinary!");
+				Opcodes.Nop;
+		});
 	}
 
 	function handleScope(body:Array<Node>) {
@@ -268,17 +327,29 @@ class Compiler {
 		if (variableInfo.slot.kind == CONST && isDeclaration && value == null)
 			error({nd: id}, "Missing initializer in const declaration");
 
-		this.current.writer.write(id.line, switch (variableInfo.slot.kind) {
-			case VAR, PARAMETER: isDeclaration ? Opcodes.DefineVar : Opcodes.SetVar;
-			case LET, FUNCTION: isDeclaration ? Opcodes.DefineLocal : Opcodes.SetLocal;
-			case CONST: Opcodes.DefineConstant;
-		}, variableInfo.slot.slot, variableInfo.envDepth);
+		if (isDeclaration)
+			this.current.writer.write(id.line, switch (variableInfo.slot.kind) {
+				case VAR, PARAMETER: Opcodes.DefineVar;
+				case LET, FUNCTION: Opcodes.DefineLocal;
+				case CONST: Opcodes.DefineConstant;
+			}, variableInfo.slot.slot);
+		else
+			this.current.writer.write(id.line, switch (variableInfo.slot.kind) {
+				case VAR, PARAMETER: Opcodes.SetVar;
+				case LET, FUNCTION: Opcodes.SetLocal;
+				case CONST: Opcodes.Nop;
+			}, variableInfo.slot.slot, variableInfo.envDepth);
 	}
 
 	function writeAquisition(id:Node) {
 		var stringId = identifierOrThrow(id);
 
 		var variableInfo = this.current.getVariable(stringId);
+
+		if (stringId == "undefined" && variableInfo == null) {
+			this.current.writer.write(id.line, Opcodes.PushUndefined);
+			return;
+		}
 
 		if (variableInfo == null || isSlotGlobal(variableInfo.slot)) {
 			this.current.writer.writeStringOp(id.line, Opcodes.GetGlobal, stringId);
@@ -366,12 +437,14 @@ class Compiler {
 	function compileFunc(fn:FunctionData) {
 		newContext(fn);
 
+		this.current.openScope(true);
+
 		for (param in fn.params) {
 			switch (param.kind) {
 				case Identifier(id):
 					this.current.createVariable(param, id, {
 						kind: PARAMETER,
-						scopeDepth: this.current.scopeDepth + 1,
+						scopeDepth: this.current.scopeDepth,
 						slot: 0,
 						isTopLevel: current.isTopLevel,
 					});
@@ -379,15 +452,21 @@ class Compiler {
 					error({nd: param}, "Node type in function parameter not implemented: ", param);
 			}
 		}
+		switch (fn.body.kind) {
+			case BlockStatement(body):
+				handleScope(body);
+			default:
+				error({nd: fn.body}, "Function body must be a block statement");
+		}
 
-		this.visitNode(fn.body);
-		return this.closeFunction();
+		this.current.closeScope();
+		return this.closeFunction(fn);
 	}
 
-	function closeFunction() {
+	function closeFunction(fn:Null<FunctionData>) {
 		if (!this.current.writer.returnWritten)
 			this.current.writer.write(-1, Opcodes.Return);
-		var jsf = this.current.writer.toFunction(this.current.varCount);
+		var jsf = this.current.writer.toFunction(this.current.varCount, this.filename, (fn != null ? fn.name : null) ?? "<script>");
 		this.__current = this.current.parent;
 		return jsf;
 	}
@@ -398,8 +477,7 @@ class Compiler {
 
 	function identifierOrThrow(id:Node) {
 		return switch (id.kind) {
-			case Identifier(r):
-				return r;
+			case Identifier(r): return r;
 			default:
 				error({nd: id}, "Wanted Identifier but got", id.kind.getName(), "instead!");
 				return "";

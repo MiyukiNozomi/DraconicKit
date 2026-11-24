@@ -1,9 +1,8 @@
-"use strict";
-{
-  var f;
-  function f() {}
-} // SyntaxError in Node, yours compiles
-{
-  function f() {}
-  var f;
-} // SyntaxError in Node, yours compiles
+("hi?");
+let a = 4 + 6 * 12;
+4 == 124;
+
+true === false;
+true !== false;
+
+a > 4;

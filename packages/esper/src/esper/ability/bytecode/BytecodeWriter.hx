@@ -1,9 +1,8 @@
 package esper.ability.bytecode;
 
-import haxe.io.Error;
-import esper.ability.vm.Value;
 import esper.ability.bytecode.Opcodes;
 import haxe.io.BytesBuffer;
+import haxe.io.Error;
 
 class BytecodeWriter {
 	public var buffer:BytesBuffer;
@@ -27,9 +26,11 @@ class BytecodeWriter {
 	}
 
 	public function writeStringOp(line:Int, opcode:Int, str:String) {
+		var bytes = haxe.io.Bytes.ofString(str, UTF8);
+
 		buffer.addByte(opcode);
-		buffer.addInt32(str.length);
-		buffer.addString(str, UTF8);
+		buffer.addInt32(bytes.length);
+		buffer.add(bytes);
 		this.ensureLine(line);
 	}
 
@@ -38,13 +39,15 @@ class BytecodeWriter {
 			throw Error.Custom("opcodes list cannot be empty!");
 
 		buffer.addByte(opcodes[0]);
-		for (op in opcodes)
-			buffer.addInt32(op);
+
+		for (i in 1...opcodes.length)
+			buffer.addInt32(opcodes[i]);
+
 		this.ensureLine(line);
 	}
 
-	public function toFunction(varCount) {
-		return new EsperFunction(varCount, buffer.getBytes(), constants, lines);
+	public function toFunction(varCount, filename, funcName) {
+		return new EsperFunction(filename, funcName, varCount, buffer.getBytes(), constants, lines);
 	}
 
 	function ensureLine(line:Int) {

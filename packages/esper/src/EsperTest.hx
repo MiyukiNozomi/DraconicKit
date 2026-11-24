@@ -1,3 +1,4 @@
+import esper.ability.compiler.Disassembler;
 import esper.ability.compiler.Compiler;
 import sys.io.File;
 import esper.ability.frontend.Parser;
@@ -13,7 +14,17 @@ class EsperTest {
 	}
 
 	static function engineTest() {
-		new Compiler("test.cjs").compile(File.getContent("test.cjs"));
+		final cc = new Compiler("test.cjs");
+		var esperFunc = cc.compile(File.getContent("test.cjs"));
+
+		var it = new AstIterator(cc.rootNode);
+
+		for (node in it) {
+			var indent = StringTools.lpad("", " ", it.lastDepth * 2);
+			trace(indent + Type.enumConstructor(node.kind) + ' (line ${node.line}, col ${node.col})');
+		}
+
+		Disassembler.disassemble(esperFunc);
 	}
 
 	static function transformTest() {
