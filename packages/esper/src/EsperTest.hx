@@ -14,15 +14,17 @@ class EsperTest {
 	}
 
 	static function engineTest() {
-		final cc = new Compiler("test.cjs");
-		var esperFunc = cc.compile(File.getContent("test.cjs"));
+		final src = File.getContent("test.cjs");
 
-		var it = new AstIterator(cc.rootNode);
+		var it = new AstIterator(Parser.parse(src));
 
 		for (node in it) {
 			var indent = StringTools.lpad("", " ", it.lastDepth * 2);
 			trace(indent + Type.enumConstructor(node.kind) + ' (line ${node.line}, col ${node.col})');
 		}
+
+		final cc = new Compiler("test.cjs");
+		var esperFunc = cc.compile(src);
 
 		Disassembler.disassemble(esperFunc);
 	}

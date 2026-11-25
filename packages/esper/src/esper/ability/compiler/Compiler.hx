@@ -253,11 +253,31 @@ class Compiler {
 				current.writer.write(node.line, v ? Opcodes.PushTrue : Opcodes.PushFalse);
 			case NullLiteral:
 				current.writer.write(node.line, Opcodes.PushNull);
+			case UnaryExpression(operator_, argument):
+				this.handleUnary(node, operator_, argument);
 			case BinaryExpression(operator_, left, right):
 				this.handleBinary(node, operator_, left, right);
 			default:
 				error({nd: node}, "This node has not been implemented in the compiler:", node.kind.getName());
 		}
+	}
+
+	function handleUnary(nd:Node, operator_:String, argument:Node) {
+		this.visitExpr(argument);
+
+		current.writer.write(nd.line, switch (operator_) {
+			case "+": Opcodes.ToNumber;
+			case "-": Opcodes.Negate;
+			case "!": Opcodes.LogicalNot;
+			case "~": Opcodes.BitwiseNot;
+
+			case "typeof": Opcodes.Typeof;
+			case "void": Opcodes.Void;
+			case "delete": Opcodes.Delete;
+			default:
+				error({nd: nd}, "Operator not implemented in handleUnary!");
+				Opcodes.Nop;
+		});
 	}
 
 	function handleBinary(nd:Node, operator_:String, left:Node, right:Node) {
@@ -337,7 +357,7 @@ class Compiler {
 			this.current.writer.write(id.line, switch (variableInfo.slot.kind) {
 				case VAR, PARAMETER: Opcodes.SetVar;
 				case LET, FUNCTION: Opcodes.SetLocal;
-				case CONST: Opcodes.Nop;
+				case CONST: Opcodes.SetConstant;
 			}, variableInfo.slot.slot, variableInfo.envDepth);
 	}
 

@@ -48,12 +48,6 @@ class Disassembler {
 		};
 
 		while (i < func.bytes.length) {
-			Sys.print(func.bytes.get(i++) + ", ");
-		}
-		Sys.println('');
-		i = 0;
-
-		while (i < func.bytes.length) {
 			final b:Opcodes = func.bytes.get(i++);
 
 			w([
@@ -74,7 +68,7 @@ class Disassembler {
 				case DefineVar, DefineLocal, DefineConstant:
 					w([nextInt()]);
 
-				case SetVar, GetVar, SetLocal, GetLocal, GetConstant:
+				case SetVar, GetVar, SetLocal, GetLocal, GetConstant, SetConstant:
 					w([nextInt(), nextInt()]);
 
 				case DefineGlobal, SetGlobal, GetGlobal:

@@ -33,6 +33,15 @@ enum abstract Opcodes(Int) from Int to Int {
 	var LessOrEqual;
 	var GreaterOrEqual;
 
+	var ToNumber;
+	var Negate;
+	var LogicalNot;
+	var BitwiseNot;
+
+	var Typeof;
+	var Void;
+	var Delete;
+
 	var Jump;
 	var JumpIfFalse;
 
@@ -46,6 +55,7 @@ enum abstract Opcodes(Int) from Int to Int {
 
 	var DefineConstant;
 	var GetConstant;
+	var SetConstant; // this one is just here so it throws
 
 	var DefineGlobal;
 	var SetGlobal;

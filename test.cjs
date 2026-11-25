@@ -6,3 +6,10 @@ true === false;
 true !== false;
 
 a > 4;
+
+-true;
+!false;
+
+typeof "foo";
+delete banana;
+void 0;
