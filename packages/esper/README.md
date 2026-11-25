@@ -1,5 +1,7 @@
+![Esper Logo](./logo.webp)
+
 # Esper
 
-A prototype and highly experimental ES2020 Parser.
+A prototype and highly experimental ES2020 Engine. It also includes a JavaScript transformer that resolves ES Module pathnames to either physical locations or DraconicKit's `/@draconickit/module` (or `/@draconickit/resolve-dynamic/`) route.
 
-TODO: in the future, make it use something like QuickJS-NG/JSC instead of running a node "daemon" on the background...
+This package is a **work in progress**.
