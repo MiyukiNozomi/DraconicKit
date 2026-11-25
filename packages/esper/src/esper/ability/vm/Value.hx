@@ -1,7 +1,7 @@
 package esper.ability.vm;
 
+import esper.ability.vm.Interop.EsperNativeFunction;
 import esper.ability.bytecode.Opcodes;
-import esper.ability.vm.Interop.EsperFunction;
 import haxe.ds.StringMap;
 import shinku.std.ds.OrderedMap;
 
@@ -99,7 +99,7 @@ class JSEnvironment {
 
 enum JSFunctionImpl {
 	Bytecode(v:EsperFunction, closure:JSEnvironment);
-	Native(fn:EsperFunction);
+	Native(fn:EsperNativeFunction);
 }
 
 class JSFunction extends JSObject {

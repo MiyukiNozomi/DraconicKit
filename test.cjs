@@ -1,1 +1,3 @@
-true || false;
+function f(a) {
+  let a;
+}

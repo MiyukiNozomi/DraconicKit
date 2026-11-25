@@ -31,6 +31,19 @@ class Disassembler {
 
 		var i = 0;
 
+		while (i < func.bytes.length)
+			i = disassembleInstruction(func, i);
+
+		Sys.println('');
+	}
+
+	public static function disassembleInstruction(func:EsperFunction, i:Int) {
+		final b:Opcodes = func.bytes.get(i++);
+
+		final w = (d:Array<Dynamic>) -> {
+			Sys.print(d.map(v -> Std.string(v)).join(' '));
+		};
+
 		final nextInt = () -> {
 			final r = i;
 			i += 4;
@@ -43,45 +56,37 @@ class Disassembler {
 			return s;
 		};
 
-		final w = (d:Array<Dynamic>) -> {
-			Sys.print(d.map(v -> Std.string(v)).join(' '));
-		};
+		w([
+			"  ",
+			Std.string(func.getLineAt(i)).lpad('0', 4),
+			Std.string(i - 1).lpad('0', 4),
+			AbstractEnumTools.toName(b),
+			""
+		]);
 
-		while (i < func.bytes.length) {
-			final b:Opcodes = func.bytes.get(i++);
+		switch (b) {
+			case Push, MakeClosure:
+				final ii = nextInt();
+				w([ii, func.constants[ii]]);
 
-			w([
-				"  ",
-				Std.string(func.getLineAt(i)).lpad('0', 4),
-				Std.string(i - 1).lpad('0', 4),
-				AbstractEnumTools.toName(b),
-				""
-			]);
+			case Jump, JumpIfFalse:
+				{
+					final v = nextInt();
+					w([v, "(" + i + " -> " + v + ")"]);
+				}
 
-			switch (b) {
-				case Push, MakeClosure:
-					final ii = nextInt();
-					w([ii, func.constants[ii]]);
+			case DefineVar, DefineLocal, DefineConstant:
+				w([nextInt()]);
 
-				case Jump, JumpIfFalse:
-					{
-						final v = nextInt();
-						w([v, "(" + i + " -> " + v + ")"]);
-					}
+			case SetVar, GetVar, SetLocal, GetLocal, GetConstant, SetConstant:
+				w([nextInt(), nextInt()]);
 
-				case DefineVar, DefineLocal, DefineConstant:
-					w([nextInt()]);
-
-				case SetVar, GetVar, SetLocal, GetLocal, GetConstant, SetConstant:
-					w([nextInt(), nextInt()]);
-
-				case DefineGlobal, SetGlobal, GetGlobal:
-					w(['"' + nextString() + '"']);
-				default:
-			}
-			Sys.println('');
+			case DefineGlobal, SetGlobal, GetGlobal:
+				w(['"' + nextString() + '"']);
+			default:
 		}
-
 		Sys.println('');
+
+		return i;
 	}
 }

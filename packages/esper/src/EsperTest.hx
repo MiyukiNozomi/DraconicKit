@@ -1,3 +1,4 @@
+import esper.ability.vm.EsperVM;
 import esper.ability.compiler.Disassembler;
 import esper.ability.compiler.Compiler;
 import sys.io.File;
@@ -27,6 +28,9 @@ class EsperTest {
 		var esperFunc = cc.compile(src);
 
 		Disassembler.disassemble(esperFunc);
+
+		final vm = new EsperVM();
+		vm.interpret(esperFunc);
 	}
 
 	static function transformTest() {
