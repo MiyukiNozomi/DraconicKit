@@ -32,6 +32,12 @@ If you build draconickit from `build-dev.hxml`, it will set `Configuration.Clean
 
 Another import thing is conditional compilation, normally, a draconic kit project has `dev` as it's development mode flag. However, the builder itself has it's own dev flag. being `draconicdev`. Code that is specific to the draconic builder needs to be encloused in a check against `draconicbuilder`.
 
+# Project Structure
+
+The documentation website is located at `docsite/` and is a custom static website generator using XHTML and hscript for preprocessing, as DraconicKit is not designed for static websites.
+
+For DraconicKit's source code, refer to the readme at [packages/README.md](packages/README.md) for a more detailed explanation.
+
 ## TODO list
 
 see [TODOs.md](TODOs.md)
