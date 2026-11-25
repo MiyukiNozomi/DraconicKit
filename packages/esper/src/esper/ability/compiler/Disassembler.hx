@@ -53,6 +53,7 @@ class Disassembler {
 			w([
 				"  ",
 				Std.string(func.getLineAt(i)).lpad('0', 4),
+				Std.string(i - 1).lpad('0', 4),
 				AbstractEnumTools.toName(b),
 				""
 			]);
@@ -63,7 +64,10 @@ class Disassembler {
 					w([ii, func.constants[ii]]);
 
 				case Jump, JumpIfFalse:
-					w([nextInt()]);
+					{
+						final v = nextInt();
+						w([v, "(" + i + " -> " + v + ")"]);
+					}
 
 				case DefineVar, DefineLocal, DefineConstant:
 					w([nextInt()]);

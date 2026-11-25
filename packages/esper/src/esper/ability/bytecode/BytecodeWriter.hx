@@ -46,6 +46,23 @@ class BytecodeWriter {
 		this.ensureLine(line);
 	}
 
+	public function emitJump(line:Int, opcode:Int) {
+		buffer.addByte(opcode);
+		buffer.addInt32(0);
+		var offset = buffer.length;
+		this.ensureLine(line);
+		return offset;
+	}
+
+	public function patchJump(offset:Int) {
+		var b = new BytesBuffer();
+		var curr = this.buffer.getBytes();
+		b.addBytes(curr, 0, offset - 4);
+		b.addInt32(curr.length);
+		b.addBytes(curr, offset, curr.length - offset);
+		this.buffer = b;
+	}
+
 	public function toFunction(varCount, filename, funcName) {
 		return new EsperFunction(filename, funcName, varCount, buffer.getBytes(), constants, lines);
 	}

@@ -177,16 +177,22 @@ class Compiler {
 	}
 
 	public function compile(contents:String):EsperFunction {
-		var rootNode:Node;
 		try {
 			rootNode = Parser.parse(contents, false); // no ESM support yet.
 		} catch (p:ParseError) {
 			throw new CompilerError({line: p.line, col: p.col}, p.message, "SyntaxError");
 		}
-		this.rootNode = rootNode;
+
+		// we know it cannot be null here.
+		// however, the null safety system is flagging it as "possibly null" downstream.
+		var nonNullRoot:Node;
+		if (rootNode == null)
+			throw "rootNode is NULL!";
+		else
+			nonNullRoot = rootNode;
 
 		// access if we're in strict mode or not
-		switch (rootNode.kind) {
+		switch (nonNullRoot.kind) {
 			case Program(arr):
 				if (arr.length > 0)
 					this.strictMode = switch (arr[0].kind) {
@@ -202,7 +208,7 @@ class Compiler {
 		newContext();
 
 		this.current.openScope(true);
-		this.visitNode(rootNode);
+		this.visitNode(nonNullRoot);
 		this.current.closeScope();
 
 		return closeFunction(null);
@@ -224,10 +230,6 @@ class Compiler {
 				for (dec in declarations) {
 					handleDeclaration(kind, dec);
 				}
-			case FunctionExpression(fn):
-				final jsf = compileFunc(fn);
-				final index = this.current.writer.addConstant(FunctionTemplate(jsf));
-				this.current.writer.write(node.line, Opcodes.MakeClosure, index);
 			case FunctionDeclaration(_): // no-op.
 			case Identifier(_):
 				writeAquisition(node);
@@ -257,6 +259,12 @@ class Compiler {
 				this.handleUnary(node, operator_, argument);
 			case BinaryExpression(operator_, left, right):
 				this.handleBinary(node, operator_, left, right);
+			case LogicalExpression(operator_, left, right):
+				this.handleLogical(node, operator_, left, right);
+			case FunctionExpression(fn):
+				final jsf = compileFunc(fn);
+				final index = this.current.writer.addConstant(FunctionTemplate(jsf));
+				this.current.writer.write(node.line, Opcodes.MakeClosure, index);
 			default:
 				error({nd: node}, "This node has not been implemented in the compiler:", node.kind.getName());
 		}
@@ -305,6 +313,37 @@ class Compiler {
 				error({nd: nd}, "Operator not implemented in handleBinary!");
 				Opcodes.Nop;
 		});
+	}
+
+	function handleLogical(nd:Node, operator_:String, left:Node, right:Node) {
+		switch (operator_) {
+			case "&&":
+				{
+					this.visitExpr(left);
+
+					var endJump = this.current.writer.emitJump(nd.line, Opcodes.JumpIfFalse);
+					this.current.writer.write(nd.line, Opcodes.Pop);
+
+					this.visitExpr(right);
+
+					this.current.writer.patchJump(endJump);
+				}
+			case "||":
+				{
+					this.visitExpr(left);
+
+					var elseJump = this.current.writer.emitJump(nd.line, Opcodes.JumpIfFalse);
+					var endJump = this.current.writer.emitJump(nd.line, Opcodes.Jump);
+					this.current.writer.patchJump(elseJump);
+
+					this.current.writer.write(nd.line, Opcodes.Pop);
+
+					this.visitExpr(right);
+					this.current.writer.patchJump(endJump);
+				}
+			default:
+				error({nd: nd}, "Operator not implemented in handleLogical!");
+		}
 	}
 
 	function handleScope(body:Array<Node>) {
